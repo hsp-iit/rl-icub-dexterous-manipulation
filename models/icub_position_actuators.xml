@@ -1,7 +1,7 @@
 <mujoco model="iCub">
     <compiler angle="radian" meshdir="../meshes/" inertiafromgeom="false"/>
     <size njmax="1000" nconmax="10000" />
-    <option timestep="0.0001" gravity="0 0 -9.81"/>
+    <option timestep="0.01" gravity="0 0 -9.81"/>
     
     <default>
         <joint limited="true" damping="5.0" stiffness="0" armature="0.0" frictionloss="1.0"/>
