@@ -6,7 +6,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--render_from_camera',
                     action='store_true',
-                    help='Set the parameter to render head camera images and display them with OpenCV. As default use'
+                    help='Set the parameter to render head camera images and display them with OpenCV. As default use '
                          'dm_control viewer.')
 args = parser.parse_args()
 
@@ -20,9 +20,7 @@ env = composer.Environment(task)
 
 actuator_names = [actuator.name for actuator in world_entity.mjcf_model.find_all('actuator')]
 joint_names = [joint.name for joint in world_entity.mjcf_model.find_all('joint')]
-
 map_joint_to_actuators = []
-
 for actuator in actuator_names:
     map_joint_to_actuators.append(joint_names.index(actuator))
 

@@ -492,6 +492,9 @@
                 </body>
             </body>    
         </body>
+        <body name="front_camera" pos="-1 0 0.9" quat="-0.5 -0.5 0.5 0.5">
+            <camera name="front_cam" fovy="70"/>
+        </body>
     </worldbody>
     
     <actuator>
