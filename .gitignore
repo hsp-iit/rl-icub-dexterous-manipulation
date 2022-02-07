@@ -6,3 +6,6 @@ tensorboards/
 logs_eval/
 
 .idea/
+
+/*.egg-info
+

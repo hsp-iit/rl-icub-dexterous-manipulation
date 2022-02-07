@@ -1,4 +1,4 @@
-from envs.icub_visuomanip import ICubEnv
+from icub_mujoco.envs.icub_visuomanip import ICubEnv
 from stable_baselines3 import SAC
 import argparse
 
@@ -52,7 +52,7 @@ parser.add_argument('--eval_freq',
                     action='store',
                     type=int,
                     default=100000,
-                    help='Set the evaluation frequancy for SAC. Default is 100k')
+                    help='Set the evaluation frequency for SAC. Default is 100k')
 parser.add_argument('--icub_observation_space',
                     action='store',
                     type=str,
@@ -62,8 +62,12 @@ parser.add_argument('--icub_observation_space',
 parser.add_argument('--render_cameras',
                     type=str,
                     nargs='+',
-                    default=['front_cam', 'head_cam'],
-                    help='Set the cameras used for rendering. Default cameras are front_cam and head_cam')
+                    default=[],
+                    help='Set the cameras used for rendering. Available cameras are front_cam and head_cam.')
+parser.add_argument('--print_done_info',
+                    action='store_true',
+                    help='Print information at the end of each episode')
+
 
 args = parser.parse_args()
 
@@ -72,7 +76,8 @@ iCub = ICubEnv(model_path=args.xml_model_path,
                render_cameras=tuple(args.render_cameras),
                reward_goal=args.reward_goal,
                reward_out_of_joints=args.reward_out_of_joints,
-               reward_single_step_multiplier=args.reward_single_step_multiplier)
+               reward_single_step_multiplier=args.reward_single_step_multiplier,
+               print_done_info=args.print_done_info)
 
 model = SAC("MlpPolicy",
             iCub,

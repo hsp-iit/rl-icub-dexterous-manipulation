@@ -16,7 +16,7 @@ class ICubEnv(gym.Env):
                  render_cameras=(),
                  use_only_torso_and_arms=True,
                  initial_qpos_path='../config/initial_qpos.yaml',
-                 print_done_infos=False,
+                 print_done_info=False,
                  reward_goal=1.0,
                  reward_out_of_joints=-1.0,
                  reward_single_step_multiplier=10.0):
@@ -43,7 +43,7 @@ class ICubEnv(gym.Env):
         self.steps = 0
         self._max_episode_steps = 2000
         self.render_cameras = render_cameras
-        self.print_done_infos = print_done_infos
+        self.print_done_info = print_done_info
 
         # Load initial qpos from yaml file and map joint ids to actuator ids
         with open(initial_qpos_path) as initial_qpos_file:
@@ -188,7 +188,7 @@ class ICubEnv(gym.Env):
                 'Done': {'timesteps': done_timesteps,
                          'goal_reached': done_goal,
                          'limits exceeded': self.joints_out_of_range()}}
-        if done and self.print_done_infos:
+        if done and self.print_done_info:
             print(info)
 
         return observation, reward, done, info
