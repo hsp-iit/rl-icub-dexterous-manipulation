@@ -77,21 +77,21 @@ class ICubEnv(gym.Env):
         self._set_observation_space()
         self._set_state_space()
 
-        # Reset environment
-        self.reset()
-        self.env.reset()
+        # Set task parameters
+        self.eef_name = 'r_hand'
+        self.eef_id_xpos = self.env.physics.model.name2id('r_hand', 'body')
+        self.target_eef_pos = np.array([-0.3, 0.1, 1.01])
+        self.goal_xpos_tolerance = 0.05
 
         # Set reward values
         self.reward_goal = reward_goal
         self.reward_out_of_joints = reward_out_of_joints
         self.reward_single_step_multiplier = reward_single_step_multiplier
 
-        # Set task parameters
-        self.eef_name = 'r_hand'
-        self.eef_id_xpos = self.env.physics.model.name2id('r_hand', 'body')
+        # Reset environment
+        self.reset()
+        self.env.reset()
         self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
-        self.target_eef_pos = np.array([-0.3, 0.1, 1.01])
-        self.goal_xpos_tolerance = 0.05
 
     def _set_action_space(self):
         if self.use_only_torso_and_arms:
@@ -199,6 +199,7 @@ class ICubEnv(gym.Env):
             self.init_qpos[self.joint_ids] = random_pos
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
+        self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
         return self._get_obs()
 
     def _get_reward(self, eef_pos_after_sim, done_limits, done_goal):
