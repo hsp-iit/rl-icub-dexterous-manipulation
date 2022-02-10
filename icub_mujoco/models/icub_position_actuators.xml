@@ -1,11 +1,11 @@
 <mujoco model="iCub">
-    <compiler angle="radian" meshdir="../meshes/" inertiafromgeom="false"/>
+    <compiler angle="radian" meshdir="../meshes/iCub/" inertiafromgeom="true" convexhull="true"/>
     <size njmax="1000" nconmax="10000" />
-    <option timestep="0.01" gravity="0 0 -9.81"/>
-    
+    <option timestep="0.005" gravity="0 0 -9.81" cone="pyramidal"/>
+
     <default>
-        <joint limited="true" damping="5.0" stiffness="0" armature="0.0" frictionloss="1.0"/>
-        <geom friction="1000.0 0.005 0.0001"/>
+        <joint limited="true" damping="5.0" stiffness="0.01" armature="0.01" frictionloss="0.01"/>
+        <geom friction="1.0 0.005 0.0001"/>
         <position kp="10" ctrllimited="true"/>
     </default>
     
@@ -18,6 +18,7 @@
         <mesh name="sim_sea_2-5_r_shank_prt-binary"                 file="sim_sea_2-5_r_shank_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_r_ankle_prt-binary"                 file="sim_sea_2-5_r_ankle_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_r_foot_prt-binary"                  file="sim_sea_2-5_r_foot_prt-binary.stl"            scale="0.001 0.001 0.001" />
+        <mesh name="sim_sea_2-5_r_sole_prt-binary"                  file="sim_sea_2-5_r_sole_prt-binary.stl"            scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_l_hip_1_prt-binary"                 file="sim_sea_2-5_l_hip_1_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_l_hip_2_prt-binary"                 file="sim_sea_2-5_l_hip_2_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_l_upper_thigh_prt-binary"           file="sim_sea_2-5_l_upper_thigh_prt-binary.stl"     scale="0.001 0.001 0.001" />
@@ -25,6 +26,7 @@
         <mesh name="sim_sea_2-5_l_shank_prt-binary"                 file="sim_sea_2-5_l_shank_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_l_ankle_prt-binary"                 file="sim_sea_2-5_l_ankle_prt-binary.stl"           scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_l_foot_prt-binary"                  file="sim_sea_2-5_l_foot_prt-binary.stl"            scale="0.001 0.001 0.001" />
+        <mesh name="sim_sea_2-5_l_sole_prt-binary"                  file="sim_sea_2-5_l_sole_prt-binary.stl"            scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_lap_belt_1_prt-binary"              file="sim_sea_2-5_lap_belt_1_prt-binary.stl"        scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_lap_belt_2_prt-binary"              file="sim_sea_2-5_lap_belt_2_prt-binary.stl"        scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_chest_bb_prt-binary"                file="sim_sea_2-5_chest_bb_prt-binary.stl"          scale="0.001 0.001 0.001" />
@@ -87,14 +89,13 @@
         <mesh name="sim_sea_2-5_neck_1_prt-binary"                  file="sim_sea_2-5_neck_1_prt-binary.stl"            scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_neck_2_prt-binary"                  file="sim_sea_2-5_neck_2_prt-binary.stl"            scale="0.001 0.001 0.001" />
         <mesh name="sim_sea_2-5_head_prt-binary"                    file="sim_sea_2-5_head_prt-binary.stl"              scale="0.001 0.001 0.001" />
-        
         <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
         <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
         <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="127" height="1278" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01"/>
         <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
         <material name="matgeom" texture="texgeom" texuniform="true" rgba="0.8 0.6 .4 1"/>
     </asset>
-
+    
     <visual>
         <map force="0.1" zfar="30"/>
         <rgba haze="0.15 0.25 0.35 1"/>
@@ -103,20 +104,20 @@
     </visual>
     
     <worldbody>
-        <geom name="floor" pos="0 0 0" size="0 0 .25" type="plane" material="matplane" condim="3"/>
+        <geom name="floor" pos="0 0 0" size="0 0 0.25" type="plane" material="matplane" condim="3" />
         <light directional="false" diffuse=".2 .2 .2" specular="0 0 0" pos="0 0 5" dir="0 0 -1" castshadow="false"/>
         <light mode="targetbodycom" target="torso_1" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1"/>
-
+        
         <body name="icub" pos="0.0 0.0 1.0" mocap="true">
             <inertial pos="0.0248821 0.000103947 -0.0440806" quat="-0.110211 -0.1112 -0.697807 0.698966" mass="5.09143" diaginertia="0.0254684 0.0196552 0.0139679" />
-            <geom pos="-0.0364 0 0.032" quat="0.5 0.5 -0.5 -0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_root_link_prt-binary" />
+            <geom pos="-0.0364 0 0.032" quat="0.5 0.5 -0.5 -0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_root_link_prt-binary" friction="1000.0 0.005 0.0001"/>
             <body name="r_hip_1" pos="0.0064515 0.026 -0.119913" quat="0 0 0 -1">
                 <inertial pos="-0.0005145 -0.0380753 -7.1e-05" quat="-0.707742 0.702832 -0.0481733 -0.0529812" mass="0.919978" diaginertia="0.000580144 0.000574638 0.000404252" />
                 <joint name="r_hip_pitch" pos="0 0 0" axis="0 -1 0" range="-0.785398 2.33874" />
                 <geom pos="0.0428515 0.026 0.151913" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 0 0 1" mesh="sim_sea_2-5_r_hip_1_prt-binary" />
                 <body name="r_hip_2" pos="0 -0.0441 0">
                     <inertial pos="-0.0009614 7.55046e-05 -0.0537485" quat="0.707265 -0.00474132 -0.00746739 0.706893" mass="0.539454" diaginertia="0.0106103 0.0104451 0.0102771" />
-                    <joint name="r_hip_roll" pos="0 0 0" axis="-1 0 0" range="-0.349066 2.0944"  />
+                    <joint name="r_hip_roll" pos="0 0 0" axis="-1 0 0" range="-0.349066 2.0944" />
                     <geom pos="0.0428515 0.0701 0.151913" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="1 0 0 1" mesh="sim_sea_2-5_r_hip_2_prt-binary" />
                     <geom pos="0.0427727 0.0701139 0.151913" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 0 1 1" mesh="sim_sea_2-5_r_upper_thigh_prt-binary" />
                     <body name="r_upper_leg" pos="-0.0009363 1.39e-05 -0.0887">
@@ -136,6 +137,7 @@
                                     <joint name="r_ankle_roll" pos="0 0 0" axis="-1 0 0" range="-0.436332 0.436332"  />
                                     <geom pos="0.0437878 0.0700861 0.587138" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_r_foot_prt-binary" />
                                     <geom size="0.08 0.036 0.0005" pos="0.0265 -0.005 -0.0745" quat="0 1 0 0" type="box" rgba="1 1 1 1" />
+                                    <geom pos="0.0437878 0.0700861 0.587138" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_r_sole_prt-binary" />
                                 </body>
                             </body>
                         </body>
@@ -168,6 +170,7 @@
                                     <joint name="l_ankle_roll" pos="0 0 0" axis="1 0 0" range="-0.436332 0.436332"  />
                                     <geom pos="0.0436817 -0.0701752 0.587138" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 0 1 1" mesh="sim_sea_2-5_l_foot_prt-binary" />
                                     <geom size="0.08 0.036 0.0005" pos="0.0265 0.005 -0.0745" quat="0 1 0 0" type="box" rgba="1 1 0 1" />
+                                    <geom pos="0.0437878 -0.0700861 0.587138" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_l_sole_prt-binary" />
                                 </body>
                             </body>
                         </body>
@@ -470,18 +473,6 @@
                                     <inertial pos="-0.000574158 0.113511 -0.0075392" quat="0.995846 0.0892117 -0.017528 -0.00506802" mass="1.50691" diaginertia="0.00680747 0.00640004 0.00472579" />
                                     <joint name="neck_yaw" pos="0 0 0" axis="0 1 0" range="-0.872665 0.872665" damping="10.0" />
                                     <geom pos="0 -0.067153 -0.0295008" type="mesh" rgba="1 0 0 1" mesh="sim_sea_2-5_head_prt-binary" />
-                                    <body name="eyes_tilt_frame" pos="1.90392e-10 0.104897 0.0455907" quat="1.72989e-12 -0.707107 -1.73345e-12 0.707107">
-                                        <inertial pos="0 0 0" mass="0.001" diaginertia="0.001 0.001 0.001" />
-                                        <joint name="eyes_tilt" pos="0 0 0" axis="0 0 1" range="-0.523599 0.523599" />
-                                        <body name="l_eye" pos="0 0 -0.034" quat="0.707107 0 -0.707107 0">
-                                            <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                            <joint name="l_eye_pan_joint" pos="0 0 0" axis="0 1 0" range="-0.523599 0.959931" />
-                                        </body>
-                                        <body name="r_eye" pos="0 0 0.034" quat="0.707107 0 -0.707107 0">
-                                            <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                            <joint name="r_eye_pan_joint" pos="0 0 0" axis="0 1 0" range="-0.959931 0.523599" />
-                                        </body>
-                                    </body>
                                     <body name="head_camera" pos="0.043454 0.217822 0.0835957" quat="-0.0233008 0.0078341 0.9825643 0.1842908">
                                         <camera name="head_cam" fovy="42.4608673089277"/>
                                     </body>
@@ -543,9 +534,6 @@
         <position name="neck_pitch"             kp="200.0"      joint="neck_pitch"                      ctrlrange="-0.698132 0.383972" />
         <position name="neck_roll"              kp="500.0"      joint="neck_roll"                       ctrlrange="-0.349066 0.349066" />
         <position name="neck_yaw"               kp="200.0"      joint="neck_yaw"                        ctrlrange="-0.872665 0.872665" />
-        <position name="eyes_tilt"              kp="10.0"       joint="eyes_tilt"                       ctrlrange="-0.523599 0.523599"/>
-        <position name="l_eye_pan_joint"        kp="10.0"       joint="l_eye_pan_joint"                 ctrlrange="-0.523599 0.959931"/>
-        <position name="r_eye_pan_joint"        kp="10.0"       joint="r_eye_pan_joint"                 ctrlrange="-0.959931 0.523599"/>
         <position name="r_shoulder_pitch"       kp="100.0"      joint="r_shoulder_pitch"                ctrlrange="-1.66679 0.174533"/>
         <position name="r_shoulder_roll"        kp="200.0"      joint="r_shoulder_roll"                 ctrlrange="0 2.80649"/>
         <position name="r_shoulder_yaw"         kp="200.0"      joint="r_shoulder_yaw"                  ctrlrange="-0.645772 1.39626"/>
