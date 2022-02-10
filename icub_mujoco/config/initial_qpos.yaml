@@ -78,7 +78,3 @@ l_hand_little_0_joint: 0.15
 l_hand_little_1_joint: 0.7854
 l_hand_little_2_joint: 0.7854
 l_hand_little_3_joint: 0.7854
-# Eyes
-eyes_tilt: 0.0
-l_eye_pan_joint: 0.0
-r_eye_pan_joint: 0.0
