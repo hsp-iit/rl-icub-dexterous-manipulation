@@ -34,6 +34,9 @@ parser.add_argument('--objects_quaternions',
                          'z_n for the n objects specified with the argument objects. '
                          'If the value are not specified, the initial orientation of all the objects is set '
                          'to 1 0 0 0.')
+parser.add_argument('--table',
+                    action='store_true',
+                    help='Add table to the scene')
 
 args = parser.parse_args()
 
@@ -80,6 +83,11 @@ for id, obj in enumerate(args.objects):
                                                           limited="false",
                                                           damping="0.0",
                                                           stiffness="0.01")
+
+if args.table:
+    table_path = "../models/table.xml"
+    table_mjcf = mjcf.from_path(table_path, escape_separators=False)
+    world.attach(table_mjcf.root_model)
 
 world_entity = composer.ModelWrapperEntity(world)
 task = composer.NullTask(world_entity)

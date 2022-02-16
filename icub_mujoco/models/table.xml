@@ -1,0 +1,36 @@
+<mujoco model="iCub">
+    <compiler angle="radian" inertiafromgeom="true" convexhull="true" texturedir="../meshes/table"/>
+    <size njmax="1000" nconmax="10000" />
+    <option timestep="0.005" gravity="0 0 -9.81" cone="pyramidal"/>
+
+    <asset>
+        <texture name="texwood" file="wood_small.png" type="2d"/>
+        <material name="matwood" texture="texwood"/>
+    </asset>
+
+    <worldbody>
+        <body name="table" pos="-0.68 0 0.9">
+            <body name="wood" pos="0 0 0">
+                <geom pos="0 0 0" size="0.5 1.0 0.05" type="box" name="table_collision"/>
+                <geom pos="0 0 0" material="matwood" size="0.5 1.0 0.05" type="box" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" name="table_visual"/>
+            </body>
+            <body name="table_leg_1" pos="-0.4 -0.9 -0.45">
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" name="table_leg_1_collision"/>
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" name="table_leg_1_visual"/>
+            </body>
+            <body name="table_leg_2" pos="0.4 -0.9 -0.45">
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" name="table_leg_2_collision"/>
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" name="table_leg_2_visual"/>
+            </body>
+            <body name="table_leg_3" pos="-0.4 0.9 -0.45">
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" name="table_leg_3_collision"/>
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" name="table_leg_3_visual"/>
+            </body>
+            <body name="table_leg_4" pos="0.4 0.9 -0.45">
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" name="table_leg_4_collision"/>
+                <geom pos="0 0 0" size="0.05 0.45" type="cylinder" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" name="table_leg_4_visual"/>
+            </body>
+        </body>
+    </worldbody>
+
+</mujoco>

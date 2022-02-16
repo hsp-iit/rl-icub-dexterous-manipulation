@@ -106,8 +106,8 @@
     <worldbody>
         <geom name="floor" pos="0 0 0" size="0 0 0.25" type="plane" material="matplane" condim="3" />
         <light directional="false" diffuse=".2 .2 .2" specular="0 0 0" pos="0 0 5" dir="0 0 -1" castshadow="false"/>
-        <light mode="targetbodycom" target="torso_1" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1"/>
-        
+        <light mode="targetbodycom" target="torso_1" directional="false" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 0 4.0" dir="0 0 -1" attenuation="3 0 0"/>
+
         <body name="icub" pos="0.0 0.0 1.0" mocap="true">
             <inertial pos="0.0248821 0.000103947 -0.0440806" quat="-0.110211 -0.1112 -0.697807 0.698966" mass="5.09143" diaginertia="0.0254684 0.0196552 0.0139679" />
             <geom pos="-0.0364 0 0.032" quat="0.5 0.5 -0.5 -0.5" type="mesh" rgba="0 1 0 1" mesh="sim_sea_2-5_root_link_prt-binary" friction="1000.0 0.005 0.0001"/>
