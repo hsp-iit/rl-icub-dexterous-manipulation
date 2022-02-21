@@ -37,6 +37,11 @@ parser.add_argument('--objects_quaternions',
 parser.add_argument('--table',
                     action='store_true',
                     help='Add table to the scene')
+parser.add_argument('--print_contact_geoms',
+                    type=str,
+                    nargs='+',
+                    default=[],
+                    help='Print if the geoms passed as argument collide.')
 
 args = parser.parse_args()
 
@@ -99,6 +104,12 @@ map_joint_to_actuators = []
 for actuator in actuator_names:
     map_joint_to_actuators.append(joint_names.index(actuator))
 
+# Map names of contact geoms to their id and extract couples
+contact_geoms_ids = []
+for geom_name in args.print_contact_geoms:
+    geom_id = env.physics.model.name2id(geom_name, 'geom')
+    contact_geoms_ids.append(geom_id)
+
 if args.render_from_camera:
     for _ in range(10000):
         env.step(np.array([0.48, 0.023, -0.005, -1.05, -0.57, -0.024, 0.48, 0.023, -0.005, -1.05, -0.57, -0.024,
@@ -111,6 +122,13 @@ if args.render_from_camera:
         img = env.physics.render(height=480, width=640, camera_id='head_cam')
         cv2.imshow('cam_view', img[:, :, ::-1])
         cv2.waitKey(1)
+        if contact_geoms_ids:
+            for contact in env.physics.data.contact:
+                if contact['geom1'] in contact_geoms_ids and contact['geom2'] in contact_geoms_ids:
+                    print('Collision between geom {} and geom {}.'
+                          .format(args.print_contact_geoms[contact_geoms_ids.index(contact['geom1'])],
+                                  args.print_contact_geoms[contact_geoms_ids.index(contact['geom2'])]))
+
 else:
     # Define a policy to reach the initial state.
     def policy(time_step):
@@ -122,6 +140,12 @@ else:
                          0.0, 0.7854, 0.7854, 0.7854, 0.7854, -0.15, 0.7854, 0.7854, 0.7854, 0.15, 0.7854, 0.7854,
                          0.7854, 0.15, 0.7854, 0.7854, 0.7854, 0.15, 0.7854, 0.7854, 0.7854, 0.0, 0.0, 0.0
                          ])[map_joint_to_actuators]
+        if contact_geoms_ids:
+            for contact in env.physics.data.contact:
+                if contact['geom1'] in contact_geoms_ids and contact['geom2'] in contact_geoms_ids:
+                    print('Collision between geom {} and geom {}.'
+                          .format(args.print_contact_geoms[contact_geoms_ids.index(contact['geom1'])],
+                                  args.print_contact_geoms[contact_geoms_ids.index(contact['geom2'])]))
         return ctrl
 
 
