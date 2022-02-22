@@ -64,28 +64,42 @@ parser.add_argument('--render_cameras',
                     nargs='+',
                     default=[],
                     help='Set the cameras used for rendering. Available cameras are front_cam and head_cam.')
+parser.add_argument('--obs_camera',
+                    type=str,
+                    default='head_cam',
+                    help='Set the cameras used for observation. Available cameras are front_cam and head_cam.')
 parser.add_argument('--print_done_info',
                     action='store_true',
                     help='Print information at the end of each episode')
-
 
 args = parser.parse_args()
 
 iCub = ICubEnv(model_path=args.xml_model_path,
                obs_from_img=args.icub_observation_space == 'camera',
+               obs_camera=args.obs_camera,
                render_cameras=tuple(args.render_cameras),
                reward_goal=args.reward_goal,
                reward_out_of_joints=args.reward_out_of_joints,
                reward_single_step_multiplier=args.reward_single_step_multiplier,
                print_done_info=args.print_done_info)
 
-model = SAC("MlpPolicy",
-            iCub,
-            verbose=1,
-            tensorboard_log=args.tensorboard_dir,
-            policy_kwargs=dict(net_arch=args.net_arch),
-            train_freq=args.train_freq,
-            create_eval_env=True)
+if args.icub_observation_space == 'joints':
+    model = SAC("MlpPolicy",
+                iCub,
+                verbose=1,
+                tensorboard_log=args.tensorboard_dir,
+                policy_kwargs=dict(net_arch=args.net_arch),
+                train_freq=args.train_freq,
+                create_eval_env=True)
+else:
+    model = SAC("CnnPolicy",
+                iCub,
+                verbose=1,
+                tensorboard_log=args.tensorboard_dir,
+                policy_kwargs=dict(net_arch=args.net_arch),
+                train_freq=args.train_freq,
+                create_eval_env=True,
+                buffer_size=1000)
 model.learn(total_timesteps=args.total_training_timesteps,
             eval_freq=args.eval_freq,
             eval_env=iCub,

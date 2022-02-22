@@ -14,6 +14,7 @@ class ICubEnv(gym.Env):
                  obs_from_img=False,
                  random_initial_qpos=True,
                  render_cameras=(),
+                 obs_camera='head_cam',
                  use_only_torso_and_arms=True,
                  initial_qpos_path='../config/initial_qpos.yaml',
                  print_done_info=False,
@@ -43,6 +44,7 @@ class ICubEnv(gym.Env):
         self.steps = 0
         self._max_episode_steps = 2000
         self.render_cameras = render_cameras
+        self.obs_camera = obs_camera
         self.print_done_info = print_done_info
 
         # Load initial qpos from yaml file and map joint ids to actuator ids
@@ -66,6 +68,9 @@ class ICubEnv(gym.Env):
                                                                       j.startswith('r_elbow') or
                                                                       j.startswith('r_shoulder') or
                                                                       j.startswith('torso_yaw'))]
+            # If training from images from head_cam, the neck must be moved since the camera is mounted on the head
+            if self.obs_from_img and self.obs_camera == 'head_cam':
+                self.joints_to_control.extend([j for j in self.joint_names if (j.startswith('neck'))])
             self.joint_ids = np.array([], dtype=np.int64)
             for joint_id, joint_name in enumerate(self.joint_names):
                 if joint_name in self.joints_to_control:
@@ -105,8 +110,7 @@ class ICubEnv(gym.Env):
 
     def _set_observation_space(self):
         if self.obs_from_img:
-            # TODO implement this for using observations from camera
-            pass
+            self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
         else:
             bounds = np.concatenate([np.expand_dims(joint.range, 0)
                                      for joint in self.world_entity.mjcf_model.find_all('joint')],
@@ -157,7 +161,7 @@ class ICubEnv(gym.Env):
     def _get_obs(self):
         self.render()
         if self.obs_from_img:
-            return self.env.physics.render(height=480, width=640, camera_id='head_cam')
+            return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
         else:
             return self.get_state()[:len(self.joint_names)][self.joint_ids]
 
