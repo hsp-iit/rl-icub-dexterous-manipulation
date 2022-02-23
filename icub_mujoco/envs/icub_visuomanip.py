@@ -1,4 +1,4 @@
-from dm_control import mujoco, composer, mjcf
+from dm_control import composer, mjcf
 import os
 import gym
 import numpy as np
@@ -12,7 +12,11 @@ class ICubEnv(gym.Env):
                  model_path,
                  frame_skip=5,
                  obs_from_img=False,
-                 random_initial_qpos=True,
+                 random_initial_pos=True,
+                 objects=(),
+                 use_table=True,
+                 objects_positions=(),
+                 objects_quaternions=(),
                  render_cameras=(),
                  obs_camera='head_cam',
                  use_only_torso_and_arms=True,
@@ -31,15 +35,20 @@ class ICubEnv(gym.Env):
             raise IOError("File %s does not exist" % fullpath)
 
         # Initialize dm_control environment
-        self.physics = mujoco.Physics.from_xml_path(fullpath)
         self.world = mjcf.from_path(fullpath)
+        self.use_table = use_table
+        if self.use_table:
+            self.add_table()
+        self.objects_positions = objects_positions
+        self.objects_quaternions = objects_quaternions
+        self.add_ycb_video_objects(objects)
         self.world_entity = composer.ModelWrapperEntity(self.world)
         self.task = composer.NullTask(self.world_entity)
         self.env = composer.Environment(self.task)
 
         # Set environment and task parameters
         self.obs_from_img = obs_from_img
-        self.random_initial_qpos = random_initial_qpos
+        self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
         self._max_episode_steps = 2000
@@ -49,32 +58,75 @@ class ICubEnv(gym.Env):
 
         # Load initial qpos from yaml file and map joint ids to actuator ids
         with open(initial_qpos_path) as initial_qpos_file:
-            self.init_qpos_dict = yaml.load(initial_qpos_file, Loader=yaml.FullLoader)
+            self.init_icub_qpos_dict = yaml.load(initial_qpos_file, Loader=yaml.FullLoader)
         self.actuator_names = [actuator.name for actuator in self.world_entity.mjcf_model.find_all('actuator')]
-        self.joint_names = [joint.name for joint in self.world_entity.mjcf_model.find_all('joint')]
+        self.joint_names = [joint.full_identifier for joint in self.world_entity.mjcf_model.find_all('joint')]
+        self.init_qpos = np.array([], dtype=np.float32)
+        self.init_qvel = np.array([], dtype=np.float32)
+        self.joint_ids_icub = np.array([], dtype=np.int64)
+        self.joint_ids_objects = np.array([], dtype=np.int64)
+        self.joint_names_icub = []
+        self.joint_names_objects = []
+        for joint_id, joint in enumerate(self.joint_names):
+            # Compute the id or the starting id to add, depending on the type of the joint
+            if len(self.joint_ids_icub) == 0 and len(self.joint_ids_objects) == 0:
+                id_to_add = 0
+            elif len(self.joint_ids_icub) == 0:
+                id_to_add = np.max(self.joint_ids_objects) + 1
+            elif len(self.joint_ids_objects) == 0:
+                id_to_add = np.max(self.joint_ids_icub) + 1
+            else:
+                id_to_add = np.max(np.concatenate((self.joint_ids_icub, self.joint_ids_objects))) + 1
+
+            if joint in self.init_icub_qpos_dict:
+                self.init_qpos = np.append(self.init_qpos, self.init_icub_qpos_dict[joint])
+                self.init_qvel = np.concatenate((self.init_qvel, np.zeros(1, dtype=np.float32)))
+                self.joint_ids_icub = np.append(self.joint_ids_icub, id_to_add)
+                self.joint_names_icub.append(joint)
+            else:
+                joint_id = self.env.physics.model.name2id(joint, 'joint')
+                assert (self.world_entity.mjcf_model.find_all('joint')[joint_id].type == 'free')
+                if self.world_entity.mjcf_model.find_all('joint')[joint_id].parent.pos is not None:
+                    self.init_qpos = np.concatenate((self.init_qpos,
+                                                     self.world_entity.mjcf_model.find_all('joint')
+                                                     [joint_id].parent.pos))
+                else:
+                    self.init_qpos = np.concatenate((self.init_qpos, np.zeros(3, dtype=np.float32)))
+                if self.world_entity.mjcf_model.find_all('joint')[joint_id].parent.quat is not None:
+                    self.init_qpos = np.concatenate((self.init_qpos,
+                                                     self.world_entity.mjcf_model.find_all('joint')
+                                                     [joint_id].parent.quat))
+                else:
+                    self.init_qpos = np.concatenate((self.init_qpos, np.zeros(4, dtype=np.float32)))
+                self.init_qvel = np.concatenate((self.init_qvel, np.zeros(6, dtype=np.float32)))
+                self.joint_ids_objects = np.append(self.joint_ids_objects, np.arange(id_to_add, id_to_add + 7))
+                self.joint_names_objects.extend([joint+'xp',
+                                         joint+'yp',
+                                         joint+'zp',
+                                         joint+'wq',
+                                         joint+'xq',
+                                         joint+'yq',
+                                         joint+'zq'])
         self.map_joint_to_actuators = []
         for actuator in self.actuator_names:
-            self.map_joint_to_actuators.append(self.joint_names.index(actuator))
-        self.init_qpos = np.array([], dtype=np.float32)
-        for joint in self.joint_names:
-            self.init_qpos = np.append(self.init_qpos, self.init_qpos_dict[joint])
-        self.init_qvel = np.zeros(self.init_qpos.shape, dtype=np.float32)
-        self.joint_ids = np.arange(len(self.joint_names), dtype=np.int64)
+            self.map_joint_to_actuators.append(self.joint_names_icub.index(actuator))
 
         # Define if using the whole body or only torso and right arm
         self.use_only_torso_and_arms = use_only_torso_and_arms
         if self.use_only_torso_and_arms:
-            self.joints_to_control = [j for j in self.joint_names if (j.startswith('r_wrist') or
-                                                                      j.startswith('r_elbow') or
-                                                                      j.startswith('r_shoulder') or
-                                                                      j.startswith('torso_yaw'))]
+            self.joints_to_control = [j for j in self.joint_names_icub if (j.startswith('r_wrist') or
+                                                                           j.startswith('r_elbow') or
+                                                                           j.startswith('r_shoulder') or
+                                                                           j.startswith('torso_yaw'))]
             # If training from images from head_cam, the neck must be moved since the camera is mounted on the head
             if self.obs_from_img and self.obs_camera == 'head_cam':
-                self.joints_to_control.extend([j for j in self.joint_names if (j.startswith('neck'))])
-            self.joint_ids = np.array([], dtype=np.int64)
-            for joint_id, joint_name in enumerate(self.joint_names):
+                self.joints_to_control.extend([j for j in self.joint_names_icub if (j.startswith('neck'))])
+            self.joints_to_control_ids = np.array([], dtype=np.int64)
+            for joint_id, joint_name in enumerate(self.joint_names_icub):
                 if joint_name in self.joints_to_control:
-                    self.joint_ids = np.append(self.joint_ids, joint_id)
+                    self.joints_to_control_ids = np.append(self.joints_to_control_ids, joint_id)
+        else:
+            self.joints_to_control_ids = self.joint_ids_icub.copy()
 
         # Set spaces
         self.max_delta_qpos = 0.1
@@ -112,17 +164,45 @@ class ICubEnv(gym.Env):
         if self.obs_from_img:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
         else:
-            bounds = np.concatenate([np.expand_dims(joint.range, 0)
+            # Use as observation only iCub joints
+            bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
+                                     else np.empty([0, 2], dtype=np.float32)
                                      for joint in self.world_entity.mjcf_model.find_all('joint')],
                                     axis=0,
                                     dtype=np.float32)
-            low = bounds[:, 0][self.joint_ids]
-            high = bounds[:, 1][self.joint_ids]
+            low = bounds[:, 0][self.joints_to_control_ids]
+            high = bounds[:, 1][self.joints_to_control_ids]
             self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def _set_state_space(self):
-        bounds = np.concatenate([np.expand_dims(joint.range, 0)
-                                 for joint in self.world_entity.mjcf_model.find_all('joint')], axis=0, dtype=np.float32)
+        bounds = np.empty([0, 2], dtype=np.float32)
+        for joint in self.world_entity.mjcf_model.find_all('joint'):
+            assert (joint.type == "free" or joint.type == "hinge" or joint.type is None)
+            if joint.range is not None:
+                bounds = np.concatenate([bounds, np.expand_dims(joint.range, 0)], axis=0, dtype=np.float32)
+            else:
+                if joint.type == "free":
+                    if self.use_table:
+                        bounds = np.concatenate([bounds,
+                                                 np.array([[-1.08, -0.28]], dtype=np.float32),
+                                                 np.array([[-0.9, 0.9]], dtype=np.float32),
+                                                 np.array([[0.95, 1.2]], dtype=np.float32),
+                                                 np.array([[-1.0, 1.0]], dtype=np.float32),
+                                                 np.array([[-1.0, 1.0]], dtype=np.float32),
+                                                 np.array([[-1.0, 1.0]], dtype=np.float32),
+                                                 np.array([[-1.0, 1.0]], dtype=np.float32)],
+                                                axis=0,
+                                                dtype=np.float32)
+                    else:
+                        bounds = np.concatenate([bounds, np.full((7, 2),
+                                                                 np.array([-np.inf, np.inf]), dtype=np.float32)],
+                                                axis=0,
+                                                dtype=np.float32)
+                else:
+                    bounds = np.concatenate([bounds, np.array([[-np.inf, np.inf]], dtype=np.float32)],
+                                            axis=0,
+                                            dtype=np.float32)
+
         low = bounds[:, 0]
         high = bounds[:, 1]
         self.state_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
@@ -155,7 +235,11 @@ class ICubEnv(gym.Env):
 
     def do_simulation(self, ctrl, n_frames):
         for _ in range(n_frames):
-            self.env.step(ctrl[self.map_joint_to_actuators])
+            # Prevent simulation unstabillity
+            try:
+                self.env.step(ctrl[self.map_joint_to_actuators])
+            except:
+                print('Simulation unstable, environment reset.')
         self.steps += 1
 
     def _get_obs(self):
@@ -163,22 +247,18 @@ class ICubEnv(gym.Env):
         if self.obs_from_img:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
         else:
-            return self.get_state()[:len(self.joint_names)][self.joint_ids]
+            return self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]
 
     def step(self, action):
         action = np.clip(action, self.action_space.low, self.action_space.high)
-        if self.use_only_torso_and_arms:
-            # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
-            # for the other joints
-            action += self.env.physics.data.qpos[self.joint_ids]
-            action -= self.init_qpos[self.joint_ids]
-            null_action = np.zeros(len(self.joint_names))
-            np.put(null_action, self.joint_ids, action)
-            action = null_action
-            target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
-        else:
-            target = np.clip(np.add(self.env.physics.data.qpos, action), self.state_space.low, self.state_space.high)
-
+        # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
+        # for the other joints
+        action += self.env.physics.data.qpos[self.joints_to_control_ids]
+        action -= self.init_qpos[self.joints_to_control_ids]
+        null_action = np.zeros(len(self.init_qpos))
+        np.put(null_action, self.joints_to_control_ids, action)
+        action = null_action
+        target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
         self.do_simulation(target, self.frame_skip)
         eef_pos_after_sim = self.env.physics.data.xpos[self.eef_id_xpos].copy()
         done_limits = len(self.joints_out_of_range()) > 0
@@ -187,20 +267,29 @@ class ICubEnv(gym.Env):
         reward = self._get_reward(eef_pos_after_sim, done_limits, done_goal)
         self.eef_pos = eef_pos_after_sim.copy()
         done_timesteps = self.steps >= self._max_episode_steps
-        done = done_limits or done_goal or done_timesteps
+        done_object_falling = self.falling_object() and self.use_table
+        done = done_limits or done_goal or done_timesteps or done_object_falling
         info = {'Steps': self.steps,
                 'Done': {'timesteps': done_timesteps,
                          'goal_reached': done_goal,
-                         'limits exceeded': self.joints_out_of_range()}}
+                         'limits exceeded': self.joints_out_of_range(),
+                         'object falling from the table': done_object_falling}}
         if done and self.print_done_info:
             print(info)
 
         return observation, reward, done, info
 
     def reset_model(self):
-        if self.random_initial_qpos:
-            random_pos = self.state_space.sample()[self.joint_ids]
-            self.init_qpos[self.joint_ids] = random_pos
+        if self.random_initial_pos:
+            random_pos = self.state_space.sample()[self.joints_to_control_ids]
+            self.init_qpos[self.joints_to_control_ids] = random_pos
+            random_pos = self.state_space.sample()[self.joint_ids_objects]
+            # Force z_objects > z_table and normalize quaternions
+            for i in range(int(len(random_pos)/7)):
+                random_pos[i*7+2] = np.maximum(random_pos[i*7+2],
+                                               self.state_space.low[self.joint_ids_objects[i*7+2]] + 0.1)
+                random_pos[i*7+3:i*7+7] /= np.linalg.norm(random_pos[i*7+3:i*7+7])
+            self.init_qpos[self.joint_ids_objects] = random_pos
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
         self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
@@ -218,11 +307,21 @@ class ICubEnv(gym.Env):
     def joints_out_of_range(self):
         joints_out_of_range = []
         if not self.state_space.contains(self.env.physics.data.qpos):
-            for i in range(len(self.env.physics.data.qpos)):
+            for i in self.joint_ids_icub:
                 if self.env.physics.data.qpos[i] < self.state_space.low[i] or \
                         self.env.physics.data.qpos[i] > self.state_space.high[i]:
-                    joints_out_of_range.append(self.joint_names[i])
+                    joints_out_of_range.append(self.joint_names_icub[i])
         return joints_out_of_range
+
+    def falling_object(self):
+        for list_id, joint_id in enumerate(self.joint_ids_objects):
+            # Check only the z component
+            if list_id % 7 != 2:
+                continue
+            else:
+                if self.env.physics.data.qpos[joint_id] < self.state_space.low[joint_id]:
+                    return True
+        return False
 
     def goal_reached(self):
         return np.linalg.norm(self.eef_pos - self.target_eef_pos) < self.goal_xpos_tolerance
@@ -233,3 +332,34 @@ class ICubEnv(gym.Env):
             img = self.env.physics.render(height=480, width=640, camera_id=cam)
             cv2.imshow(cam, img[:, :, ::-1])
             cv2.waitKey(1)
+
+    def add_ycb_video_objects(self, object_names):
+        for obj_id, obj in enumerate(object_names):
+            obj_path = "../meshes/YCB_Video/{}.xml".format(obj)
+            obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
+            self.world.attach(obj_mjcf.root_model)
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].pos = \
+                self.objects_positions[obj_id] if self.objects_positions else np.array([np.random.rand() - 1.18,
+                                                                                        np.random.rand() * 2 - 1.0,
+                                                                                        1.2])
+            if self.objects_quaternions:
+                object_quaternions = self.objects_quaternions[obj_id]
+            else:
+                object_quaternions = np.array([np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0])
+                object_quaternions /= np.linalg.norm(object_quaternions)
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].quat = object_quaternions
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].add('joint',
+                                                                              name=obj,
+                                                                              type="free",
+                                                                              pos="0 0 0",
+                                                                              limited="false",
+                                                                              damping="0.0",
+                                                                              stiffness="0.01")
+
+    def add_table(self):
+        table_path = "../models/table.xml"
+        table_mjcf = mjcf.from_path(table_path, escape_separators=False)
+        self.world.attach(table_mjcf.root_model)
