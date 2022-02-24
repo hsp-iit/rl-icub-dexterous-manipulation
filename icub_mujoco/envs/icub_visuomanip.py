@@ -19,7 +19,7 @@ class ICubEnv(gym.Env):
                  objects_quaternions=(),
                  render_cameras=(),
                  obs_camera='head_cam',
-                 use_only_torso_and_arms=True,
+                 training_components=('r_arm', 'torso_yaw'),
                  initial_qpos_path='../config/initial_qpos.yaml',
                  print_done_info=False,
                  reward_goal=1.0,
@@ -101,32 +101,39 @@ class ICubEnv(gym.Env):
                 self.init_qvel = np.concatenate((self.init_qvel, np.zeros(6, dtype=np.float32)))
                 self.joint_ids_objects = np.append(self.joint_ids_objects, np.arange(id_to_add, id_to_add + 7))
                 self.joint_names_objects.extend([joint+'xp',
-                                         joint+'yp',
-                                         joint+'zp',
-                                         joint+'wq',
-                                         joint+'xq',
-                                         joint+'yq',
-                                         joint+'zq'])
+                                                 joint+'yp',
+                                                 joint+'zp',
+                                                 joint+'wq',
+                                                 joint+'xq',
+                                                 joint+'yq',
+                                                 joint+'zq'])
         self.map_joint_to_actuators = []
         for actuator in self.actuator_names:
             self.map_joint_to_actuators.append(self.joint_names_icub.index(actuator))
 
-        # Define if using the whole body or only torso and right arm
-        self.use_only_torso_and_arms = use_only_torso_and_arms
-        if self.use_only_torso_and_arms:
-            self.joints_to_control = [j for j in self.joint_names_icub if (j.startswith('r_wrist') or
-                                                                           j.startswith('r_elbow') or
-                                                                           j.startswith('r_shoulder') or
-                                                                           j.startswith('torso_yaw'))]
-            # If training from images from head_cam, the neck must be moved since the camera is mounted on the head
-            if self.obs_from_img and self.obs_camera == 'head_cam':
-                self.joints_to_control.extend([j for j in self.joint_names_icub if (j.startswith('neck'))])
-            self.joints_to_control_ids = np.array([], dtype=np.int64)
-            for joint_id, joint_name in enumerate(self.joint_names_icub):
-                if joint_name in self.joints_to_control:
-                    self.joints_to_control_ids = np.append(self.joints_to_control_ids, joint_id)
-        else:
-            self.joints_to_control_ids = self.joint_ids_icub.copy()
+        # Define which icub joints to be used for training
+        self.training_components = training_components
+        self.joints_to_control = []
+        if 'r_arm' in self.training_components:
+            self.joints_to_control.extend([j for j in self.joint_names_icub if (j.startswith('r_wrist') or
+                                                                                j.startswith('r_elbow') or
+                                                                                j.startswith('r_shoulder'))])
+        if 'l_arm' in self.training_components:
+            self.joints_to_control.extend([j for j in self.joint_names_icub if (j.startswith('l_wrist') or
+                                                                                j.startswith('l_elbow') or
+                                                                                j.startswith('l_shoulder'))])
+        if 'neck' in self.training_components:
+            self.joints_to_control.extend([j for j in self.joint_names_icub if j.startswith('neck')])
+        if 'torso' in self.training_components:
+            self.joints_to_control.extend([j for j in self.joint_names_icub if j.startswith('torso')])
+        if 'torso_yaw' in self.training_components and 'torso' not in self.training_components:
+            self.joints_to_control.extend([j for j in self.joint_names_icub if j.startswith('torso_yaw')])
+        if 'all' in self.training_components and len(self.training_components):
+            self.joints_to_control.extend([j for j in self.joint_names_icub])
+        self.joints_to_control_ids = np.array([], dtype=np.int64)
+        for joint_id, joint_name in enumerate(self.joint_names_icub):
+            if joint_name in self.joints_to_control:
+                self.joints_to_control_ids = np.append(self.joints_to_control_ids, joint_id)
 
         # Set spaces
         self.max_delta_qpos = 0.1
@@ -151,10 +158,7 @@ class ICubEnv(gym.Env):
         self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
 
     def _set_action_space(self):
-        if self.use_only_torso_and_arms:
-            n_joints_to_control = len(self.joints_to_control)
-        else:
-            n_joints_to_control = len(self.actuator_names)
+        n_joints_to_control = len(self.joints_to_control)
         self.action_space = gym.spaces.Box(low=-self.max_delta_qpos,
                                            high=self.max_delta_qpos,
                                            shape=(n_joints_to_control,),
