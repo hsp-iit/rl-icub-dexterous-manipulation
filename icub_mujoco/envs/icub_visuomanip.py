@@ -19,6 +19,7 @@ class ICubEnv(gym.Env):
                  objects_quaternions=(),
                  render_cameras=(),
                  obs_camera='head_cam',
+                 render_objects_com=True,
                  training_components=('r_arm', 'torso_yaw'),
                  initial_qpos_path='../config/initial_qpos.yaml',
                  print_done_info=False,
@@ -54,6 +55,7 @@ class ICubEnv(gym.Env):
         self._max_episode_steps = 2000
         self.render_cameras = render_cameras
         self.obs_camera = obs_camera
+        self.render_objects_com = render_objects_com
         self.print_done_info = print_done_info
 
         # Load initial qpos from yaml file and map joint ids to actuator ids
@@ -100,13 +102,13 @@ class ICubEnv(gym.Env):
                     self.init_qpos = np.concatenate((self.init_qpos, np.zeros(4, dtype=np.float32)))
                 self.init_qvel = np.concatenate((self.init_qvel, np.zeros(6, dtype=np.float32)))
                 self.joint_ids_objects = np.append(self.joint_ids_objects, np.arange(id_to_add, id_to_add + 7))
-                self.joint_names_objects.extend([joint+'xp',
-                                                 joint+'yp',
-                                                 joint+'zp',
-                                                 joint+'wq',
-                                                 joint+'xq',
-                                                 joint+'yq',
-                                                 joint+'zq'])
+                self.joint_names_objects.extend([joint + 'xp',
+                                                 joint + 'yp',
+                                                 joint + 'zp',
+                                                 joint + 'wq',
+                                                 joint + 'xq',
+                                                 joint + 'yq',
+                                                 joint + 'zq'])
         self.map_joint_to_actuators = []
         for actuator in self.actuator_names:
             self.map_joint_to_actuators.append(self.joint_names_icub.index(actuator))
@@ -289,10 +291,10 @@ class ICubEnv(gym.Env):
             self.init_qpos[self.joints_to_control_ids] = random_pos
             random_pos = self.state_space.sample()[self.joint_ids_objects]
             # Force z_objects > z_table and normalize quaternions
-            for i in range(int(len(random_pos)/7)):
-                random_pos[i*7+2] = np.maximum(random_pos[i*7+2],
-                                               self.state_space.low[self.joint_ids_objects[i*7+2]] + 0.1)
-                random_pos[i*7+3:i*7+7] /= np.linalg.norm(random_pos[i*7+3:i*7+7])
+            for i in range(int(len(random_pos) / 7)):
+                random_pos[i * 7 + 2] = np.maximum(random_pos[i * 7 + 2],
+                                                   self.state_space.low[self.joint_ids_objects[i * 7 + 2]] + 0.1)
+                random_pos[i * 7 + 3:i * 7 + 7] /= np.linalg.norm(random_pos[i * 7 + 3:i * 7 + 7])
             self.init_qpos[self.joint_ids_objects] = random_pos
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
@@ -333,7 +335,14 @@ class ICubEnv(gym.Env):
     def render(self, mode='human'):
         del mode  # Unused
         for cam in self.render_cameras:
-            img = self.env.physics.render(height=480, width=640, camera_id=cam)
+            img = np.array(self.env.physics.render(height=480, width=640, camera_id=cam), dtype=np.uint8)
+            if cam == 'head_cam' and self.render_objects_com:
+                objects_com_x_y_z = []
+                for i in range(int(len(self.joint_ids_objects) / 7)):
+                    objects_com_x_y_z.append(self.env.physics.data.qpos[self.joint_ids_objects[i*7:i*7+3]])
+                com_uvs = self.points_in_pixel_coord(objects_com_x_y_z)
+                for com_uv in com_uvs:
+                    img = cv2.circle(img, com_uv, 5, (0, 255, 0), -1)
             cv2.imshow(cam, img[:, :, ::-1])
             cv2.waitKey(1)
 
@@ -367,3 +376,35 @@ class ICubEnv(gym.Env):
         table_path = "../models/table.xml"
         table_mjcf = mjcf.from_path(table_path, escape_separators=False)
         self.world.attach(table_mjcf.root_model)
+
+    def points_in_pixel_coord(self, points):
+        com_uvs = []
+        for point in points:
+            # Point roto-translation matrix in world coordinates
+            p_world = np.array([[1, 0, 0, point[0]],
+                                [0, 1, 0, point[1]],
+                                [0, 0, 1, point[2]],
+                                [0, 0, 0, 1]],
+                               dtype=np.float32)
+            # Camera roto-translation matrix in world coordinates
+            cam_id = self.env.physics.model.name2id('head_cam', 'camera')
+            cam_world = np.array([[1, 0, 0, 0],
+                                  [0, 1, 0, 0],
+                                  [0, 0, 1, 0],
+                                  [0, 0, 0, 1]],
+                                 dtype=np.float32)
+            cam_pos = self.env.physics.named.data.cam_xpos[cam_id, :]
+            cam_world[:3, -1] = cam_pos
+            cam_rot = np.reshape(self.env.physics.named.data.cam_xmat[cam_id, :], (3, 3))
+            cam_world[:3, :3] = cam_rot
+            # Point roto-translation matrix in camera coordinates
+            p_cam = np.matmul(np.linalg.inv(cam_world), p_world)
+            # Focal length set used to compute fovy in the xml file
+            fy = 617.783447265625
+            # Pixel coordinates computation
+            x = p_cam[0, 3]/(-p_cam[2, 3])*fy
+            y = p_cam[1, 3]/(-p_cam[2, 3])*fy
+            u = int(x) + 320
+            v = -int(y) + 240
+            com_uvs.append([u, v])
+        return com_uvs
