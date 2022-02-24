@@ -1,4 +1,5 @@
-from icub_mujoco.envs.icub_visuomanip import ICubEnv
+from icub_mujoco.envs.icub_visuomanip_reaching import ICubEnvReaching
+from icub_mujoco.envs.icub_visuomanip_gaze_control import ICubEnvGazeControl
 from stable_baselines3 import SAC
 import argparse
 
@@ -27,7 +28,7 @@ parser.add_argument('--reward_single_step_multiplier',
                     action='store',
                     type=float,
                     default=10.0,
-                    help='Set the multiplication factor of the default per-step reward in meters.')
+                    help='Set the multiplication factor of the default per-step reward in meters or pixels.')
 parser.add_argument('--net_arch',
                     type=int,
                     nargs='+',
@@ -101,6 +102,16 @@ parser.add_argument('--objects_quaternions',
                     help='Specify objects initial positions. They must be in the order w_1 x_1 y_1 z_1 ... w_n x_n y_n '
                          'z_n for the n objects specified with the argument objects. '
                          'If the value are not specified, the initial orientation of all the objects is set randomly.')
+parser.add_argument('--task',
+                    type=str,
+                    default='reaching',
+                    help='Set the task to perform.')
+parser.add_argument('--training_components',
+                    type=str,
+                    nargs='+',
+                    default=[],
+                    help='Specify the joints that must be trained. Choose values in r_arm, l_arm, neck, torso, '
+                         'torso_yaw or all to train all the joints.')
 
 args = parser.parse_args()
 
@@ -130,19 +141,38 @@ for quat in args.objects_quaternions:
         num_quat = 0
         curr_obj_quat = ''
 
-iCub = ICubEnv(model_path=args.xml_model_path,
-               obs_from_img=args.icub_observation_space == 'camera',
-               obs_camera=args.obs_camera,
-               render_cameras=tuple(args.render_cameras),
-               reward_goal=args.reward_goal,
-               reward_out_of_joints=args.reward_out_of_joints,
-               reward_single_step_multiplier=args.reward_single_step_multiplier,
-               print_done_info=args.print_done_info,
-               objects=args.objects,
-               use_table=args.use_table,
-               objects_positions=objects_positions,
-               objects_quaternions=objects_quaternions,
-               random_initial_pos=not args.fixed_initial_pos)
+if args.task == 'reaching':
+    iCub = ICubEnvReaching(model_path=args.xml_model_path,
+                           obs_from_img=args.icub_observation_space == 'camera',
+                           obs_camera=args.obs_camera,
+                           render_cameras=tuple(args.render_cameras),
+                           reward_goal=args.reward_goal,
+                           reward_out_of_joints=args.reward_out_of_joints,
+                           reward_single_step_multiplier=args.reward_single_step_multiplier,
+                           print_done_info=args.print_done_info,
+                           objects=args.objects,
+                           use_table=args.use_table,
+                           objects_positions=objects_positions,
+                           objects_quaternions=objects_quaternions,
+                           random_initial_pos=not args.fixed_initial_pos,
+                           training_components=args.training_components)
+elif args.task == 'gaze_control':
+    iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
+                              obs_from_img=args.icub_observation_space == 'camera',
+                              obs_camera=args.obs_camera,
+                              render_cameras=tuple(args.render_cameras),
+                              reward_goal=args.reward_goal,
+                              reward_out_of_joints=args.reward_out_of_joints,
+                              reward_single_step_multiplier=args.reward_single_step_multiplier,
+                              print_done_info=args.print_done_info,
+                              objects=args.objects,
+                              use_table=args.use_table,
+                              objects_positions=objects_positions,
+                              objects_quaternions=objects_quaternions,
+                              random_initial_pos=not args.fixed_initial_pos,
+                              training_components=args.training_components)
+else:
+    raise ValueError('The task specified as argument is not valid. Quitting.')
 
 if args.icub_observation_space == 'joints':
     model = SAC("MlpPolicy",

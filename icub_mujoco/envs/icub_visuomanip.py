@@ -256,34 +256,7 @@ class ICubEnv(gym.Env):
             return self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]
 
     def step(self, action):
-        action = np.clip(action, self.action_space.low, self.action_space.high)
-        # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
-        # for the other joints
-        action += self.env.physics.data.qpos[self.joints_to_control_ids]
-        action -= self.init_qpos[self.joints_to_control_ids]
-        null_action = np.zeros(len(self.init_qpos))
-        np.put(null_action, self.joints_to_control_ids, action)
-        action = null_action
-        target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
-        self.do_simulation(target, self.frame_skip)
-        eef_pos_after_sim = self.env.physics.data.xpos[self.eef_id_xpos].copy()
-        done_limits = len(self.joints_out_of_range()) > 0
-        done_goal = self.goal_reached()
-        observation = self._get_obs()
-        reward = self._get_reward(eef_pos_after_sim, done_limits, done_goal)
-        self.eef_pos = eef_pos_after_sim.copy()
-        done_timesteps = self.steps >= self._max_episode_steps
-        done_object_falling = self.falling_object() and self.use_table
-        done = done_limits or done_goal or done_timesteps or done_object_falling
-        info = {'Steps': self.steps,
-                'Done': {'timesteps': done_timesteps,
-                         'goal_reached': done_goal,
-                         'limits exceeded': self.joints_out_of_range(),
-                         'object falling from the table': done_object_falling}}
-        if done and self.print_done_info:
-            print(info)
-
-        return observation, reward, done, info
+        raise NotImplementedError
 
     def reset_model(self):
         if self.random_initial_pos:
@@ -300,15 +273,6 @@ class ICubEnv(gym.Env):
         self.env.physics.forward()
         self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
         return self._get_obs()
-
-    def _get_reward(self, eef_pos_after_sim, done_limits, done_goal):
-        if done_limits:
-            return self.reward_out_of_joints
-        reward = (np.linalg.norm(self.eef_pos - self.target_eef_pos)
-                  - np.linalg.norm(eef_pos_after_sim - self.target_eef_pos)) * self.reward_single_step_multiplier
-        if done_goal:
-            reward += self.reward_goal
-        return reward
 
     def joints_out_of_range(self):
         joints_out_of_range = []
@@ -328,9 +292,6 @@ class ICubEnv(gym.Env):
                 if self.env.physics.data.qpos[joint_id] < self.state_space.low[joint_id]:
                     return True
         return False
-
-    def goal_reached(self):
-        return np.linalg.norm(self.eef_pos - self.target_eef_pos) < self.goal_xpos_tolerance
 
     def render(self, mode='human'):
         del mode  # Unused
@@ -406,5 +367,5 @@ class ICubEnv(gym.Env):
             y = p_cam[1, 3]/(-p_cam[2, 3])*fy
             u = int(x) + 320
             v = -int(y) + 240
-            com_uvs.append([u, v])
+            com_uvs.append(np.array([u, v]))
         return com_uvs
