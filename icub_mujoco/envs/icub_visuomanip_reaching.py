@@ -48,3 +48,8 @@ class ICubEnvReaching(ICubEnv):
 
     def goal_reached(self, eef_pos_after_sim):
         return np.linalg.norm(eef_pos_after_sim - self.target_eef_pos) < self.goal_xpos_tolerance
+
+    def reset_model(self):
+        super().reset_model()
+        self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
+        return self._get_obs()

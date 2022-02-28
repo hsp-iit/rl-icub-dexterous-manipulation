@@ -12,7 +12,7 @@ class ICubEnvGazeControl(ICubEnv):
 
         self.object_com_x_y_z = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
         self.com_object_uv = self.points_in_pixel_coord([self.object_com_x_y_z])[0]
-        self.goal_pixel_tolerance = 5
+        self.goal_pixel_tolerance = 20
 
     def step(self, action):
         action = np.clip(action, self.action_space.low, self.action_space.high)
@@ -56,3 +56,9 @@ class ICubEnvGazeControl(ICubEnv):
 
     def goal_reached(self, com_object_uv_after_sim):
         return np.linalg.norm(com_object_uv_after_sim - np.array([320, 240])) < self.goal_pixel_tolerance
+
+    def reset_model(self):
+        super().reset_model()
+        self.object_com_x_y_z = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
+        self.com_object_uv = self.points_in_pixel_coord([self.object_com_x_y_z])[0]
+        return self._get_obs()

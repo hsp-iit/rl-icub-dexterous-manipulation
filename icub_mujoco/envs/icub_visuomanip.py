@@ -11,7 +11,7 @@ class ICubEnv(gym.Env):
     def __init__(self,
                  model_path,
                  frame_skip=5,
-                 obs_from_img=False,
+                 icub_observation_space=('joints',),
                  random_initial_pos=True,
                  objects=(),
                  use_table=True,
@@ -48,7 +48,7 @@ class ICubEnv(gym.Env):
         self.env = composer.Environment(self.task)
 
         # Set environment and task parameters
-        self.obs_from_img = obs_from_img
+        self.icub_observation_space = icub_observation_space
         self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
@@ -167,9 +167,22 @@ class ICubEnv(gym.Env):
                                            dtype=np.float32)
 
     def _set_observation_space(self):
-        if self.obs_from_img:
+        if 'joints' in self.icub_observation_space and 'camera' in self.icub_observation_space:
+            bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
+                                     else np.empty([0, 2], dtype=np.float32)
+                                     for joint in self.world_entity.mjcf_model.find_all('joint')],
+                                    axis=0,
+                                    dtype=np.float32)
+            low = bounds[:, 0][self.joints_to_control_ids]
+            high = bounds[:, 1][self.joints_to_control_ids]
+            self.observation_space = gym.spaces.Dict({'vec': gym.spaces.Box(low=low, high=high, dtype=np.float32),
+                                                      'img': gym.spaces.Box(low=0,
+                                                                            high=255,
+                                                                            shape=(480, 640, 3),
+                                                                            dtype='uint8')})
+        elif 'joints' not in self.icub_observation_space and 'camera' in self.icub_observation_space:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
-        else:
+        elif 'joints' in self.icub_observation_space and 'camera' not in self.icub_observation_space:
             # Use as observation only iCub joints
             bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
                                      else np.empty([0, 2], dtype=np.float32)
@@ -179,6 +192,8 @@ class ICubEnv(gym.Env):
             low = bounds[:, 0][self.joints_to_control_ids]
             high = bounds[:, 1][self.joints_to_control_ids]
             self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        else:
+            raise ValueError('The observation spaces must be of type joints or camera. Quitting.')
 
     def _set_state_space(self):
         bounds = np.empty([0, 2], dtype=np.float32)
@@ -250,9 +265,13 @@ class ICubEnv(gym.Env):
 
     def _get_obs(self):
         self.render()
-        if self.obs_from_img:
+        if 'joints' in self.icub_observation_space and 'camera' in self.icub_observation_space:
+            obs = {'img': self.env.physics.render(height=480, width=640, camera_id=self.obs_camera),
+                   'vec': self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]}
+            return obs
+        elif 'joints' not in self.icub_observation_space and 'camera' in self.icub_observation_space:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
-        else:
+        elif 'joints' in self.icub_observation_space and 'camera' not in self.icub_observation_space:
             return self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]
 
     def step(self, action):
@@ -271,7 +290,6 @@ class ICubEnv(gym.Env):
             self.init_qpos[self.joint_ids_objects] = random_pos
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
-        self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
         return self._get_obs()
 
     def joints_out_of_range(self):

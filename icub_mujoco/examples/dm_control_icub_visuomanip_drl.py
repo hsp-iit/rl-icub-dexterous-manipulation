@@ -55,11 +55,12 @@ parser.add_argument('--eval_freq',
                     default=100000,
                     help='Set the evaluation frequency for SAC. Default is 100k')
 parser.add_argument('--icub_observation_space',
-                    action='store',
                     type=str,
+                    nargs='+',
                     default='joints',
                     help='Set the observation space: joints will use as observation space joints positions,'
-                         'camera will use realsense headset information.')
+                         'camera will use realsense headset information. If you pass both as argument, you will '
+                         'use a MultiInputPolicy.')
 parser.add_argument('--render_cameras',
                     type=str,
                     nargs='+',
@@ -143,7 +144,7 @@ for quat in args.objects_quaternions:
 
 if args.task == 'reaching':
     iCub = ICubEnvReaching(model_path=args.xml_model_path,
-                           obs_from_img=args.icub_observation_space == 'camera',
+                           icub_observation_space=args.icub_observation_space,
                            obs_camera=args.obs_camera,
                            render_cameras=tuple(args.render_cameras),
                            reward_goal=args.reward_goal,
@@ -158,7 +159,7 @@ if args.task == 'reaching':
                            training_components=args.training_components)
 elif args.task == 'gaze_control':
     iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
-                              obs_from_img=args.icub_observation_space == 'camera',
+                              icub_observation_space=args.icub_observation_space,
                               obs_camera=args.obs_camera,
                               render_cameras=tuple(args.render_cameras),
                               reward_goal=args.reward_goal,
@@ -174,7 +175,7 @@ elif args.task == 'gaze_control':
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
-if args.icub_observation_space == 'joints':
+if 'joints' in args.icub_observation_space and 'camera' not in args.icub_observation_space:
     model = SAC("MlpPolicy",
                 iCub,
                 verbose=1,
@@ -182,7 +183,7 @@ if args.icub_observation_space == 'joints':
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True)
-else:
+elif 'camera' in args.icub_observation_space and 'joints' not in args.icub_observation_space:
     model = SAC("CnnPolicy",
                 iCub,
                 verbose=1,
@@ -191,6 +192,16 @@ else:
                 train_freq=args.train_freq,
                 create_eval_env=True,
                 buffer_size=1000)
+elif 'camera' in args.icub_observation_space and 'joints' in args.icub_observation_space:
+    model = SAC("MultiInputPolicy",
+                iCub,
+                verbose=1,
+                tensorboard_log=args.tensorboard_dir,
+                policy_kwargs=dict(net_arch=args.net_arch),
+                train_freq=args.train_freq,
+                create_eval_env=True,
+                buffer_size=1000)
+
 model.learn(total_timesteps=args.total_training_timesteps,
             eval_freq=args.eval_freq,
             eval_env=iCub,
