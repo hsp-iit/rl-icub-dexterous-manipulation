@@ -58,6 +58,9 @@ class ICubEnv(gym.Env):
         self.render_objects_com = render_objects_com
         self.print_done_info = print_done_info
 
+        # Focal length set used to compute fovy in the xml file
+        self.fy = 617.783447265625
+
         # Load initial qpos from yaml file and map joint ids to actuator ids
         with open(initial_qpos_path) as initial_qpos_file:
             self.init_icub_qpos_dict = yaml.load(initial_qpos_file, Loader=yaml.FullLoader)
@@ -319,7 +322,7 @@ class ICubEnv(gym.Env):
                 objects_com_x_y_z = []
                 for i in range(int(len(self.joint_ids_objects) / 7)):
                     objects_com_x_y_z.append(self.env.physics.data.qpos[self.joint_ids_objects[i*7:i*7+3]])
-                com_uvs = self.points_in_pixel_coord(objects_com_x_y_z)
+                com_uvs = self.points_in_pixel_coord(self.points_in_camera_coord(objects_com_x_y_z))
                 for com_uv in com_uvs:
                     img = cv2.circle(img, com_uv, 5, (0, 255, 0), -1)
             cv2.imshow(cam, img[:, :, ::-1])
@@ -356,8 +359,8 @@ class ICubEnv(gym.Env):
         table_mjcf = mjcf.from_path(table_path, escape_separators=False)
         self.world.attach(table_mjcf.root_model)
 
-    def points_in_pixel_coord(self, points):
-        com_uvs = []
+    def points_in_camera_coord(self, points):
+        com_xyzs = []
         for point in points:
             # Point roto-translation matrix in world coordinates
             p_world = np.array([[1, 0, 0, point[0]],
@@ -378,11 +381,15 @@ class ICubEnv(gym.Env):
             cam_world[:3, :3] = cam_rot
             # Point roto-translation matrix in camera coordinates
             p_cam = np.matmul(np.linalg.inv(cam_world), p_world)
-            # Focal length set used to compute fovy in the xml file
-            fy = 617.783447265625
+            com_xyzs.append(np.array([p_cam[0, 3], p_cam[1, 3], p_cam[2, 3]]))
+        return com_xyzs
+
+    def points_in_pixel_coord(self, points):
+        com_uvs = []
+        for point in points:
             # Pixel coordinates computation
-            x = p_cam[0, 3]/(-p_cam[2, 3])*fy
-            y = p_cam[1, 3]/(-p_cam[2, 3])*fy
+            x = point[0] / (-point[2]) * self.fy
+            y = point[1] / (-point[2]) * self.fy
             u = int(x) + 320
             v = -int(y) + 240
             com_uvs.append(np.array([u, v]))

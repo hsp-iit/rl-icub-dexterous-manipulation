@@ -201,6 +201,8 @@ elif 'camera' in args.icub_observation_space and 'joints' in args.icub_observati
                 train_freq=args.train_freq,
                 create_eval_env=True,
                 buffer_size=1000)
+else:
+    raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
 model.learn(total_timesteps=args.total_training_timesteps,
             eval_freq=args.eval_freq,

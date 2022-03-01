@@ -26,7 +26,8 @@ class ICubEnvGazeControl(ICubEnv):
         target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
         self.do_simulation(target, self.frame_skip)
         object_com_x_y_z_after_sim = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
-        com_object_uv_after_sim = self.points_in_pixel_coord([object_com_x_y_z_after_sim])[0]
+        object_com_x_y_z_after_sim_cam = self.points_in_camera_coord([object_com_x_y_z_after_sim])
+        com_object_uv_after_sim = self.points_in_pixel_coord(object_com_x_y_z_after_sim_cam)[0]
         done_limits = len(self.joints_out_of_range()) > 0
         done_goal = self.goal_reached(com_object_uv_after_sim)
         observation = self._get_obs()
@@ -50,6 +51,8 @@ class ICubEnvGazeControl(ICubEnv):
             return self.reward_out_of_joints
         reward = (np.linalg.norm(self.com_object_uv - np.array([320, 240]))
                   - np.linalg.norm(com_object_uv_after_sim - np.array([320, 240]))) * self.reward_single_step_multiplier
+        # Reduce high values of the reward with the tanh function
+        reward = np.tanh(reward)
         if done_goal:
             reward += self.reward_goal
         return reward
@@ -60,5 +63,5 @@ class ICubEnvGazeControl(ICubEnv):
     def reset_model(self):
         super().reset_model()
         self.object_com_x_y_z = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
-        self.com_object_uv = self.points_in_pixel_coord([self.object_com_x_y_z])[0]
+        self.com_object_uv = self.points_in_pixel_coord(self.points_in_camera_coord([self.object_com_x_y_z]))[0]
         return self._get_obs()
