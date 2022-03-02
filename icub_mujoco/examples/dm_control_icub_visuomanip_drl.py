@@ -113,6 +113,11 @@ parser.add_argument('--training_components',
                     default=[],
                     help='Specify the joints that must be trained. Choose values in r_arm, l_arm, neck, torso, '
                          'torso_yaw or all to train all the joints.')
+parser.add_argument('--training_device',
+                    type=str,
+                    default='auto',
+                    help='Set the training device. Available options are cuda, cpu or auto, which is also the default '
+                         'value.')
 
 args = parser.parse_args()
 
@@ -182,7 +187,8 @@ if 'joints' in args.icub_observation_space and 'camera' not in args.icub_observa
                 tensorboard_log=args.tensorboard_dir,
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
-                create_eval_env=True)
+                create_eval_env=True,
+                device=args.training_device)
 elif 'camera' in args.icub_observation_space and 'joints' not in args.icub_observation_space:
     model = SAC("CnnPolicy",
                 iCub,
@@ -191,7 +197,8 @@ elif 'camera' in args.icub_observation_space and 'joints' not in args.icub_obser
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True,
-                buffer_size=1000)
+                buffer_size=1000,
+                device=args.training_device)
 elif 'camera' in args.icub_observation_space and 'joints' in args.icub_observation_space:
     model = SAC("MultiInputPolicy",
                 iCub,
@@ -200,7 +207,8 @@ elif 'camera' in args.icub_observation_space and 'joints' in args.icub_observati
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True,
-                buffer_size=1000)
+                buffer_size=1000,
+                device=args.training_device)
 else:
     raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
