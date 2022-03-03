@@ -5,8 +5,9 @@ setup(
     version='0.1.0',
     packages=find_packages(),
     install_requires=[
-    	'dm_control==0.0.403778684',
-    	'stable-baselines3[extra]',
-    	'pyyaml',
-    	]
+        'dm_control==0.0.403778684',
+        'stable-baselines3[extra]',
+        'pyyaml',
+        'torchvision',
+    ]
 )

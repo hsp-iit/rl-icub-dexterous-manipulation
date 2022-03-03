@@ -58,9 +58,10 @@ parser.add_argument('--icub_observation_space',
                     type=str,
                     nargs='+',
                     default='joints',
-                    help='Set the observation space: joints will use as observation space joints positions,'
-                         'camera will use realsense headset information. If you pass both as argument, you will '
-                         'use a MultiInputPolicy.')
+                    help='Set the observation space: joints will use as observation space joints positions, '
+                         'camera will use realsense headset information, features the features extracted by the '
+                         'realsense headset information. If you pass multiple argument, you will use a '
+                         'MultiInputPolicy.')
 parser.add_argument('--render_cameras',
                     type=str,
                     nargs='+',
@@ -180,7 +181,9 @@ elif args.task == 'gaze_control':
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
-if 'joints' in args.icub_observation_space and 'camera' not in args.icub_observation_space:
+if 'joints' in args.icub_observation_space \
+        or 'features' in args.icub_observation_space \
+        and len(args.icub_observation_space) == 1:
     model = SAC("MlpPolicy",
                 iCub,
                 verbose=1,
@@ -189,7 +192,7 @@ if 'joints' in args.icub_observation_space and 'camera' not in args.icub_observa
                 train_freq=args.train_freq,
                 create_eval_env=True,
                 device=args.training_device)
-elif 'camera' in args.icub_observation_space and 'joints' not in args.icub_observation_space:
+elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
     model = SAC("CnnPolicy",
                 iCub,
                 verbose=1,
@@ -199,7 +202,9 @@ elif 'camera' in args.icub_observation_space and 'joints' not in args.icub_obser
                 create_eval_env=True,
                 buffer_size=1000,
                 device=args.training_device)
-elif 'camera' in args.icub_observation_space and 'joints' in args.icub_observation_space:
+elif 'camera' in args.icub_observation_space \
+        and 'joints' in args.icub_observation_space \
+        and len(args.icub_observation_space) == 2:
     model = SAC("MultiInputPolicy",
                 iCub,
                 verbose=1,

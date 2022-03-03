@@ -4,6 +4,7 @@ import gym
 import numpy as np
 import cv2
 import yaml
+from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
 
 
 class ICubEnv(gym.Env):
@@ -19,6 +20,7 @@ class ICubEnv(gym.Env):
                  objects_quaternions=(),
                  render_cameras=(),
                  obs_camera='head_cam',
+                 feature_extractor_model_name='alexnet',
                  render_objects_com=True,
                  training_components=('r_arm', 'torso_yaw'),
                  initial_qpos_path='../config/initial_qpos.yaml',
@@ -49,6 +51,8 @@ class ICubEnv(gym.Env):
 
         # Set environment and task parameters
         self.icub_observation_space = icub_observation_space
+        self.feature_extractor = ImagesFeatureExtractor(model_name=feature_extractor_model_name) \
+            if 'features' in icub_observation_space else None
         self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
@@ -170,7 +174,9 @@ class ICubEnv(gym.Env):
                                            dtype=np.float32)
 
     def _set_observation_space(self):
-        if 'joints' in self.icub_observation_space and 'camera' in self.icub_observation_space:
+        if 'joints' in self.icub_observation_space \
+                and 'camera' in self.icub_observation_space \
+                and len(self.icub_observation_space) == 2:
             bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
                                      else np.empty([0, 2], dtype=np.float32)
                                      for joint in self.world_entity.mjcf_model.find_all('joint')],
@@ -183,9 +189,9 @@ class ICubEnv(gym.Env):
                                                                             high=255,
                                                                             shape=(480, 640, 3),
                                                                             dtype='uint8')})
-        elif 'joints' not in self.icub_observation_space and 'camera' in self.icub_observation_space:
+        elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
-        elif 'joints' in self.icub_observation_space and 'camera' not in self.icub_observation_space:
+        elif 'joints' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             # Use as observation only iCub joints
             bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
                                      else np.empty([0, 2], dtype=np.float32)
@@ -195,8 +201,14 @@ class ICubEnv(gym.Env):
             low = bounds[:, 0][self.joints_to_control_ids]
             high = bounds[:, 1][self.joints_to_control_ids]
             self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            # Use as observation features from images
+            self.observation_space = gym.spaces.Box(low=-np.inf,
+                                                    high=np.inf,
+                                                    shape=self.feature_extractor.output_features_dimension,
+                                                    dtype=np.float32)
         else:
-            raise ValueError('The observation spaces must be of type joints or camera. Quitting.')
+            raise ValueError('The observation spaces must be of type joints, camera or features. Quitting.')
 
     def _set_state_space(self):
         bounds = np.empty([0, 2], dtype=np.float32)
@@ -268,14 +280,18 @@ class ICubEnv(gym.Env):
 
     def _get_obs(self):
         self.render()
-        if 'joints' in self.icub_observation_space and 'camera' in self.icub_observation_space:
+        if 'joints' in self.icub_observation_space \
+                and 'camera' in self.icub_observation_space \
+                and len(self.icub_observation_space) == 2:
             obs = {'img': self.env.physics.render(height=480, width=640, camera_id=self.obs_camera),
                    'vec': self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]}
             return obs
-        elif 'joints' not in self.icub_observation_space and 'camera' in self.icub_observation_space:
+        elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
-        elif 'joints' in self.icub_observation_space and 'camera' not in self.icub_observation_space:
+        elif 'joints' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]
+        elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            return self.feature_extractor(self.env.physics.render(height=480, width=640, camera_id=self.obs_camera))
 
     def step(self, action):
         raise NotImplementedError
