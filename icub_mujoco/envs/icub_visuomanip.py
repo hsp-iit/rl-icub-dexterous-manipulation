@@ -174,21 +174,30 @@ class ICubEnv(gym.Env):
                                            dtype=np.float32)
 
     def _set_observation_space(self):
-        if 'joints' in self.icub_observation_space \
-                and 'camera' in self.icub_observation_space \
-                and len(self.icub_observation_space) == 2:
-            bounds = np.concatenate([np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
-                                     else np.empty([0, 2], dtype=np.float32)
-                                     for joint in self.world_entity.mjcf_model.find_all('joint')],
-                                    axis=0,
-                                    dtype=np.float32)
-            low = bounds[:, 0][self.joints_to_control_ids]
-            high = bounds[:, 1][self.joints_to_control_ids]
-            self.observation_space = gym.spaces.Dict({'vec': gym.spaces.Box(low=low, high=high, dtype=np.float32),
-                                                      'img': gym.spaces.Box(low=0,
-                                                                            high=255,
-                                                                            shape=(480, 640, 3),
-                                                                            dtype='uint8')})
+        if len(self.icub_observation_space) > 1:
+            obs_space = {}
+            for space in self.icub_observation_space:
+                if space == 'camera':
+                    obs_space['camera'] = gym.spaces.Box(low=0,
+                                                         high=255,
+                                                         shape=(480, 640, 3),
+                                                         dtype='uint8')
+                elif space == 'joints':
+                    bounds = np.concatenate(
+                        [np.expand_dims(joint.range, 0) if joint.name in self.init_icub_qpos_dict.keys()
+                         else np.empty([0, 2], dtype=np.float32)
+                         for joint in self.world_entity.mjcf_model.find_all('joint')],
+                        axis=0,
+                        dtype=np.float32)
+                    low = bounds[:, 0][self.joints_to_control_ids]
+                    high = bounds[:, 1][self.joints_to_control_ids]
+                    obs_space['joints'] = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+                elif space == 'features':
+                    obs_space['features'] = gym.spaces.Box(low=-np.inf,
+                                                           high=np.inf,
+                                                           shape=self.feature_extractor.output_features_dimension,
+                                                           dtype=np.float32)
+            self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
         elif 'joints' in self.icub_observation_space and len(self.icub_observation_space) == 1:
@@ -280,11 +289,17 @@ class ICubEnv(gym.Env):
 
     def _get_obs(self):
         self.render()
-        if 'joints' in self.icub_observation_space \
-                and 'camera' in self.icub_observation_space \
-                and len(self.icub_observation_space) == 2:
-            obs = {'img': self.env.physics.render(height=480, width=640, camera_id=self.obs_camera),
-                   'vec': self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]}
+        if len(self.icub_observation_space) > 1:
+            obs = {}
+            for space in self.icub_observation_space:
+                if space == 'camera':
+                    obs['camera'] = self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
+                elif space == 'joints':
+                    obs['joints'] = self.get_state()[:len(self.init_qpos)][self.joints_to_control_ids]
+                elif space == 'features':
+                    obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
+                                                                                     width=640,
+                                                                                     camera_id=self.obs_camera))
             return obs
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)

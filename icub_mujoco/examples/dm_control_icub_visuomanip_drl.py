@@ -14,6 +14,11 @@ parser.add_argument('--tensorboard_dir',
                     type=str,
                     default='tensorboards',
                     help='Set the directory where tensorboard files are saved. Default directory is tensorboards.')
+parser.add_argument('--buffer_size',
+                    action='store',
+                    type=int,
+                    default=1000000,
+                    help='Set the size of the replay buffer. Default is 1000000.')
 parser.add_argument('--reward_goal',
                     action='store',
                     type=float,
@@ -181,8 +186,7 @@ elif args.task == 'gaze_control':
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
-if 'joints' in args.icub_observation_space \
-        or 'features' in args.icub_observation_space \
+if ('joints' in args.icub_observation_space or 'features' in args.icub_observation_space) \
         and len(args.icub_observation_space) == 1:
     model = SAC("MlpPolicy",
                 iCub,
@@ -191,6 +195,7 @@ if 'joints' in args.icub_observation_space \
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True,
+                buffer_size=args.buffer_size,
                 device=args.training_device)
 elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
     model = SAC("CnnPolicy",
@@ -200,11 +205,11 @@ elif 'camera' in args.icub_observation_space and len(args.icub_observation_space
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True,
-                buffer_size=1000,
+                buffer_size=args.buffer_size,
                 device=args.training_device)
-elif 'camera' in args.icub_observation_space \
-        and 'joints' in args.icub_observation_space \
-        and len(args.icub_observation_space) == 2:
+elif ('camera' in args.icub_observation_space
+      or 'joints' in args.icub_observation_space
+      or 'features' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
     model = SAC("MultiInputPolicy",
                 iCub,
                 verbose=1,
@@ -212,7 +217,7 @@ elif 'camera' in args.icub_observation_space \
                 policy_kwargs=dict(net_arch=args.net_arch),
                 train_freq=args.train_freq,
                 create_eval_env=True,
-                buffer_size=1000,
+                buffer_size=args.buffer_size,
                 device=args.training_device)
 else:
     raise ValueError('The observation space specified as argument is not valid. Quitting.')
