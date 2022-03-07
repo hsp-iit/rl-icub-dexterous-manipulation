@@ -137,7 +137,7 @@ class ICubEnv(gym.Env):
             self.joints_to_control.extend([j for j in self.joint_names_icub if j.startswith('torso')])
         if 'torso_yaw' in self.training_components and 'torso' not in self.training_components:
             self.joints_to_control.extend([j for j in self.joint_names_icub if j.startswith('torso_yaw')])
-        if 'all' in self.training_components and len(self.training_components):
+        if 'all' in self.training_components and len(self.training_components) == 1:
             self.joints_to_control.extend([j for j in self.joint_names_icub])
         self.joints_to_control_ids = np.array([], dtype=np.int64)
         for joint_id, joint_name in enumerate(self.joint_names_icub):
