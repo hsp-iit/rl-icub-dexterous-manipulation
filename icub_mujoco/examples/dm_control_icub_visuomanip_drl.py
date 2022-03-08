@@ -34,6 +34,11 @@ parser.add_argument('--reward_single_step_multiplier',
                     type=float,
                     default=10.0,
                     help='Set the multiplication factor of the default per-step reward in meters or pixels.')
+parser.add_argument('--joints_margin',
+                    action='store',
+                    type=float,
+                    default=0.0,
+                    help='Set the margin from joints limits for joints control.')
 parser.add_argument('--net_arch',
                     type=int,
                     nargs='+',
@@ -167,7 +172,8 @@ if args.task == 'reaching':
                            objects_positions=objects_positions,
                            objects_quaternions=objects_quaternions,
                            random_initial_pos=not args.fixed_initial_pos,
-                           training_components=args.training_components)
+                           training_components=args.training_components,
+                           joints_margin=args.joints_margin)
 elif args.task == 'gaze_control':
     iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
@@ -182,7 +188,8 @@ elif args.task == 'gaze_control':
                               objects_positions=objects_positions,
                               objects_quaternions=objects_quaternions,
                               random_initial_pos=not args.fixed_initial_pos,
-                              training_components=args.training_components)
+                              training_components=args.training_components,
+                              joints_margin=args.joints_margin)
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
