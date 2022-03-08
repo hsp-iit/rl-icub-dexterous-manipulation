@@ -30,8 +30,8 @@ parser.add_argument('--objects_quaternions',
                     type=str,
                     nargs='+',
                     default=[],
-                    help='Specify objects initial positions. They must be in the order w_1 x_1 y_1 z_1 ... w_n x_n y_n '
-                         'z_n for the n objects specified with the argument objects. '
+                    help='Specify objects initial quaternions. They must be in the order w_1 x_1 y_1 z_1 ... w_n x_n '
+                         'y_n z_n for the n objects specified with the argument objects. '
                          'If the value are not specified, the initial orientation of all the objects is set '
                          'to 1 0 0 0.')
 parser.add_argument('--table',

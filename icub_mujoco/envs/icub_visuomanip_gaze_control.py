@@ -23,7 +23,9 @@ class ICubEnvGazeControl(ICubEnv):
         null_action = np.zeros(len(self.init_qpos))
         np.put(null_action, self.joints_to_control_ids, action)
         action = null_action
-        target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
+        target = np.clip(np.add(self.init_qpos, action),
+                         self.state_space.low + self.joints_margin,
+                         self.state_space.high - self.joints_margin)
         self.do_simulation(target, self.frame_skip)
         object_com_x_y_z_after_sim = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
         object_com_x_y_z_after_sim_cam = self.points_in_camera_coord([object_com_x_y_z_after_sim])

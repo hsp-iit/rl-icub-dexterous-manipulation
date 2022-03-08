@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--controllable_joints',
                     type=str,
                     nargs='+',
-                    default=[],
+                    default=['r_arm', 'torso_yaw'],
                     help='Specify the joints that must be controlled. Choose values in r_arm, l_arm, neck, torso, '
                          'torso_yaw or all to train all the joints.')
 parser.add_argument('--eef_body_name',

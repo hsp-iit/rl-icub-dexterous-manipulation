@@ -16,7 +16,9 @@ class ICubEnvReaching(ICubEnv):
         null_action = np.zeros(len(self.init_qpos))
         np.put(null_action, self.joints_to_control_ids, action)
         action = null_action
-        target = np.clip(np.add(self.init_qpos, action), self.state_space.low, self.state_space.high)
+        target = np.clip(np.add(self.init_qpos, action),
+                         self.state_space.low + self.joints_margin,
+                         self.state_space.high - self.joints_margin)
         self.do_simulation(target, self.frame_skip)
         eef_pos_after_sim = self.env.physics.data.xpos[self.eef_id_xpos].copy()
         done_limits = len(self.joints_out_of_range()) > 0
