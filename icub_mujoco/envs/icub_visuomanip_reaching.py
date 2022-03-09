@@ -24,9 +24,9 @@ class ICubEnvReaching(ICubEnv):
         done_limits = len(self.joints_out_of_range()) > 0
         done_goal = self.goal_reached(eef_pos_after_sim)
         observation = self._get_obs()
-        reward = self._get_reward(eef_pos_after_sim, done_limits, done_goal)
-        self.eef_pos = eef_pos_after_sim.copy()
         done_timesteps = self.steps >= self._max_episode_steps
+        reward = self._get_reward(eef_pos_after_sim, done_limits, done_goal, done_timesteps)
+        self.eef_pos = eef_pos_after_sim.copy()
         done_object_falling = self.falling_object() and self.use_table
         done = done_limits or done_goal or done_timesteps or done_object_falling
         info = {'Steps': self.steps,
@@ -39,9 +39,11 @@ class ICubEnvReaching(ICubEnv):
 
         return observation, reward, done, info
 
-    def _get_reward(self, eef_pos_after_sim, done_limits, done_goal):
+    def _get_reward(self, eef_pos_after_sim, done_limits, done_goal, done_timesteps):
         if done_limits:
             return self.reward_out_of_joints
+        if done_timesteps:
+            return self.reward_end_timesteps
         reward = (np.linalg.norm(self.eef_pos - self.target_eef_pos)
                   - np.linalg.norm(eef_pos_after_sim - self.target_eef_pos)) * self.reward_single_step_multiplier
         if done_goal:

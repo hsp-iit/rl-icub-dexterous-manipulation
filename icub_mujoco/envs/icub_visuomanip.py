@@ -27,6 +27,7 @@ class ICubEnv(gym.Env):
                  print_done_info=False,
                  reward_goal=1.0,
                  reward_out_of_joints=-1.0,
+                 reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
                  joints_margin=0.0):
 
@@ -162,6 +163,7 @@ class ICubEnv(gym.Env):
         self.reward_goal = reward_goal
         self.reward_out_of_joints = reward_out_of_joints
         self.reward_single_step_multiplier = reward_single_step_multiplier
+        self.reward_end_timesteps = reward_end_timesteps
 
         # Reset environment
         self.reset()

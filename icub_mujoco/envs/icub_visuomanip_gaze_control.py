@@ -33,9 +33,9 @@ class ICubEnvGazeControl(ICubEnv):
         done_limits = len(self.joints_out_of_range()) > 0
         done_goal = self.goal_reached(com_object_uv_after_sim)
         observation = self._get_obs()
-        reward = self._get_reward(com_object_uv_after_sim, done_limits, done_goal)
-        self.com_object_uv = com_object_uv_after_sim.copy()
         done_timesteps = self.steps >= self._max_episode_steps
+        reward = self._get_reward(com_object_uv_after_sim, done_limits, done_goal, done_timesteps)
+        self.com_object_uv = com_object_uv_after_sim.copy()
         done_object_falling = self.falling_object() and self.use_table
         done = done_limits or done_goal or done_timesteps or done_object_falling
         info = {'Steps': self.steps,
@@ -48,9 +48,11 @@ class ICubEnvGazeControl(ICubEnv):
 
         return observation, reward, done, info
 
-    def _get_reward(self, com_object_uv_after_sim, done_limits, done_goal):
+    def _get_reward(self, com_object_uv_after_sim, done_limits, done_goal, done_timesteps):
         if done_limits:
             return self.reward_out_of_joints
+        if done_timesteps:
+            return self.reward_end_timesteps
         reward = (np.linalg.norm(self.com_object_uv - np.array([320, 240]))
                   - np.linalg.norm(com_object_uv_after_sim - np.array([320, 240]))) * self.reward_single_step_multiplier
         # Reduce high values of the reward with the tanh function
