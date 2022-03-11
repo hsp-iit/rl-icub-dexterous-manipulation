@@ -134,6 +134,10 @@ parser.add_argument('--training_device',
                     default='auto',
                     help='Set the training device. Available options are cuda, cpu or auto, which is also the default '
                          'value.')
+parser.add_argument('--null_reward_out_image',
+                    action='store_true',
+                    help='Set reward equal to 0 for the gaze control task, if the center of mass of the object is '
+                         'outside the image.')
 
 args = parser.parse_args()
 
@@ -196,7 +200,8 @@ elif args.task == 'gaze_control':
                               objects_quaternions=objects_quaternions,
                               random_initial_pos=not args.fixed_initial_pos,
                               training_components=args.training_components,
-                              joints_margin=args.joints_margin)
+                              joints_margin=args.joints_margin,
+                              null_reward_out_image=args.null_reward_out_image)
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
