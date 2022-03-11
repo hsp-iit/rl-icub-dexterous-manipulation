@@ -53,10 +53,14 @@ class ICubEnvGazeControl(ICubEnv):
             return self.reward_out_of_joints
         if done_timesteps:
             return self.reward_end_timesteps
-        reward = (np.linalg.norm(self.com_object_uv - np.array([320, 240]))
-                  - np.linalg.norm(com_object_uv_after_sim - np.array([320, 240]))) * self.reward_single_step_multiplier
-        # Reduce high values of the reward with the tanh function
-        reward = np.tanh(reward)
+        if self.null_reward_out_image and 0 <= self.com_object_uv[0] < 640 and 0 <= self.com_object_uv[1] < 480:
+            reward = 0
+        else:
+            reward = (np.linalg.norm(self.com_object_uv - np.array([320, 240]))
+                      - np.linalg.norm(com_object_uv_after_sim - np.array([320, 240]))) \
+                     * self.reward_single_step_multiplier
+            # Reduce high values of the reward with the tanh function
+            reward = np.tanh(reward)
         if done_goal:
             reward += self.reward_goal
         return reward

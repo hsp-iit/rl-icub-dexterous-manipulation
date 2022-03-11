@@ -29,7 +29,8 @@ class ICubEnv(gym.Env):
                  reward_out_of_joints=-1.0,
                  reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
-                 joints_margin=0.0):
+                 joints_margin=0.0,
+                 null_reward_out_image=False):
 
         # Load xml model
         if model_path.startswith("/"):
@@ -64,6 +65,7 @@ class ICubEnv(gym.Env):
         self.render_objects_com = render_objects_com
         self.print_done_info = print_done_info
         self.joints_margin = joints_margin
+        self.null_reward_out_image = null_reward_out_image
 
         # Focal length set used to compute fovy in the xml file
         self.fy = 617.783447265625
