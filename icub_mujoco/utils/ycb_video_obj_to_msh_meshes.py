@@ -1,6 +1,13 @@
 from dm_robotics.manipulation.props import mesh_object
 import glob
 import os
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--full_model',
+                    action='store_true',
+                    help='Use textured.obj instead of the default textured_simple.obj as meshes to convert.')
+args = parser.parse_args()
 
 # http://berkcalli.com/publications/2015-CalliSinghWalsmanDollar.pdf
 masses = {"002_master_chef_can": 0.414,
@@ -27,10 +34,22 @@ masses = {"002_master_chef_can": 0.414,
           }
 
 
-def ycb_video_obj_to_msh():
-    mesh_path = "../meshes/YCB_Video/models/*/textured.obj"
+def ycb_video_obj_to_msh(full_model):
+    if full_model:
+        mesh_path = "../meshes/YCB_Video/models/*/textured.obj"
+    else:
+        mesh_path = "../meshes/YCB_Video/models/*/textured_simple.obj"
     mesh_files = []
     for mesh in sorted(glob.glob(mesh_path)):
+        if not full_model:
+            mesh_path_mod = mesh.replace("textured_simple.obj", "textured_simple_mod.obj")
+            with open(mesh_path_mod, 'w') as file_mod:
+                with open(mesh, 'r') as file_original:
+                    for line in file_original:
+                        if line.endswith(" 0.752941 0.752941 0.752941\n"):
+                            line = line[:-27]+"\n"
+                        file_mod.write(line)
+            mesh = mesh_path_mod
         mesh_files.append(mesh)
 
     texture_path = "../meshes/YCB_Video/models/*/texture_map.png"
@@ -49,4 +68,4 @@ def ycb_video_obj_to_msh():
                              size=[1, 1, 1])
 
 
-ycb_video_obj_to_msh()
+ycb_video_obj_to_msh(args.full_model)
