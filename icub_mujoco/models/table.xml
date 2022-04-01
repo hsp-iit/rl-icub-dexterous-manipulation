@@ -1,5 +1,5 @@
 <mujoco model="table">
-    <compiler angle="radian" inertiafromgeom="true" convexhull="true" texturedir="../meshes/table"/>
+    <compiler angle="radian" inertiafromgeom="auto" convexhull="true" texturedir="../meshes/table"/>
     <size njmax="1000" nconmax="10000" />
     <option timestep="0.005" gravity="0 0 -9.81" cone="pyramidal"/>
 
