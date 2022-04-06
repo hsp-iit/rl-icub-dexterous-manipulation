@@ -266,7 +266,7 @@
                                                     </body>
                                                     <body name="r_hand_middle_0" pos="-0.0575405 0.0060432 0.023778" quat="0.0922959 0.0922959 -0.701057 0.701057">
                                                         <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                        <joint name="r_hand_middle_0_joint" pos="0 0 0" axis="0 0 1" range="0 0.349066" damping="1000000" />
+                                                        <joint name="r_hand_middle_0_joint" pos="0 0 0" axis="0 0 1" range="-0.1 0.1" damping="1000000" />
                                                         <geom pos="0 0 0.0035" type="mesh" rgba="0 0 1 1" mesh="col_RightMiddle0" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" />
                                                         <body name="r_hand_middle_1" pos="0.0153 0.0022 0" quat="0.707107 0.707107 0 0">
                                                             <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
@@ -402,7 +402,7 @@
                                                     </body>
                                                     <body name="l_hand_middle_0" pos="0.0575405 0.0060432 0.023778" quat="0.701057 0.701057 -0.0922959 0.0922959">
                                                         <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                        <joint name="l_hand_middle_0_joint" pos="0 0 0" axis="0 0 1" range="0 0.349066" damping="1000000"/>
+                                                        <joint name="l_hand_middle_0_joint" pos="0 0 0" axis="0 0 1" range="-0.1 0.1" damping="1000000"/>
                                                         <geom quat="0 0.707107 0.707107 0" type="mesh" rgba="0 0 1 1" mesh="col_LeftMiddle0" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4"/>
                                                         <body name="l_hand_middle_1" pos="0.0153 -0.0022 0" quat="0.707107 0.707107 0 0">
                                                             <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
@@ -488,6 +488,9 @@
                     </body>
                 </body>
             </body>    
+        </body>
+        <body name="front_camera" pos="-2 0 1.1" quat="-0.5 -0.5 0.5 0.5">
+            <camera name="front_cam" fovy="70"/>
         </body>
     </worldbody>
     
