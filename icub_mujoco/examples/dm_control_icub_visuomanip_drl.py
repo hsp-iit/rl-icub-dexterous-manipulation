@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
-                    default='../models/icub_position_actuators.xml',
+                    default='../models/icub_position_actuators_actuate_hands.xml',
                     help='Set the path of the xml model.')
 parser.add_argument('--tensorboard_dir',
                     action='store',

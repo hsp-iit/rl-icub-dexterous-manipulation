@@ -18,14 +18,19 @@ class ICubEnvGazeControl(ICubEnv):
         action = np.clip(action, self.action_space.low, self.action_space.high)
         # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
         # for the other joints
-        action += self.env.physics.data.qpos[self.joints_to_control_ids]
-        action -= self.init_qpos[self.joints_to_control_ids]
-        null_action = np.zeros(len(self.init_qpos))
-        np.put(null_action, self.joints_to_control_ids, action)
+        named_qpos = self.env.physics.named.data.qpos
+        qpos_jnt_tendons = np.empty([0, ], dtype=np.float32)
+        for actuator in self.actuators_to_control_dict:
+            qpos_jnt_tendons = np.append(qpos_jnt_tendons,
+                                         np.sum(named_qpos[actuator['jnt']] * actuator['coeff']))
+        action += qpos_jnt_tendons
+        action -= self.init_icub_act[self.actuators_to_control_ids]
+        null_action = np.zeros(len(self.init_icub_act))
+        np.put(null_action, self.actuators_to_control_ids, action)
         action = null_action
-        target = np.clip(np.add(self.init_qpos, action),
-                         self.state_space.low + self.joints_margin,
-                         self.state_space.high - self.joints_margin)
+        target = np.clip(np.add(self.init_icub_act, action),
+                         self.actuators_space.low + self.joints_margin,
+                         self.actuators_space.high - self.joints_margin)
         self.do_simulation(target, self.frame_skip)
         object_com_x_y_z_after_sim = self.env.physics.data.qpos[self.joint_ids_objects[0:3]]
         object_com_x_y_z_after_sim_cam = self.points_in_camera_coord([object_com_x_y_z_after_sim])
