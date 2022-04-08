@@ -20,9 +20,11 @@ class ICubEnv(gym.Env):
                  objects_quaternions=(),
                  render_cameras=(),
                  obs_camera='head_cam',
+                 superquadrics_camera='head_cam',
                  feature_extractor_model_name='alexnet',
                  render_objects_com=True,
                  training_components=('r_arm', 'torso_yaw'),
+                 ik_components=(),
                  initial_qpos_path='../config/initial_qpos_actuated_hand.yaml',
                  print_done_info=False,
                  reward_goal=1.0,
@@ -47,7 +49,8 @@ class ICubEnv(gym.Env):
             self.add_table()
         self.objects_positions = objects_positions
         self.objects_quaternions = objects_quaternions
-        self.add_ycb_video_objects(objects)
+        self.objects = objects
+        self.add_ycb_video_objects(self.objects)
         self.world_entity = composer.ModelWrapperEntity(self.world)
         self.task = composer.NullTask(self.world_entity)
         self.env = composer.Environment(self.task)
@@ -62,6 +65,7 @@ class ICubEnv(gym.Env):
         self._max_episode_steps = 2000
         self.render_cameras = render_cameras
         self.obs_camera = obs_camera
+        self.superquadrics_camera = superquadrics_camera
         self.render_objects_com = render_objects_com
         self.print_done_info = print_done_info
         self.joints_margin = joints_margin
@@ -83,6 +87,8 @@ class ICubEnv(gym.Env):
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('r_wrist') or
                                                                                  j.startswith('r_elbow') or
                                                                                  j.startswith('r_shoulder'))])
+        if 'r_wrist' in self.training_components and 'r_arm' not in self.training_components:
+            self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('r_wrist')])
         if 'r_hand' in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('r_hand') or
                                                                                  j.startswith('r_thumb') or
@@ -93,6 +99,8 @@ class ICubEnv(gym.Env):
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('l_wrist') or
                                                                                  j.startswith('l_elbow') or
                                                                                  j.startswith('l_shoulder'))])
+        if 'l_wrist' in self.training_components and 'l_arm' not in self.training_components:
+            self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('l_wrist')])
         if 'l_hand' in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('l_hand') or
                                                                                  j.startswith('l_thumb') or
@@ -108,6 +116,26 @@ class ICubEnv(gym.Env):
         if 'all' in self.training_components and len(self.training_components) == 1:
             self.actuators_to_control.extend([j for j in self.actuator_names])
 
+        # Select actuators to control for IK
+        self.ik_components = ik_components
+        self.joints_to_control_ik = []
+        if 'r_arm' in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if (j.startswith('r_wrist') or
+                                                                              j.startswith('r_elbow') or
+                                                                              j.startswith('r_shoulder'))])
+        if 'l_arm' in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if (j.startswith('l_wrist') or
+                                                                              j.startswith('l_elbow') or
+                                                                              j.startswith('l_shoulder'))])
+        if 'neck' in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('neck')])
+        if 'torso' in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('torso')])
+        if 'torso_yaw' in self.ik_components and 'torso' not in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('torso_yaw')])
+        if 'all' in self.ik_components and len(self.ik_components) == 1:
+            self.joints_to_control_ik.extend([j for j in self.joint_names])
+
         # Extract joints-tendons information for each actuator
         self.init_icub_qpos_dict = {}
         self.actuators_to_control_dict = []
@@ -115,6 +143,7 @@ class ICubEnv(gym.Env):
         self.actuators_to_control_ids = []
         self.init_icub_act = np.array([], dtype=np.float32)
         self.joints_to_control_icub = []
+        self.actuators_margin = np.array([], dtype=np.float32)
         for actuator_id, actuator in enumerate(self.world_entity.mjcf_model.find_all('actuator')):
             if actuator.joint is not None:
                 actuator_dict = {'name': actuator.name,
@@ -124,16 +153,19 @@ class ICubEnv(gym.Env):
                 self.init_icub_qpos_dict[actuator.joint.full_identifier] = self.init_icub_act_dict[actuator.name]
                 if actuator.name in self.actuators_to_control:
                     self.joints_to_control_icub.append(actuator.joint.full_identifier)
+                self.actuators_margin = np.append(self.actuators_margin, self.joints_margin)
             elif actuator.tendon is not None:
                 jnt = []
                 coeff = []
                 non_zero_coeffs = len([joint.coef for joint in actuator.tendon.joint if joint.coef != 0.0])
+                actuator_margin = 0
                 for joint in actuator.tendon.joint:
                     jnt.append(joint.joint.full_identifier)
                     coeff.append(joint.coef)
                     if joint.coef != 0.0:
                         self.init_icub_qpos_dict[joint.joint.full_identifier] =\
                             self.init_icub_act_dict[actuator.name] / (joint.coef * non_zero_coeffs)
+                        actuator_margin += self.joints_margin * joint.coef
                     else:
                         self.init_icub_qpos_dict[joint.joint.full_identifier] = 0.0
                     if actuator.name in self.actuators_to_control:
@@ -142,9 +174,9 @@ class ICubEnv(gym.Env):
                                  'jnt': jnt,
                                  'coeff': coeff,
                                  'non_zero_coeff': non_zero_coeffs}
+                self.actuators_margin = np.append(self.actuators_margin, abs(actuator_margin))
             else:
                 raise ValueError('Actuator {} has neither a joint nor a tendon.'.format(actuator.name))
-
             if actuator.name in self.actuators_to_control:
                 self.actuators_to_control_dict.append(actuator_dict)
                 self.actuators_to_control_ids.append(actuator_id)
@@ -166,6 +198,7 @@ class ICubEnv(gym.Env):
         self.init_qpos = np.array([], dtype=np.float32)
         self.init_qvel = np.array([], dtype=np.float32)
         self.joint_ids_icub = np.array([], dtype=np.int64)
+        self.joint_ids_icub_dict = {}
         self.joint_ids_objects = np.array([], dtype=np.int64)
         self.joint_names_icub = []
         self.joint_names_objects = []
@@ -184,6 +217,7 @@ class ICubEnv(gym.Env):
                 self.init_qpos = np.append(self.init_qpos, self.init_icub_qpos_dict[joint])
                 self.init_qvel = np.concatenate((self.init_qvel, np.zeros(1, dtype=np.float32)))
                 self.joint_ids_icub = np.append(self.joint_ids_icub, id_to_add)
+                self.joint_ids_icub_dict[joint] = id_to_add
                 self.joint_names_icub.append(joint)
             else:
                 joint_id = self.env.physics.model.name2id(joint, 'joint')
@@ -214,11 +248,14 @@ class ICubEnv(gym.Env):
         self.joints_to_control_ids = np.array([], dtype=np.int64)
         # Store joints ids to control excluding hand joints, just for random initialization purpose
         self.joints_to_control_no_hand_ids = np.array([], dtype=np.int64)
+        self.joints_to_control_ik_ids = np.array([], dtype=np.int64)
         for id, joint in enumerate(self.joint_names_icub):
             if joint in self.joints_to_control_icub:
                 self.joints_to_control_ids = np.append(self.joints_to_control_ids, id)
                 if not joint.startswith('r_hand') and not joint.startswith('l_hand'):
                     self.joints_to_control_no_hand_ids = np.append(self.joints_to_control_no_hand_ids, id)
+            if joint in self.joints_to_control_ik:
+                self.joints_to_control_ik_ids = np.append(self.joints_to_control_ik_ids, id)
 
         # Set spaces
         self.max_delta_qpos = 0.1
