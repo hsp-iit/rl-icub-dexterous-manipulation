@@ -224,6 +224,9 @@
                                                     <inertial pos="-0.0646682 0.0056002 0.0226813" quat="-0.112385 0.892031 0.231018 0.37186" mass="0.248289" diaginertia="0.0100407 0.010002 0.00995729" />
                                                     <joint name="r_wrist_yaw" pos="0 0 0" axis="0 -1 0" range="-0.349066 0.436332" damping="1.0" />
                                                     <geom pos="0.00271607 -0.0015568 -0.00248235" quat="0.701057 -0.701057 0.0922959 0.0922959" type="mesh" rgba="0 0 1 1" mesh="col_RightHandPalm" />
+                                                    <body name="r_hand_dh_frame" pos="-0.05765429784284365 -0.005556799999999987 0.013693832308330513" quat="-0.09229593181512326 0.09229593181512327 -0.7010573877867474 0.7010573877867475">
+                                                        <site name="r_hand_dh_frame_site" type="sphere" rgba="0 0 0 0" size="0.005"/>
+                                                    </body>
                                                     <body name="r_hand_thumb_0" pos="-0.0318492 -0.0040568 0.0192027" quat="0.0382606 0.614855 -0.0162249 0.787545">
                                                         <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
                                                         <joint name="r_hand_thumb_0_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" />
@@ -294,11 +297,11 @@
                                                             <geom type="mesh" rgba="0 0 1 1" mesh="col_RightRing1" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" />
                                                             <body name="r_hand_ring_2" pos="0.0259 0 0">
                                                                 <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                                <joint name="r_hand_ring_2_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="2"/>
+                                                                <joint name="r_hand_ring_2_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="2" frictionloss="1"/>
                                                                 <geom quat="0 1 0 0" type="mesh" rgba="0 0 1 1" mesh="col_RightRing2" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" />
                                                                 <body name="r_hand_ring_3" pos="0.022 0 0">
                                                                     <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                                    <joint name="r_hand_ring_3_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="3"/>
+                                                                    <joint name="r_hand_ring_3_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="3" frictionloss="1"/>
                                                                     <geom quat="0 0 1 0" type="mesh" rgba="0 0 1 1" mesh="col_RightRing3" friction="3.5 0.05 0.01"  solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" priority="1" />
                                                                 </body>
                                                             </body>
@@ -314,11 +317,11 @@
                                                             <geom quat="0 1 0 0" type="mesh" rgba="0 0 1 1" mesh="col_RightLittle1" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" />
                                                             <body name="r_hand_little_2" pos="0.0219 0 0">
                                                                 <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                                <joint name="r_hand_little_2_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="2"/>
+                                                                <joint name="r_hand_little_2_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="2" frictionloss="1"/>
                                                                 <geom quat="0 1 0 0" type="mesh" rgba="0 0 1 1" mesh="col_RightLittle2" friction="1.0 0.05 0.01" solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" />
                                                                 <body name="r_hand_little_3" pos="0.019 0 0">
                                                                     <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
-                                                                    <joint name="r_hand_little_3_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="3"/>
+                                                                    <joint name="r_hand_little_3_joint" pos="0 0 0" axis="0 0 1" range="0 1.5708" stiffness="3" frictionloss="1"/>
                                                                     <geom quat="0 0 1 0" type="mesh" rgba="0 0 1 1" mesh="col_RightLittle3" friction="3.5 0.05 0.01"  solimp="0.95 0.95 0.01" solref="0.01 0.5" condim="4" priority="1"/>
                                                                 </body>
                                                             </body>
@@ -481,6 +484,9 @@
                                     <geom pos="0 -0.067153 -0.0295008" type="mesh" rgba="1 0 0 1" mesh="sim_sea_2-5_head_prt-binary" />
                                     <body name="head_camera" pos="0.043454 0.217822 0.0835957" quat="-0.0233008 0.0078341 0.9825643 0.1842908">
                                         <camera name="head_cam" fovy="42.4608673089277"/>
+                                    </body>
+                                    <body name="head_camera_track_hand" pos="0.043454 0.217822 0.0835957" quat="-0.0233008 0.0078341 0.9825643 0.1842908">
+                                        <camera name="head_cam_track_hand" fovy="42.4608673089277" mode="targetbody" target="r_hand"/>
                                     </body>
                                 </body>
                             </body>
