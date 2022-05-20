@@ -9,5 +9,7 @@ setup(
         'stable-baselines3[extra]',
         'pyyaml',
         'torchvision',
+        'pyquaternion',
+        'clip @ git+https://github.com/openai/CLIP.git'
     ]
 )
