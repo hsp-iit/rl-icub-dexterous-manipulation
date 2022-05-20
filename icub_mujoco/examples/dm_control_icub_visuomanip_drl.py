@@ -1,9 +1,17 @@
+import numpy as np
+
 from icub_mujoco.envs.icub_visuomanip_reaching import ICubEnvReaching
 from icub_mujoco.envs.icub_visuomanip_gaze_control import ICubEnvGazeControl
+from icub_mujoco.envs.icub_visuomanip_refine_grasp import ICubEnvRefineGrasp
+from icub_mujoco.envs.icub_visuomanip_keep_grasp import ICubEnvKeepGrasp
+from icub_mujoco.envs.icub_visuomanip_lift_grasped_object import ICubEnvLiftGraspedObject
 from stable_baselines3 import SAC
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--test_model',
+                    action='store_true',
+                    help='Test the best_model.zip stored in --eval_dir.')
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
@@ -74,15 +82,30 @@ parser.add_argument('--icub_observation_space',
                     nargs='+',
                     default='joints',
                     help='Set the observation space: joints will use as observation space joints positions, '
-                         'camera will use realsense headset information, features the features extracted by the '
-                         'realsense headset information. If you pass multiple argument, you will use a '
+                         'camera will use information from the camera specified with the argument obs_camera, '
+                         'features the features extracted by the camera specified with the argument obs_camera '
+                         'and touch the tactile information. If you pass multiple argument, you will use a '
                          'MultiInputPolicy.')
+parser.add_argument('--eef_name',
+                    type=str,
+                    default='r_hand',
+                    help='Specify the name of the body to be considered as end-effector')
 parser.add_argument('--render_cameras',
                     type=str,
                     nargs='+',
                     default=[],
                     help='Set the cameras used for rendering. Available cameras are front_cam and head_cam.')
 parser.add_argument('--obs_camera',
+                    type=str,
+                    default='head_cam',
+                    help='Set the cameras used for observation. Available cameras are front_cam and head_cam.')
+parser.add_argument('--track_object',
+                    action='store_true',
+                    help='Set the target of the tracking camera to the object, instead of the default r_hand')
+parser.add_argument('--curriculum_learning',
+                    action='store_true',
+                    help='Use curriculum learning for joints offsets.')
+parser.add_argument('--superquadrics_camera',
                     type=str,
                     default='head_cam',
                     help='Set the cameras used for observation. Available cameras are front_cam and head_cam.')
@@ -119,6 +142,9 @@ parser.add_argument('--objects_quaternions',
                     help='Specify objects initial positions. They must be in the order w_1 x_1 y_1 z_1 ... w_n x_n y_n '
                          'z_n for the n objects specified with the argument objects. '
                          'If the value are not specified, the initial orientation of all the objects is set randomly.')
+parser.add_argument('--randomly_rotate_object_z_axis',
+                    action='store_true',
+                    help='Randomy rotate objects on the table around the z axis.')
 parser.add_argument('--task',
                     type=str,
                     default='reaching',
@@ -127,8 +153,20 @@ parser.add_argument('--training_components',
                     type=str,
                     nargs='+',
                     default=[],
-                    help='Specify the joints that must be trained. Choose values in r_arm, l_arm, neck, torso, '
-                         'torso_yaw or all to train all the joints.')
+                    help='Specify the joints that must be trained. Choose values in r_arm, l_arm, r_wrist, l_wrist, '
+                         'r_hand, l_hand, neck, torso, torso_yaw or all to train all the joints.')
+parser.add_argument('--ik_components',
+                    type=str,
+                    nargs='+',
+                    default=[],
+                    help='Specify the joints that must be used for inverse kinematics computation. Choose values in '
+                         'r_arm, l_arm, r_hand, l_hand, neck, torso, torso_yaw or all to use all the joints.')
+parser.add_argument('--cartesian_components',
+                    type=str,
+                    nargs='+',
+                    default=['all'],
+                    help='Specify the joints that must be used for cartesian control. Choose values in x, y, z, qw, '
+                         'qx, qy, qz or all (default option) to use all the joints.')
 parser.add_argument('--training_device',
                     type=str,
                     default='auto',
@@ -138,6 +176,15 @@ parser.add_argument('--null_reward_out_image',
                     action='store_true',
                     help='Set reward equal to 0 for the gaze control task, if the center of mass of the object is '
                          'outside the image.')
+parser.add_argument('--feature_extractor_model_name',
+                    type=str,
+                    default='alexnet',
+                    help='Set feature extractor to process image input if features in icub_observation_space.')
+parser.add_argument('--lift_object_height',
+                    action='store',
+                    type=float,
+                    default=1.05,
+                    help='Set the height of the object to complete the grasp refinement task. Default is 1.02.')
 
 args = parser.parse_args()
 
@@ -156,21 +203,22 @@ for pos in args.objects_positions:
 
 objects_quaternions = []
 num_quat = 0
-curr_obj_quat = ''
+curr_obj_quat = np.empty(shape=0, dtype=np.float32)
 for quat in args.objects_quaternions:
-    curr_obj_quat += quat
+    curr_obj_quat = np.append(curr_obj_quat, quat)
     if num_quat < 3:
-        curr_obj_quat += ' '
         num_quat += 1
     else:
         objects_quaternions.append(curr_obj_quat)
         num_quat = 0
-        curr_obj_quat = ''
+        curr_obj_quat = np.empty(shape=0, dtype=np.float32)
 
 if args.task == 'reaching':
     iCub = ICubEnvReaching(model_path=args.xml_model_path,
                            icub_observation_space=args.icub_observation_space,
                            obs_camera=args.obs_camera,
+                           track_object=args.track_object,
+                           eef_name=args.eef_name,
                            render_cameras=tuple(args.render_cameras),
                            reward_goal=args.reward_goal,
                            reward_out_of_joints=args.reward_out_of_joints,
@@ -183,11 +231,14 @@ if args.task == 'reaching':
                            objects_quaternions=objects_quaternions,
                            random_initial_pos=not args.fixed_initial_pos,
                            training_components=args.training_components,
-                           joints_margin=args.joints_margin)
+                           joints_margin=args.joints_margin,
+                           feature_extractor_model_name=args.feature_extractor_model_name)
 elif args.task == 'gaze_control':
     iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
                               obs_camera=args.obs_camera,
+                              track_object=args.track_object,
+                              eef_name=args.eef_name,
                               render_cameras=tuple(args.render_cameras),
                               reward_goal=args.reward_goal,
                               reward_out_of_joints=args.reward_out_of_joints,
@@ -201,47 +252,147 @@ elif args.task == 'gaze_control':
                               random_initial_pos=not args.fixed_initial_pos,
                               training_components=args.training_components,
                               joints_margin=args.joints_margin,
-                              null_reward_out_image=args.null_reward_out_image)
+                              null_reward_out_image=args.null_reward_out_image,
+                              feature_extractor_model_name=args.feature_extractor_model_name)
+elif args.task == 'refine_grasp':
+    iCub = ICubEnvRefineGrasp(model_path=args.xml_model_path,
+                              icub_observation_space=args.icub_observation_space,
+                              obs_camera=args.obs_camera,
+                              track_object=args.track_object,
+                              eef_name=args.eef_name,
+                              render_cameras=tuple(args.render_cameras),
+                              reward_goal=args.reward_goal,
+                              reward_out_of_joints=args.reward_out_of_joints,
+                              reward_end_timesteps=args.reward_end_timesteps,
+                              reward_single_step_multiplier=args.reward_single_step_multiplier,
+                              print_done_info=args.print_done_info,
+                              objects=args.objects,
+                              use_table=args.use_table,
+                              objects_positions=objects_positions,
+                              objects_quaternions=objects_quaternions,
+                              randomly_rotate_object_z_axis=args.randomly_rotate_object_z_axis,
+                              random_initial_pos=not args.fixed_initial_pos,
+                              training_components=args.training_components,
+                              ik_components=args.ik_components,
+                              cartesian_components=args.cartesian_components,
+                              joints_margin=args.joints_margin,
+                              superquadrics_camera=args.superquadrics_camera,
+                              feature_extractor_model_name=args.feature_extractor_model_name,
+                              done_if_joints_out_of_limits=False,
+                              lift_object_height=args.lift_object_height,
+                              curriculum_learning=args.curriculum_learning)
+elif args.task == 'keep_grasp':
+    iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
+                            icub_observation_space=args.icub_observation_space,
+                            obs_camera=args.obs_camera,
+                            track_object=args.track_object,
+                            eef_name=args.eef_name,
+                            render_cameras=tuple(args.render_cameras),
+                            reward_goal=args.reward_goal,
+                            reward_out_of_joints=args.reward_out_of_joints,
+                            reward_end_timesteps=args.reward_end_timesteps,
+                            reward_single_step_multiplier=args.reward_single_step_multiplier,
+                            print_done_info=args.print_done_info,
+                            objects=args.objects,
+                            use_table=args.use_table,
+                            objects_positions=objects_positions,
+                            objects_quaternions=objects_quaternions,
+                            random_initial_pos=not args.fixed_initial_pos,
+                            training_components=args.training_components,
+                            ik_components=args.ik_components,
+                            cartesian_components=args.cartesian_components,
+                            joints_margin=args.joints_margin,
+                            superquadrics_camera=args.superquadrics_camera,
+                            feature_extractor_model_name=args.feature_extractor_model_name,
+                            done_if_joints_out_of_limits=False,
+                            lift_object_height=args.lift_object_height,
+                            curriculum_learning=args.curriculum_learning)
+elif args.task == 'lift_grasped_object':
+    iCub = ICubEnvLiftGraspedObject(model_path=args.xml_model_path,
+                                    icub_observation_space=args.icub_observation_space,
+                                    obs_camera=args.obs_camera,
+                                    track_object=args.track_object,
+                                    eef_name=args.eef_name,
+                                    render_cameras=tuple(args.render_cameras),
+                                    reward_goal=args.reward_goal,
+                                    reward_out_of_joints=args.reward_out_of_joints,
+                                    reward_end_timesteps=args.reward_end_timesteps,
+                                    reward_single_step_multiplier=args.reward_single_step_multiplier,
+                                    print_done_info=args.print_done_info,
+                                    objects=args.objects,
+                                    use_table=args.use_table,
+                                    objects_positions=objects_positions,
+                                    objects_quaternions=objects_quaternions,
+                                    random_initial_pos=not args.fixed_initial_pos,
+                                    training_components=args.training_components,
+                                    ik_components=args.ik_components,
+                                    cartesian_components=args.cartesian_components,
+                                    joints_margin=args.joints_margin,
+                                    superquadrics_camera=args.superquadrics_camera,
+                                    feature_extractor_model_name=args.feature_extractor_model_name,
+                                    done_if_joints_out_of_limits=False,
+                                    lift_object_height=args.lift_object_height,
+                                    curriculum_learning=args.curriculum_learning)
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
-if ('joints' in args.icub_observation_space or 'features' in args.icub_observation_space) \
-        and len(args.icub_observation_space) == 1:
-    model = SAC("MlpPolicy",
-                iCub,
-                verbose=1,
-                tensorboard_log=args.tensorboard_dir,
-                policy_kwargs=dict(net_arch=args.net_arch),
-                train_freq=args.train_freq,
-                create_eval_env=True,
-                buffer_size=args.buffer_size,
-                device=args.training_device)
-elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
-    model = SAC("CnnPolicy",
-                iCub,
-                verbose=1,
-                tensorboard_log=args.tensorboard_dir,
-                policy_kwargs=dict(net_arch=args.net_arch),
-                train_freq=args.train_freq,
-                create_eval_env=True,
-                buffer_size=args.buffer_size,
-                device=args.training_device)
-elif ('camera' in args.icub_observation_space
-      or 'joints' in args.icub_observation_space
-      or 'features' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
-    model = SAC("MultiInputPolicy",
-                iCub,
-                verbose=1,
-                tensorboard_log=args.tensorboard_dir,
-                policy_kwargs=dict(net_arch=args.net_arch),
-                train_freq=args.train_freq,
-                create_eval_env=True,
-                buffer_size=args.buffer_size,
-                device=args.training_device)
-else:
-    raise ValueError('The observation space specified as argument is not valid. Quitting.')
+if args.test_model:
+    model = SAC.load(args.eval_dir + '/best_model.zip', env=iCub)
+    obs = iCub.reset()
 
-model.learn(total_timesteps=args.total_training_timesteps,
-            eval_freq=args.eval_freq,
-            eval_env=iCub,
-            eval_log_path=args.eval_dir)
+    # Evaluate the agent
+    episode_reward = 0
+    while True:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = iCub.step(action)
+        iCub.render()
+        episode_reward += reward
+        if done:
+            break
+    print("Reward:", episode_reward)
+else:
+    if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
+        or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
+        or 'flare' in args.icub_observation_space) \
+            and len(args.icub_observation_space) == 1:
+        model = SAC("MlpPolicy",
+                    iCub,
+                    verbose=1,
+                    tensorboard_log=args.tensorboard_dir,
+                    policy_kwargs=dict(net_arch=args.net_arch),
+                    train_freq=args.train_freq,
+                    create_eval_env=True,
+                    buffer_size=args.buffer_size,
+                    device=args.training_device)
+    elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
+        model = SAC("CnnPolicy",
+                    iCub,
+                    verbose=1,
+                    tensorboard_log=args.tensorboard_dir,
+                    policy_kwargs=dict(net_arch=args.net_arch),
+                    train_freq=args.train_freq,
+                    create_eval_env=True,
+                    buffer_size=args.buffer_size,
+                    device=args.training_device)
+    elif ('camera' in args.icub_observation_space
+          or 'joints' in args.icub_observation_space
+          or 'cartesian' in args.icub_observation_space
+          or 'features' in args.icub_observation_space
+          or 'touch' in args.icub_observation_space
+          or 'flare' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
+        model = SAC("MultiInputPolicy",
+                    iCub,
+                    verbose=1,
+                    tensorboard_log=args.tensorboard_dir,
+                    policy_kwargs=dict(net_arch=args.net_arch),
+                    train_freq=args.train_freq,
+                    create_eval_env=True,
+                    buffer_size=args.buffer_size,
+                    device=args.training_device)
+    else:
+        raise ValueError('The observation space specified as argument is not valid. Quitting.')
+
+    model.learn(total_timesteps=args.total_training_timesteps,
+                eval_freq=args.eval_freq,
+                eval_env=iCub,
+                eval_log_path=args.eval_dir)
