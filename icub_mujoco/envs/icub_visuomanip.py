@@ -1,3 +1,5 @@
+import math
+
 from dm_control import composer, mjcf
 import os
 import gym
@@ -5,6 +7,9 @@ import numpy as np
 import cv2
 import yaml
 from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
+from icub_mujoco.feature_extractors.images_feature_extractor_CLIP import ImagesFeatureExtractorCLIP
+from dm_robotics.moma.utils.ik_solver import IkSolver
+from pyquaternion import Quaternion
 
 
 class ICubEnv(gym.Env):
@@ -18,13 +23,17 @@ class ICubEnv(gym.Env):
                  use_table=True,
                  objects_positions=(),
                  objects_quaternions=(),
+                 randomly_rotate_object_z_axis=False,
+                 eef_name='r_hand',
                  render_cameras=(),
                  obs_camera='head_cam',
+                 track_object=False,
                  superquadrics_camera='head_cam',
                  feature_extractor_model_name='alexnet',
-                 render_objects_com=True,
+                 render_objects_com=False,
                  training_components=('r_arm', 'torso_yaw'),
                  ik_components=(),
+                 cartesian_components=('all',),
                  initial_qpos_path='../config/initial_qpos_actuated_hand.yaml',
                  print_done_info=False,
                  reward_goal=1.0,
@@ -32,7 +41,10 @@ class ICubEnv(gym.Env):
                  reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
                  joints_margin=0.0,
-                 null_reward_out_image=False):
+                 null_reward_out_image=False,
+                 done_if_joints_out_of_limits=True,
+                 lift_object_height=1.02,
+                 curriculum_learning=False):
 
         # Load xml model
         if model_path.startswith("/"):
@@ -49,16 +61,22 @@ class ICubEnv(gym.Env):
             self.add_table()
         self.objects_positions = objects_positions
         self.objects_quaternions = objects_quaternions
+        self.randomly_rotate_object_z_axis = randomly_rotate_object_z_axis
         self.objects = objects
         self.add_ycb_video_objects(self.objects)
+        if track_object:
+            self.track_object_with_camera()
         self.world_entity = composer.ModelWrapperEntity(self.world)
         self.task = composer.NullTask(self.world_entity)
         self.env = composer.Environment(self.task)
 
         # Set environment and task parameters
         self.icub_observation_space = icub_observation_space
-        self.feature_extractor = ImagesFeatureExtractor(model_name=feature_extractor_model_name) \
-            if 'features' in icub_observation_space else None
+        if 'features' in icub_observation_space or 'flare' in icub_observation_space:
+            if 'CLIP' in feature_extractor_model_name:
+                self.feature_extractor = ImagesFeatureExtractorCLIP(model_name=feature_extractor_model_name)
+            else:
+                self.feature_extractor = ImagesFeatureExtractor(model_name=feature_extractor_model_name)
         self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
@@ -70,6 +88,8 @@ class ICubEnv(gym.Env):
         self.print_done_info = print_done_info
         self.joints_margin = joints_margin
         self.null_reward_out_image = null_reward_out_image
+        self.lift_object_height = lift_object_height
+        self.curriculum_learning = curriculum_learning
 
         # Focal length set used to compute fovy in the xml file
         self.fy = 617.783447265625
@@ -81,7 +101,37 @@ class ICubEnv(gym.Env):
         self.joint_names = [joint.full_identifier for joint in self.world_entity.mjcf_model.find_all('joint')]
 
         # Select actuators to control for the task
-        self.training_components = training_components
+        if 'cartesian' in self.icub_observation_space:
+            self.training_components = []
+            for tr_component in training_components:
+                if 'r_hand' in tr_component:
+                    self.training_components.append('r_hand')
+                elif 'l_hand' in tr_component:
+                    self.training_components.append('l_hand')
+                else:
+                    print('Using cartesian observation space. {} cannot be used as training component.'.format(
+                        tr_component))
+            self.cartesian_components = cartesian_components
+            if 'all' in self.cartesian_components:
+                self.cartesian_ids = list(range(7))
+            else:
+                self.cartesian_ids = []
+                if 'x' in self.cartesian_components:
+                    self.cartesian_ids.append(0)
+                if 'y' in self.cartesian_components:
+                    self.cartesian_ids.append(1)
+                if 'z' in self.cartesian_components:
+                    self.cartesian_ids.append(2)
+                if 'qw' in self.cartesian_components:
+                    self.cartesian_ids.append(3)
+                if 'qx' in self.cartesian_components:
+                    self.cartesian_ids.append(4)
+                if 'qy' in self.cartesian_components:
+                    self.cartesian_ids.append(5)
+                if 'qz' in self.cartesian_components:
+                    self.cartesian_ids.append(6)
+        else:
+            self.training_components = training_components
         self.actuators_to_control = []
         if 'r_arm' in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('r_wrist') or
@@ -116,6 +166,12 @@ class ICubEnv(gym.Env):
         if 'all' in self.training_components and len(self.training_components) == 1:
             self.actuators_to_control.extend([j for j in self.actuator_names])
 
+        self.actuators_to_control_no_fingers = []
+        for actuator in self.actuators_to_control:
+            if not ('hand' in actuator or 'thumb' in actuator or 'index' in actuator
+                    or 'middle' in actuator or 'pinky' in actuator):
+                self.actuators_to_control_no_fingers.append(actuator)
+
         # Select actuators to control for IK
         self.ik_components = ik_components
         self.joints_to_control_ik = []
@@ -136,11 +192,50 @@ class ICubEnv(gym.Env):
         if 'all' in self.ik_components and len(self.ik_components) == 1:
             self.joints_to_control_ik.extend([j for j in self.joint_names])
 
+        # Create a list of actuators to control for inverse kinematics if using the cartesian controller
+        if 'cartesian' in self.icub_observation_space:
+            self.actuators_to_control_ik = []
+            if 'r_arm' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if (j.startswith('r_wrist') or
+                                                                                        j.startswith('r_elbow') or
+                                                                                        j.startswith('r_shoulder'))])
+            if 'r_wrist' in self.ik_components and 'r_arm' not in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('r_wrist')])
+            if 'r_hand' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if (j.startswith('r_hand') or
+                                                                                        j.startswith('r_thumb') or
+                                                                                        j.startswith('r_index') or
+                                                                                        j.startswith('r_middle') or
+                                                                                        j.startswith('r_pinky'))])
+            if 'l_arm' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if (j.startswith('l_wrist') or
+                                                                                        j.startswith('l_elbow') or
+                                                                                        j.startswith('l_shoulder'))])
+            if 'l_wrist' in self.ik_components and 'l_arm' not in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('l_wrist')])
+            if 'l_hand' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if (j.startswith('l_hand') or
+                                                                                        j.startswith('l_thumb') or
+                                                                                        j.startswith('l_index') or
+                                                                                        j.startswith('l_middle') or
+                                                                                        j.startswith('l_pinky'))])
+            if 'neck' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('neck')])
+            if 'torso' in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso')])
+            if 'torso_yaw' in self.ik_components and 'torso' not in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso_yaw')])
+            if 'all' in self.ik_components and len(self.ik_components) == 1:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names])
+
         # Extract joints-tendons information for each actuator
         self.init_icub_qpos_dict = {}
         self.actuators_to_control_dict = []
         self.actuators_dict = []
         self.actuators_to_control_ids = []
+        self.actuators_to_control_no_fingers_ids = []
+        self.actuators_to_control_fingers_ids = []
+        self.actuators_to_control_ik_ids = []
         self.init_icub_act = np.array([], dtype=np.float32)
         self.joints_to_control_icub = []
         self.actuators_margin = np.array([], dtype=np.float32)
@@ -150,6 +245,15 @@ class ICubEnv(gym.Env):
                                  'jnt': [actuator.joint.full_identifier],
                                  'coeff': [1.0],
                                  'non_zero_coeff': 1}
+                if 'thumb' in actuator.name or 'index' in actuator.name or 'middle' in actuator.name \
+                        or 'pinky' in actuator.name or 'hand_finger' in actuator.name:
+                    actuator_dict['close_value'] = self.env.physics.named.model.actuator_ctrlrange[actuator.name].max()
+                    if actuator.name != 'r_thumb_oppose':
+                        actuator_dict['open_value'] = \
+                            self.env.physics.named.model.actuator_ctrlrange[actuator.name].min()
+                    else:
+                        actuator_dict['open_value'] = \
+                            self.env.physics.named.model.actuator_ctrlrange[actuator.name].max(),
                 self.init_icub_qpos_dict[actuator.joint.full_identifier] = self.init_icub_act_dict[actuator.name]
                 if actuator.name in self.actuators_to_control:
                     self.joints_to_control_icub.append(actuator.joint.full_identifier)
@@ -163,7 +267,7 @@ class ICubEnv(gym.Env):
                     jnt.append(joint.joint.full_identifier)
                     coeff.append(joint.coef)
                     if joint.coef != 0.0:
-                        self.init_icub_qpos_dict[joint.joint.full_identifier] =\
+                        self.init_icub_qpos_dict[joint.joint.full_identifier] = \
                             self.init_icub_act_dict[actuator.name] / (joint.coef * non_zero_coeffs)
                         actuator_margin += self.joints_margin * joint.coef
                     else:
@@ -174,12 +278,23 @@ class ICubEnv(gym.Env):
                                  'jnt': jnt,
                                  'coeff': coeff,
                                  'non_zero_coeff': non_zero_coeffs}
+                if 'thumb' in actuator.name or 'index' in actuator.name or 'middle' in actuator.name \
+                        or 'pinky' in actuator.name or 'hand_finger' in actuator.name:
+                    actuator_dict['close_value'] = self.env.physics.named.model.actuator_ctrlrange[actuator.name].max()
+                    actuator_dict['open_value'] = self.env.physics.named.model.actuator_ctrlrange[actuator.name].min()
                 self.actuators_margin = np.append(self.actuators_margin, abs(actuator_margin))
             else:
                 raise ValueError('Actuator {} has neither a joint nor a tendon.'.format(actuator.name))
             if actuator.name in self.actuators_to_control:
                 self.actuators_to_control_dict.append(actuator_dict)
                 self.actuators_to_control_ids.append(actuator_id)
+                if actuator.name not in self.actuators_to_control_no_fingers:
+                    self.actuators_to_control_fingers_ids.append(actuator_id)
+            if actuator.name in self.actuators_to_control_no_fingers:
+                self.actuators_to_control_no_fingers_ids.append(actuator_id)
+            if 'cartesian' in self.icub_observation_space:
+                if actuator.name in self.actuators_to_control_ik:
+                    self.actuators_to_control_ik_ids.append(actuator_id)
             self.actuators_dict.append(actuator_dict)
             self.init_icub_act = np.append(self.init_icub_act, self.init_icub_act_dict[actuator.name])
 
@@ -257,18 +372,48 @@ class ICubEnv(gym.Env):
             if joint in self.joints_to_control_ik:
                 self.joints_to_control_ik_ids = np.append(self.joints_to_control_ik_ids, id)
 
+        # Compute fingers-objects touch variables
+        self.contact_geom_fingers_names = ['col_RightThumb3',
+                                           'col_RightIndex3',
+                                           'col_RightMiddle3',
+                                           'col_RightRing3',
+                                           'col_RightLittle3']
+        self.contact_geom_ids_fingers_meshes = {'col_RightThumb3': -1,
+                                                'col_RightIndex3': -1,
+                                                'col_RightMiddle3': -1,
+                                                'col_RightRing3': -1,
+                                                'col_RightLittle3': -1}
+        self.contact_geom_ids_objects_meshes = {}
+        self.geoms = self.world_entity.mjcf_model.find_all('geom')
+        for geom in self.geoms:
+            if geom.mesh:
+                if geom.mesh.name in self.contact_geom_ids_fingers_meshes.keys():
+                    self.contact_geom_ids_fingers_meshes[geom.mesh.name] = \
+                        self.env.physics.model.name2id(geom.full_identifier, 'geom')
+            if geom.name == 'mesh_' + self.objects[0] + '_00_collision':
+                self.contact_geom_ids_objects_meshes[geom.name] = \
+                    self.env.physics.model.name2id(geom.full_identifier, 'geom')
+        self.number_of_contacts = 0
+        self.previous_number_of_contacts = 0
+        self.fingers_touching_object = []
+
+        self.flare_features = []
+
         # Set spaces
         self.max_delta_qpos = 0.1
+        self.max_delta_cartesian_pos = 0.02
         self._set_action_space()
+        self._set_action_space_with_touch()
         self._set_observation_space()
         self._set_state_space()
         self._set_actuators_space()
 
         # Set task parameters
-        self.eef_name = 'r_hand'
+        self.eef_name = eef_name
         self.eef_id_xpos = self.env.physics.model.name2id('r_hand', 'body')
         self.target_eef_pos = np.array([-0.3, 0.1, 1.01])
         self.goal_xpos_tolerance = 0.05
+        self.done_if_joints_out_of_limits = done_if_joints_out_of_limits
 
         # Set reward values
         self.reward_goal = reward_goal
@@ -276,17 +421,51 @@ class ICubEnv(gym.Env):
         self.reward_single_step_multiplier = reward_single_step_multiplier
         self.reward_end_timesteps = reward_end_timesteps
 
+        # Compute controllable iCub joints for the IK solver
+        self.controllable_joints_ik_solver = [self.world_entity.mjcf_model.find_all('joint')[i]
+                                              for i in self.joints_to_control_ik_ids]
+        for i in range(len(self.controllable_joints_ik_solver)):
+            self.controllable_joints_ik_solver[i].range[0] += 0.1
+            self.controllable_joints_ik_solver[i].range[1] -= 0.1
+        self.ik_solver = IkSolver(self.world_entity.mjcf_model,
+                                  controllable_joints=self.controllable_joints_ik_solver,
+                                  element=self.world_entity.mjcf_model.find('body', self.eef_name))
+
         # Reset environment
         self.reset()
         self.env.reset()
         self.eef_pos = self.env.physics.data.xpos[self.eef_id_xpos].copy()
 
     def _set_action_space(self):
-        n_actuators_to_control = len(self.actuators_to_control)
-        self.action_space = gym.spaces.Box(low=-self.max_delta_qpos,
-                                           high=self.max_delta_qpos,
-                                           shape=(n_actuators_to_control,),
+        if 'cartesian' in self.icub_observation_space:
+            low = np.repeat(-self.max_delta_cartesian_pos, len(self.cartesian_ids))
+            high = np.repeat(self.max_delta_cartesian_pos, len(self.cartesian_ids))
+        else:
+            low = np.array([])
+            high = np.array([])
+        for act in self.actuators_to_control:
+            low = np.append(low, -self.max_delta_qpos)
+            high = np.append(high, self.max_delta_qpos)
+        self.action_space = gym.spaces.Box(low=low.astype(np.float32),
+                                           high=high.astype(np.float32),
                                            dtype=np.float32)
+
+    def _set_action_space_with_touch(self):
+        if 'cartesian' in self.icub_observation_space:
+            low = np.repeat(-self.max_delta_cartesian_pos, len(self.cartesian_ids))
+            high = np.repeat(self.max_delta_cartesian_pos, len(self.cartesian_ids))
+        else:
+            low = np.array([])
+            high = np.array([])
+        for act in self.actuators_to_control:
+            low = np.append(low, -self.max_delta_qpos)
+            if 'proximal' in act or 'distal' in act or 'pinky' in act:
+                high = np.append(high, np.inf)
+            else:
+                high = np.append(high, self.max_delta_qpos)
+        self.action_space_with_touch = gym.spaces.Box(low=low.astype(np.float32),
+                                                      high=high.astype(np.float32),
+                                                      dtype=np.float32)
 
     def _set_observation_space(self):
         if len(self.icub_observation_space) > 1:
@@ -307,11 +486,29 @@ class ICubEnv(gym.Env):
                     low = bounds[:, 0]
                     high = bounds[:, 1]
                     obs_space['joints'] = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+                elif space == 'cartesian':
+                    obs_space['cartesian'] = gym.spaces.Box(low=-np.inf,
+                                                            high=np.inf,
+                                                            shape=[len(self.cartesian_ids)],
+                                                            dtype=np.float32)
                 elif space == 'features':
                     obs_space['features'] = gym.spaces.Box(low=-np.inf,
                                                            high=np.inf,
                                                            shape=self.feature_extractor.output_features_dimension,
                                                            dtype=np.float32)
+                elif space == 'touch':
+                    obs_space['touch'] = gym.spaces.Box(low=-np.inf,
+                                                        high=np.inf,
+                                                        shape=[len(self.contact_geom_ids_fingers_meshes)],
+                                                        dtype=np.float32)
+                # https://arxiv.org/pdf/2101.01857.pdf
+                elif space == 'flare':
+                    flare_shape = np.array(self.feature_extractor.output_features_dimension)
+                    flare_shape[1] = flare_shape[1] * 5
+                    obs_space['flare'] = gym.spaces.Box(low=-np.inf,
+                                                        high=np.inf,
+                                                        shape=flare_shape,
+                                                        dtype=np.float32)
             self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
@@ -326,11 +523,29 @@ class ICubEnv(gym.Env):
             low = bounds[:, 0]
             high = bounds[:, 1]
             self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        elif 'cartesian' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            self.observation_space = gym.spaces.Box(low=-np.inf,
+                                                    high=np.inf,
+                                                    shape=[len(self.cartesian_ids)],
+                                                    dtype=np.float32)
         elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             # Use as observation features from images
             self.observation_space = gym.spaces.Box(low=-np.inf,
                                                     high=np.inf,
                                                     shape=self.feature_extractor.output_features_dimension,
+                                                    dtype=np.float32)
+        elif 'touch' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            self.observation_space = gym.spaces.Box(low=-np.inf,
+                                                    high=np.inf,
+                                                    shape=[len(self.contact_geom_ids_fingers_meshes)],
+                                                    dtype=np.float32)
+        # https://arxiv.org/pdf/2101.01857.pdf
+        elif 'flare' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            flare_shape = np.array(self.feature_extractor.output_features_dimension)
+            flare_shape[1] = flare_shape[1] * 5
+            self.observation_space = gym.spaces.Box(low=-np.inf,
+                                                    high=np.inf,
+                                                    shape=flare_shape,
                                                     dtype=np.float32)
         else:
             raise ValueError('The observation spaces must be of type joints, camera or features. Quitting.')
@@ -425,10 +640,37 @@ class ICubEnv(gym.Env):
                     for actuator in self.actuators_to_control_dict:
                         obs['joints'] = np.append(obs['joints'],
                                                   np.sum(named_qpos[actuator['jnt']] * actuator['coeff']))
+                elif space == 'cartesian':
+                    obs['cartesian'] = np.concatenate(
+                        (self.env.physics.named.data.xpos[self.eef_name],
+                         Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                      (3, 3)), atol=1e-05).q))[self.cartesian_ids]
                 elif space == 'features':
                     obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
                                                                                      width=640,
                                                                                      camera_id=self.obs_camera))
+                elif space == 'touch':
+                    self.compute_num_fingers_touching_object()
+                    obs['touch'] = np.zeros(len(self.contact_geom_ids_fingers_meshes))
+                    for finger in self.fingers_touching_object:
+                        obs['touch'][self.contact_geom_fingers_names.index(finger)] = 1.0
+                elif space == 'flare':
+                    features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                              width=640,
+                                                                              camera_id=self.obs_camera))
+                    if self.steps == 0:
+                        self.flare_features = [features,
+                                               np.zeros(features.shape),
+                                               features,
+                                               np.zeros(features.shape),
+                                               features]
+                    else:
+                        self.flare_features = [self.flare_features[2],
+                                               self.flare_features[3],
+                                               self.flare_features[4],
+                                               self.flare_features[4] - features,
+                                               features]
+                    obs['flare'] = np.concatenate(self.flare_features, axis=1)
             return obs
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
@@ -439,8 +681,35 @@ class ICubEnv(gym.Env):
                 obs = np.append(obs,
                                 np.sum(named_qpos[actuator['jnt']] * actuator['coeff']))
             return obs
+        elif 'cartesian' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            return np.concatenate((self.env.physics.named.data.xpos[self.eef_name],
+                                   Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                                (3, 3)), atol=1e-05).q))[self.cartesian_ids]
         elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.feature_extractor(self.env.physics.render(height=480, width=640, camera_id=self.obs_camera))
+        elif 'touch' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            self.compute_num_fingers_touching_object()
+            obs = np.zeros(len(self.contact_geom_ids_fingers_meshes))
+            for finger in self.fingers_touching_object:
+                obs[self.contact_geom_fingers_names.index(finger)] = 1.0
+            return obs
+        elif 'flare' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                      width=640,
+                                                                      camera_id=self.obs_camera))
+            if self.steps == 0:
+                self.flare_features = [features,
+                                       np.zeros(features.shape),
+                                       features,
+                                       np.zeros(features.shape),
+                                       features]
+            else:
+                self.flare_features = [self.flare_features[2],
+                                       self.flare_features[3],
+                                       self.flare_features[4],
+                                       self.flare_features[4] - features,
+                                       features]
+            return np.concatenate(self.flare_features, axis=1)
 
     def step(self, action):
         raise NotImplementedError
@@ -457,6 +726,15 @@ class ICubEnv(gym.Env):
                                                    self.state_space.low[self.joint_ids_objects[i * 7 + 2]] + 0.1)
                 random_pos[i * 7 + 3:i * 7 + 7] /= np.linalg.norm(random_pos[i * 7 + 3:i * 7 + 7])
             self.init_qpos[self.joint_ids_objects] = random_pos
+        # TODO set rotation w.r.t. world coordinates
+        if self.randomly_rotate_object_z_axis:
+            for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
+                object_quaternions_pyquaternion = Quaternion(self.init_qpos[
+                                                                 self.joint_ids_objects[i * 7 + 3:i * 7 + 7]])
+                z_rotation_quaternion = Quaternion(axis=[0, 1, 0], angle=np.random.rand() * 2 * math.pi)
+                rotated_object_quaternions_pyquaternion = object_quaternions_pyquaternion * z_rotation_quaternion
+                object_quaternions = rotated_object_quaternions_pyquaternion.q
+                self.init_qpos[self.joint_ids_objects[i * 7 + 3:i * 7 + 7]] = object_quaternions
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
         return self._get_obs()
@@ -487,7 +765,7 @@ class ICubEnv(gym.Env):
             if cam == 'head_cam' and self.render_objects_com:
                 objects_com_x_y_z = []
                 for i in range(int(len(self.joint_ids_objects) / 7)):
-                    objects_com_x_y_z.append(self.env.physics.data.qpos[self.joint_ids_objects[i*7:i*7+3]])
+                    objects_com_x_y_z.append(self.env.physics.data.qpos[self.joint_ids_objects[i * 7:i * 7 + 3]])
                 com_uvs = self.points_in_pixel_coord(self.points_in_camera_coord(objects_com_x_y_z))
                 for com_uv in com_uvs:
                     img = cv2.circle(img, com_uv, 5, (0, 255, 0), -1)
@@ -520,9 +798,36 @@ class ICubEnv(gym.Env):
                                                                               damping="0.0",
                                                                               stiffness="0.01")
 
+    def track_object_with_camera(self):
+        self.world.worldbody.body['icub'].body['torso_1'].body['torso_2'].body['chest'].body['neck_1'] \
+            .body['neck_2'].body['head'].body['head_camera_track_hand'].camera._elements[0].target = \
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1]
+
     def add_table(self):
         table_path = "../models/table.xml"
         table_mjcf = mjcf.from_path(table_path, escape_separators=False)
+        # Extract table information
+        size_x = table_mjcf.worldbody.body['table'].body['wood'].geom['table_collision'].size[0]
+        size_y = table_mjcf.worldbody.body['table'].body['wood'].geom['table_collision'].size[1]
+        size_z = table_mjcf.worldbody.body['table'].body['wood'].geom['table_collision'].size[2]
+        # Split the table in multiple boxes to avoid objects jittering
+        x_split = 10
+        y_split = 20
+        for i in range(x_split):
+            for j in range(y_split):
+                pos_i = - size_x + size_x * 2 * i / x_split + size_x / x_split
+                pos_j = - size_y + size_y * 2 * j / y_split + size_y / y_split
+                table_mjcf.worldbody.body['table'].add('body',
+                                                       name='wood_{}_{}'.format(i, j),
+                                                       pos=[0, 0, 0])
+                table_mjcf.worldbody.body['table'].body['wood_{}_{}'.format(i, j)].\
+                    add('geom',
+                        name='wood_{}_{}'.format(i, j),
+                        pos=[pos_i, pos_j, 0],
+                        type='box',
+                        rgba=[0, 0, 0, 0],
+                        size=[size_x / x_split, size_y / y_split, size_z],
+                        group="1")
         self.world.attach(table_mjcf.root_model)
 
     def points_in_camera_coord(self, points):
@@ -560,3 +865,22 @@ class ICubEnv(gym.Env):
             v = -int(y) + 240
             com_uvs.append(np.array([u, v]))
         return com_uvs
+
+    def compute_num_fingers_touching_object(self):
+        self.fingers_touching_object = []
+        for contact in self.env.physics.data.contact:
+            if (contact['geom1'] in self.contact_geom_ids_fingers_meshes.values()
+                and contact['geom2'] in self.contact_geom_ids_objects_meshes.values()) or \
+                    (contact['geom1'] in self.contact_geom_ids_objects_meshes.values()
+                     and contact['geom2'] in self.contact_geom_ids_fingers_meshes.values()):
+                if contact['geom1'] in self.contact_geom_ids_fingers_meshes.values():
+                    self.fingers_touching_object.append((list(
+                        self.contact_geom_ids_fingers_meshes.keys())[list(
+                            self.contact_geom_ids_fingers_meshes.values()).index(contact['geom1'])]))
+                else:
+                    self.fingers_touching_object.append((list(
+                        self.contact_geom_ids_fingers_meshes.keys())[list(
+                            self.contact_geom_ids_fingers_meshes.values()).index(contact['geom2'])]))
+                self.number_of_contacts += 1
+        self.number_of_contacts = len(self.fingers_touching_object)
+        return self.number_of_contacts
