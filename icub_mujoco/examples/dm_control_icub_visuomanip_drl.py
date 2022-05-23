@@ -1,5 +1,4 @@
 import numpy as np
-
 from icub_mujoco.envs.icub_visuomanip_reaching import ICubEnvReaching
 from icub_mujoco.envs.icub_visuomanip_gaze_control import ICubEnvGazeControl
 from icub_mujoco.envs.icub_visuomanip_refine_grasp import ICubEnvRefineGrasp
@@ -7,11 +6,15 @@ from icub_mujoco.envs.icub_visuomanip_keep_grasp import ICubEnvKeepGrasp
 from icub_mujoco.envs.icub_visuomanip_lift_grasped_object import ICubEnvLiftGraspedObject
 from stable_baselines3 import SAC
 import argparse
+import cv2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--test_model',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir.')
+parser.add_argument('--record_video',
+                    action='store_true',
+                    help='Test the best_model.zip stored in --eval_dir and record.')
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
@@ -339,16 +342,26 @@ else:
 if args.test_model:
     model = SAC.load(args.eval_dir + '/best_model.zip', env=iCub)
     obs = iCub.reset()
-
+    images = []
     # Evaluate the agent
     episode_reward = 0
     while True:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = iCub.step(action)
-        iCub.render()
+        imgs = iCub.render()
+        if args.record_video:
+            images.append(imgs)
         episode_reward += reward
         if done:
             break
+    if args.record_video:
+        print('Recording video.')
+        for i in range(len(args.render_cameras)):
+            fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+            writer = cv2.VideoWriter(args.eval_dir + '/{}.mp4'.format(args.render_cameras[i]), fourcc, 30, (640, 480))
+            for num_img, imgs in enumerate(images):
+                writer.write(imgs[i][:, :, ::-1])
+            writer.release()
     print("Reward:", episode_reward)
 else:
     if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space

@@ -760,6 +760,7 @@ class ICubEnv(gym.Env):
 
     def render(self, mode='human'):
         del mode  # Unused
+        images = []
         for cam in self.render_cameras:
             img = np.array(self.env.physics.render(height=480, width=640, camera_id=cam), dtype=np.uint8)
             if cam == 'head_cam' and self.render_objects_com:
@@ -769,8 +770,10 @@ class ICubEnv(gym.Env):
                 com_uvs = self.points_in_pixel_coord(self.points_in_camera_coord(objects_com_x_y_z))
                 for com_uv in com_uvs:
                     img = cv2.circle(img, com_uv, 5, (0, 255, 0), -1)
+            images.append(img)
             cv2.imshow(cam, img[:, :, ::-1])
             cv2.waitKey(1)
+        return images
 
     def add_ycb_video_objects(self, object_names):
         for obj_id, obj in enumerate(object_names):
