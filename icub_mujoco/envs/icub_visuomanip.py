@@ -1,5 +1,4 @@
 import math
-
 from dm_control import composer, mjcf
 import os
 import gym
@@ -8,7 +7,6 @@ import cv2
 import yaml
 from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
 from icub_mujoco.feature_extractors.images_feature_extractor_CLIP import ImagesFeatureExtractorCLIP
-from dm_robotics.moma.utils.ik_solver import IkSolver
 from pyquaternion import Quaternion
 
 
@@ -420,16 +418,6 @@ class ICubEnv(gym.Env):
         self.reward_out_of_joints = reward_out_of_joints
         self.reward_single_step_multiplier = reward_single_step_multiplier
         self.reward_end_timesteps = reward_end_timesteps
-
-        # Compute controllable iCub joints for the IK solver
-        self.controllable_joints_ik_solver = [self.world_entity.mjcf_model.find_all('joint')[i]
-                                              for i in self.joints_to_control_ik_ids]
-        for i in range(len(self.controllable_joints_ik_solver)):
-            self.controllable_joints_ik_solver[i].range[0] += 0.1
-            self.controllable_joints_ik_solver[i].range[1] -= 0.1
-        self.ik_solver = IkSolver(self.world_entity.mjcf_model,
-                                  controllable_joints=self.controllable_joints_ik_solver,
-                                  element=self.world_entity.mjcf_model.find('body', self.eef_name))
 
         # Reset environment
         self.reset()
