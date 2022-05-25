@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'dm_control==0.0.403778684',
-        'stable-baselines3[extra]',
+        'stable-baselines3[extra]==1.3.0',
         'pyyaml',
         'torchvision',
         'pyquaternion',
