@@ -19,13 +19,18 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.prev_obj_zpos = None
         self.reward_obj_height = True
-        self.curriculum_max_steps = 1000000
-        self.total_steps = 0
-        self.curriculum_max_offset = self.max_delta_qpos / 10
-        self.update_curriculum_max_offset()
-
-        self.curriculum_max_offset_cartesian = self.max_delta_cartesian_pos / 10
-        self.update_curriculum_max_offset_cartesian()
+        if self.curriculum_learning:
+            self.cartesian_actions_curriculum_learning = np.ones(len(self.cartesian_components))
+            for act in self.actuators_to_control_ids:
+                if act in self.actuators_to_control_no_fingers_ids:
+                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
+                                                                           1)
+                else:
+                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
+                                                                           0)
+            self.cartesian_actions_curriculum_learning = np.where(self.cartesian_actions_curriculum_learning > 0)
+        else:
+            self.cartesian_actions_curriculum_learning = np.empty(0)
 
         self.already_touched_with_5_fingers = False
 
@@ -46,10 +51,6 @@ class ICubEnvRefineGrasp(ICubEnv):
                                              Quaternion(
                                                  matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
                                                                    (3, 3)), atol=1e-05).q))[self.cartesian_ids]
-            if self.curriculum_learning and self.total_steps < self.curriculum_max_steps:
-                action[:len(self.cartesian_ids)] = np.clip(action[:len(self.cartesian_ids)],
-                                                           -self.curriculum_max_offset_cartesian,
-                                                           self.curriculum_max_offset_cartesian)
             self.target_ik[self.cartesian_ids] = cartesian_pose + action[:len(self.cartesian_ids)]
             done_ik = False
             qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
@@ -58,7 +59,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                     target_quat=self.target_ik[3:7],
                                                     joint_names=self.joints_to_control_ik)
             if qpos_ik_result.success:
-                qpos_ik = qpos_ik_result.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
+                qpos_ik = qpos_ik_result.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
             else:
                 done_ik = True
             # Use as action only the offsets for the joints to control (e.g. hands)
@@ -78,13 +79,6 @@ class ICubEnvRefineGrasp(ICubEnv):
         if 'cartesian' in self.icub_observation_space:
             if not done_ik:
                 target[self.actuators_to_control_ik_ids] = qpos_ik
-        if self.curriculum_learning:
-            target[self.actuators_to_control_no_fingers_ids] = \
-                np.clip(target[self.actuators_to_control_no_fingers_ids],
-                        self.init_icub_act_after_superquadrics[self.actuators_to_control_no_fingers_ids]
-                        - self.curriculum_max_offset,
-                        self.init_icub_act_after_superquadrics[self.actuators_to_control_no_fingers_ids]
-                        + self.curriculum_max_offset)
         self.prev_obj_zpos = self.env.physics.data.qpos[self.joint_ids_objects[2]]
         self.do_simulation(target, self.frame_skip)
         if self.done_if_joints_out_of_limits:
@@ -111,12 +105,8 @@ class ICubEnvRefineGrasp(ICubEnv):
         if 'cartesian' in self.icub_observation_space:
             done = done or done_ik
             info['Done']['done IK'] = done_ik
-        if done:
-            self.total_steps += self.steps
-            self.update_curriculum_max_offset()
-            self.update_curriculum_max_offset_cartesian()
-            if self.print_done_info:
-                print(info)
+        if done and self.print_done_info:
+            print(info)
         return observation, reward, done, info
 
     def _get_reward(self, done_limits, done_goal, done_timesteps, done_moved_object, done_z_pos, done_ik=None):
@@ -213,21 +203,3 @@ class ICubEnvRefineGrasp(ICubEnv):
             return True
         return False
 
-    def update_curriculum_max_offset(self):
-        if self.total_steps == 0:
-            return
-        if self.total_steps > self.curriculum_max_steps:
-            self.curriculum_max_offset = self.max_delta_qpos
-        else:
-            self.curriculum_max_offset = max(self.max_delta_qpos / 10,
-                                             self.max_delta_qpos * self.total_steps / self.curriculum_max_steps)
-
-    def update_curriculum_max_offset_cartesian(self):
-        if self.total_steps == 0:
-            return
-        if self.total_steps > self.curriculum_max_steps:
-            self.curriculum_max_offset_cartesian = self.max_delta_cartesian_pos
-        else:
-            self.curriculum_max_offset_cartesian = max(self.max_delta_cartesian_pos / 10,
-                                                       self.max_delta_cartesian_pos * self.total_steps
-                                                       / self.curriculum_max_steps)

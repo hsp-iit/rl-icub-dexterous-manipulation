@@ -4,7 +4,7 @@ from icub_mujoco.envs.icub_visuomanip_gaze_control import ICubEnvGazeControl
 from icub_mujoco.envs.icub_visuomanip_refine_grasp import ICubEnvRefineGrasp
 from icub_mujoco.envs.icub_visuomanip_keep_grasp import ICubEnvKeepGrasp
 from icub_mujoco.envs.icub_visuomanip_lift_grasped_object import ICubEnvLiftGraspedObject
-from stable_baselines3 import SAC
+from icub_mujoco.external.stable_baselines3_mod.sac import SAC
 import argparse
 import cv2
 
@@ -376,7 +376,9 @@ else:
                     train_freq=args.train_freq,
                     create_eval_env=True,
                     buffer_size=args.buffer_size,
-                    device=args.training_device)
+                    device=args.training_device,
+                    curriculum_learning=args.curriculum_learning,
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
     elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
         model = SAC("CnnPolicy",
                     iCub,
@@ -386,7 +388,9 @@ else:
                     train_freq=args.train_freq,
                     create_eval_env=True,
                     buffer_size=args.buffer_size,
-                    device=args.training_device)
+                    device=args.training_device,
+                    curriculum_learning=args.curriculum_learning,
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
     elif ('camera' in args.icub_observation_space
           or 'joints' in args.icub_observation_space
           or 'cartesian' in args.icub_observation_space
@@ -401,7 +405,9 @@ else:
                     train_freq=args.train_freq,
                     create_eval_env=True,
                     buffer_size=args.buffer_size,
-                    device=args.training_device)
+                    device=args.training_device,
+                    curriculum_learning=args.curriculum_learning,
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
     else:
         raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
