@@ -47,11 +47,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         # for the other joints
         named_qpos = self.env.physics.named.data.qpos
         if 'cartesian' in self.icub_observation_space:
-            cartesian_pose = np.concatenate((self.env.physics.named.data.xpos[self.eef_name],
-                                             Quaternion(
-                                                 matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
-                                                                   (3, 3)), atol=1e-05).q))[self.cartesian_ids]
-            self.target_ik[self.cartesian_ids] = cartesian_pose + action[:len(self.cartesian_ids)]
+            self.target_ik[self.cartesian_ids] = self.target_ik[self.cartesian_ids] + action[:len(self.cartesian_ids)]
             done_ik = False
             qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
                                                     site_name='r_hand_dh_frame_site',
