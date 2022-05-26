@@ -406,6 +406,20 @@ class ICubEnv(gym.Env):
         self._set_state_space()
         self._set_actuators_space()
 
+        # Set curriculum learning parameters
+        self.cartesian_actions_curriculum_learning = np.empty(0)
+        if self.curriculum_learning:
+            if 'cartesian' in self.icub_observation_space:
+                self.cartesian_actions_curriculum_learning = np.ones(len(self.cartesian_ids))
+            for act in self.actuators_to_control_ids:
+                if act in self.actuators_to_control_no_fingers_ids:
+                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
+                                                                           1)
+                else:
+                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
+                                                                           0)
+            self.cartesian_actions_curriculum_learning = np.where(self.cartesian_actions_curriculum_learning > 0)
+
         # Set task parameters
         self.eef_name = eef_name
         self.eef_id_xpos = self.env.physics.model.name2id('r_hand', 'body')

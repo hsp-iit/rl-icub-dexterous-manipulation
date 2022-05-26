@@ -2,7 +2,6 @@ from icub_mujoco.envs.icub_visuomanip import ICubEnv
 import numpy as np
 from icub_mujoco.utils.pcd_utils import pcd_from_depth, points_in_world_coord
 from icub_mujoco.utils.superquadrics_utils import SuperquadricEstimator
-from pyquaternion import Quaternion
 from dm_control.utils import inverse_kinematics as ik
 
 
@@ -19,19 +18,6 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.prev_obj_zpos = None
         self.reward_obj_height = True
-        if self.curriculum_learning:
-            self.cartesian_actions_curriculum_learning = np.ones(len(self.cartesian_components))
-            for act in self.actuators_to_control_ids:
-                if act in self.actuators_to_control_no_fingers_ids:
-                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
-                                                                           1)
-                else:
-                    self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
-                                                                           0)
-            self.cartesian_actions_curriculum_learning = np.where(self.cartesian_actions_curriculum_learning > 0)
-        else:
-            self.cartesian_actions_curriculum_learning = np.empty(0)
-
         self.already_touched_with_5_fingers = False
 
         self.superq_pose = None
