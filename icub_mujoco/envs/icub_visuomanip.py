@@ -432,8 +432,12 @@ class ICubEnv(gym.Env):
             low = np.array([])
             high = np.array([])
         for act in self.actuators_to_control:
-            low = np.append(low, -self.max_delta_qpos)
-            high = np.append(high, self.max_delta_qpos)
+            if 'pinky' in act:
+                low = np.append(low, -2*self.max_delta_qpos)
+                high = np.append(high, 2*self.max_delta_qpos)
+            else:
+                low = np.append(low, -self.max_delta_qpos)
+                high = np.append(high, self.max_delta_qpos)
         self.action_space = gym.spaces.Box(low=low.astype(np.float32),
                                            high=high.astype(np.float32),
                                            dtype=np.float32)
