@@ -23,7 +23,20 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.superq_pose = None
         self.target_ik = None
 
+        self.lfd_stage = 'close_hand'
+        self.lfd_close_hand_step = 0
+        self.lfd_close_hand_max_steps = 500
+        self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
+        self.lfd_steps = 0
+
     def step(self, action):
+        if self.learning_from_demonstration:
+            if self.lfd_steps <= self.learning_from_demonstration_max_steps:
+                self.lfd_steps += 1
+                action = self.collect_demonstrations()
+                action_lfd = action
+            else:
+                self.learning_from_demonstration = False
         # If the hand is touching the object, remove constraints on fingers actuators
         if self.number_of_contacts == 0:
             action = np.clip(action, self.action_space.low, self.action_space.high)
@@ -84,9 +97,13 @@ class ICubEnvRefineGrasp(ICubEnv):
                          'object falling from the table': done_object_falling,
                          'moved object': done_moved_object,
                          'done z pos': done_z_pos}}
+        if self.learning_from_demonstration:
+            info['learning from demonstration action'] = action_lfd
         if 'cartesian' in self.icub_observation_space:
             done = done or done_ik
             info['Done']['done IK'] = done_ik
+        if self.learning_from_demonstration and done:
+            self.lfd_stage = 'close_hand'
         if done and self.print_done_info:
             print(info)
         return observation, reward, done, info
@@ -184,4 +201,43 @@ class ICubEnvRefineGrasp(ICubEnv):
         if self.prev_obj_zpos > self.env.physics.named.data.xpos['r_hand'][2]:
             return True
         return False
+
+    def collect_demonstrations(self):
+        if self.lfd_stage == 'close_hand':
+            # Close hand
+            action_fingers = self.close_hand()
+        else:
+            action_fingers = self.close_hand_action_fingers
+        if self.lfd_stage == 'lift_object':
+            # Lift
+            action_ik = self.lift_object()
+        else:
+            action_ik = np.zeros(len(self.cartesian_components))
+        return np.concatenate((action_ik, action_fingers))
+
+    def close_hand(self):
+        self.lfd_close_hand_step += 1
+        named_qpos = self.env.physics.named.data.qpos
+        target_fingers = np.empty([0, ], dtype=np.float32)
+        actions_fingers = np.empty([0, ], dtype=np.float32)
+        for actuator in self.actuators_to_control_dict:
+            if actuator['name'] in self.actuators_to_control_no_fingers or not actuator['name'].startswith('r_'):
+                continue
+            else:
+                qpos_act = np.sum(named_qpos[actuator['jnt']] * actuator['coeff'])
+                act_delta = actuator['close_value'] - actuator['open_value']
+                target_i = min(qpos_act + act_delta / 500 * 20,
+                               actuator['open_value'] + act_delta * self.lfd_close_hand_step / 500)
+                target_fingers = np.append(target_fingers, target_i)
+                actions_fingers = np.append(actions_fingers, target_i - qpos_act)
+        if self.lfd_close_hand_step == self.lfd_close_hand_max_steps:
+            self.lfd_stage = 'lift_object'
+            self.lfd_close_hand_step = 0
+            self.close_hand_action_fingers = actions_fingers.copy()
+        return actions_fingers
+
+    def lift_object(self):
+        action_ik = np.zeros(len(self.cartesian_ids))
+        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos
+        return action_ik
 

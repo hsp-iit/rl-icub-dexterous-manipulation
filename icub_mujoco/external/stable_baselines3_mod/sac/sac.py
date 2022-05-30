@@ -102,7 +102,8 @@ class SAC(OffPolicyAlgorithm):
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
         curriculum_learning: bool = False,
-        curriculum_learning_components: np.array = np.empty(0)
+        curriculum_learning_components: np.array = np.empty(0),
+        learning_from_demonstration: bool = False,
     ):
 
         super(SAC, self).__init__(
@@ -134,6 +135,7 @@ class SAC(OffPolicyAlgorithm):
             support_multi_env=True,
             curriculum_learning=curriculum_learning,
             curriculum_learning_components=curriculum_learning_components,
+            learning_from_demonstration=learning_from_demonstration,
         )
 
         self.target_entropy = target_entropy

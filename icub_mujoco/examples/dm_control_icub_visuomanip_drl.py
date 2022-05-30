@@ -188,6 +188,19 @@ parser.add_argument('--lift_object_height',
                     type=float,
                     default=1.05,
                     help='Set the height of the object to complete the grasp refinement task. Default is 1.02.')
+parser.add_argument('--learning_from_demonstration',
+                    action='store_true',
+                    help='Use demonstrations for replay buffer initialization.')
+parser.add_argument('--max_delta_qpos',
+                    action='store',
+                    type=float,
+                    default=0.1,
+                    help='Set max delta qpos for joints control. Default is 0.1.')
+parser.add_argument('--max_delta_cartesian_pos',
+                    action='store',
+                    type=float,
+                    default=0.02,
+                    help='Set max delta pos for cartesian control. Default is 0.02.')
 
 args = parser.parse_args()
 
@@ -235,7 +248,10 @@ if args.task == 'reaching':
                            random_initial_pos=not args.fixed_initial_pos,
                            training_components=args.training_components,
                            joints_margin=args.joints_margin,
-                           feature_extractor_model_name=args.feature_extractor_model_name)
+                           feature_extractor_model_name=args.feature_extractor_model_name,
+                           learning_from_demonstration=args.learning_from_demonstration,
+                           max_delta_qpos=args.max_delta_qpos,
+                           max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'gaze_control':
     iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
@@ -256,7 +272,10 @@ elif args.task == 'gaze_control':
                               training_components=args.training_components,
                               joints_margin=args.joints_margin,
                               null_reward_out_image=args.null_reward_out_image,
-                              feature_extractor_model_name=args.feature_extractor_model_name)
+                              feature_extractor_model_name=args.feature_extractor_model_name,
+                              learning_from_demonstration=args.learning_from_demonstration,
+                              max_delta_qpos=args.max_delta_qpos,
+                              max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'refine_grasp':
     iCub = ICubEnvRefineGrasp(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
@@ -283,7 +302,10 @@ elif args.task == 'refine_grasp':
                               feature_extractor_model_name=args.feature_extractor_model_name,
                               done_if_joints_out_of_limits=False,
                               lift_object_height=args.lift_object_height,
-                              curriculum_learning=args.curriculum_learning)
+                              curriculum_learning=args.curriculum_learning,
+                              learning_from_demonstration=args.learning_from_demonstration,
+                              max_delta_qpos=args.max_delta_qpos,
+                              max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
@@ -309,7 +331,10 @@ elif args.task == 'keep_grasp':
                             feature_extractor_model_name=args.feature_extractor_model_name,
                             done_if_joints_out_of_limits=False,
                             lift_object_height=args.lift_object_height,
-                            curriculum_learning=args.curriculum_learning)
+                            curriculum_learning=args.curriculum_learning,
+                            learning_from_demonstration=args.learning_from_demonstration,
+                            max_delta_qpos=args.max_delta_qpos,
+                            max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'lift_grasped_object':
     iCub = ICubEnvLiftGraspedObject(model_path=args.xml_model_path,
                                     icub_observation_space=args.icub_observation_space,
@@ -335,7 +360,10 @@ elif args.task == 'lift_grasped_object':
                                     feature_extractor_model_name=args.feature_extractor_model_name,
                                     done_if_joints_out_of_limits=False,
                                     lift_object_height=args.lift_object_height,
-                                    curriculum_learning=args.curriculum_learning)
+                                    curriculum_learning=args.curriculum_learning,
+                                    learning_from_demonstration=args.learning_from_demonstration,
+                                    max_delta_qpos=args.max_delta_qpos,
+                                    max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
@@ -378,7 +406,8 @@ else:
                     buffer_size=args.buffer_size,
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                    learning_from_demonstration=args.learning_from_demonstration)
     elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
         model = SAC("CnnPolicy",
                     iCub,
@@ -390,7 +419,8 @@ else:
                     buffer_size=args.buffer_size,
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                    learning_from_demonstration=args.learning_from_demonstration)
     elif ('camera' in args.icub_observation_space
           or 'joints' in args.icub_observation_space
           or 'cartesian' in args.icub_observation_space
@@ -407,7 +437,8 @@ else:
                     buffer_size=args.buffer_size,
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning)
+                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                    learning_from_demonstration=args.learning_from_demonstration)
     else:
         raise ValueError('The observation space specified as argument is not valid. Quitting.')
 

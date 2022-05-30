@@ -42,7 +42,11 @@ class ICubEnv(gym.Env):
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
                  lift_object_height=1.02,
-                 curriculum_learning=False):
+                 curriculum_learning=False,
+                 learning_from_demonstration=False,
+                 max_delta_qpos=0.1,
+                 max_delta_cartesian_pos=0.02,
+                 ):
 
         # Load xml model
         if model_path.startswith("/"):
@@ -398,8 +402,8 @@ class ICubEnv(gym.Env):
         self.flare_features = []
 
         # Set spaces
-        self.max_delta_qpos = 0.1
-        self.max_delta_cartesian_pos = 0.02
+        self.max_delta_qpos = max_delta_qpos
+        self.max_delta_cartesian_pos = max_delta_cartesian_pos
         self._set_action_space()
         self._set_action_space_with_touch()
         self._set_observation_space()
@@ -419,6 +423,10 @@ class ICubEnv(gym.Env):
                     self.cartesian_actions_curriculum_learning = np.append(self.cartesian_actions_curriculum_learning,
                                                                            0)
             self.cartesian_actions_curriculum_learning = np.where(self.cartesian_actions_curriculum_learning > 0)
+
+        # Set learning from demonstration parameters
+        self.learning_from_demonstration = learning_from_demonstration
+        self.learning_from_demonstration_max_steps = 10000
 
         # Set task parameters
         self.eef_name = eef_name

@@ -20,6 +20,8 @@ from stable_baselines3.common.utils import safe_mean, should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
+from collections import deque
+
 
 class OffPolicyAlgorithm(BaseAlgorithm):
     """
@@ -103,7 +105,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         sde_support: bool = True,
         supported_action_spaces: Optional[Tuple[gym.spaces.Space, ...]] = None,
         curriculum_learning: bool = False,
-        curriculum_learning_components: np.array = np.empty(0)
+        curriculum_learning_components: np.array = np.empty(0),
+        learning_from_demonstration: bool = False,
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -152,6 +155,10 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.curriculum_learning = curriculum_learning
         self.curriculum_max_steps = 1000000
         self.curriculum_learning_components = curriculum_learning_components
+
+        # Add learning from demonstration option
+        self.learning_from_demonstration = learning_from_demonstration
+        self.learning_from_demonstration_max_steps = 10000
 
     def _convert_train_freq(self) -> None:
         """
@@ -592,7 +599,20 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             actions, buffer_actions = self._sample_action(learning_starts, action_noise, env.num_envs)
 
             # Rescale and perform action
-            new_obs, rewards, dones, infos = env.step(actions)
+            if self.learning_from_demonstration:
+                if self.num_timesteps <= self.learning_from_demonstration_max_steps:
+                    new_obs, rewards, dones, infos = env.step(actions)
+                    actions = infos[0]['learning from demonstration action']
+                    buffer_actions = self.policy.scale_action(actions)
+                else:
+                    print("-----End of data collection for learning from demonstration!!!-----")
+                    self.learning_from_demonstration = False
+                    # Resets episodes buffers
+                    self.ep_info_buffer = deque(maxlen=100)
+                    self.ep_success_buffer = deque(maxlen=100)
+                    self._episode_num = 0
+            else:
+                new_obs, rewards, dones, infos = env.step(actions)
 
             self.num_timesteps += env.num_envs
             num_collected_steps += 1
