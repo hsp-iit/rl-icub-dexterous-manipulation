@@ -104,6 +104,7 @@ class SAC(OffPolicyAlgorithm):
         curriculum_learning: bool = False,
         curriculum_learning_components: np.array = np.empty(0),
         learning_from_demonstration: bool = False,
+        max_lfd_steps: int = 10000,
     ):
 
         super(SAC, self).__init__(
@@ -136,6 +137,7 @@ class SAC(OffPolicyAlgorithm):
             curriculum_learning=curriculum_learning,
             curriculum_learning_components=curriculum_learning_components,
             learning_from_demonstration=learning_from_demonstration,
+            max_lfd_steps=max_lfd_steps,
         )
 
         self.target_entropy = target_entropy

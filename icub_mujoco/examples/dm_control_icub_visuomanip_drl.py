@@ -196,6 +196,12 @@ parser.add_argument('--lift_object_height',
 parser.add_argument('--learning_from_demonstration',
                     action='store_true',
                     help='Use demonstrations for replay buffer initialization.')
+parser.add_argument('--max_lfd_steps',
+                    action='store',
+                    type=int,
+                    default=10000,
+                    help='Set max learning from demonstration steps for replay buffer initialization. '
+                         'Default is 10000.')
 parser.add_argument('--max_delta_qpos',
                     action='store',
                     type=float,
@@ -255,6 +261,7 @@ if args.task == 'reaching':
                            joints_margin=args.joints_margin,
                            feature_extractor_model_name=args.feature_extractor_model_name,
                            learning_from_demonstration=args.learning_from_demonstration,
+                           max_lfd_steps=args.max_lfd_steps,
                            max_delta_qpos=args.max_delta_qpos,
                            max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'gaze_control':
@@ -279,6 +286,7 @@ elif args.task == 'gaze_control':
                               null_reward_out_image=args.null_reward_out_image,
                               feature_extractor_model_name=args.feature_extractor_model_name,
                               learning_from_demonstration=args.learning_from_demonstration,
+                              max_lfd_steps=args.max_lfd_steps,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'refine_grasp':
@@ -309,6 +317,7 @@ elif args.task == 'refine_grasp':
                               lift_object_height=args.lift_object_height,
                               curriculum_learning=args.curriculum_learning,
                               learning_from_demonstration=args.learning_from_demonstration,
+                              max_lfd_steps=args.max_lfd_steps,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'keep_grasp':
@@ -338,6 +347,7 @@ elif args.task == 'keep_grasp':
                             lift_object_height=args.lift_object_height,
                             curriculum_learning=args.curriculum_learning,
                             learning_from_demonstration=args.learning_from_demonstration,
+                            max_lfd_steps=args.max_lfd_steps,
                             max_delta_qpos=args.max_delta_qpos,
                             max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 elif args.task == 'lift_grasped_object':
@@ -367,6 +377,7 @@ elif args.task == 'lift_grasped_object':
                                     lift_object_height=args.lift_object_height,
                                     curriculum_learning=args.curriculum_learning,
                                     learning_from_demonstration=args.learning_from_demonstration,
+                                    max_lfd_steps=args.max_lfd_steps,
                                     max_delta_qpos=args.max_delta_qpos,
                                     max_delta_cartesian_pos=args.max_delta_cartesian_pos)
 else:
@@ -413,7 +424,8 @@ else:
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration)
+                    learning_from_demonstration=args.learning_from_demonstration,
+                    max_lfd_steps=args.max_lfd_steps)
     elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
         model = SAC("CnnPolicy",
                     iCub,
@@ -427,7 +439,8 @@ else:
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration)
+                    learning_from_demonstration=args.learning_from_demonstration,
+                    max_lfd_steps=args.max_lfd_steps)
     elif ('camera' in args.icub_observation_space
           or 'joints' in args.icub_observation_space
           or 'cartesian' in args.icub_observation_space
@@ -446,7 +459,8 @@ else:
                     device=args.training_device,
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration)
+                    learning_from_demonstration=args.learning_from_demonstration,
+                    max_lfd_steps=args.max_lfd_steps)
     else:
         raise ValueError('The observation space specified as argument is not valid. Quitting.')
 

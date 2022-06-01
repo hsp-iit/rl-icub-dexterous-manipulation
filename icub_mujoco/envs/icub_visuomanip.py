@@ -44,6 +44,7 @@ class ICubEnv(gym.Env):
                  lift_object_height=1.02,
                  curriculum_learning=False,
                  learning_from_demonstration=False,
+                 max_lfd_steps=10000,
                  max_delta_qpos=0.1,
                  max_delta_cartesian_pos=0.02,
                  ):
@@ -426,7 +427,7 @@ class ICubEnv(gym.Env):
 
         # Set learning from demonstration parameters
         self.learning_from_demonstration = learning_from_demonstration
-        self.learning_from_demonstration_max_steps = 10000
+        self.learning_from_demonstration_max_steps = max_lfd_steps
 
         # Set task parameters
         self.eef_name = eef_name

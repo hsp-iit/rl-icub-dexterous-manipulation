@@ -107,6 +107,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         curriculum_learning: bool = False,
         curriculum_learning_components: np.array = np.empty(0),
         learning_from_demonstration: bool = False,
+        max_lfd_steps: int = 10000,
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -158,7 +159,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
         # Add learning from demonstration option
         self.learning_from_demonstration = learning_from_demonstration
-        self.learning_from_demonstration_max_steps = 10000
+        self.learning_from_demonstration_max_steps = max_lfd_steps
 
     def _convert_train_freq(self) -> None:
         """
