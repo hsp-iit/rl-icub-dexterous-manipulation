@@ -269,6 +269,6 @@ class ICubEnvRefineGrasp(ICubEnv):
 
     def lift_object(self):
         action_ik = np.zeros(len(self.cartesian_ids))
-        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos
+        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos/10
         return action_ik
 
