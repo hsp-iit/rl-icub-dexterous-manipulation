@@ -105,6 +105,7 @@ class ICubEnvRefineGrasp(ICubEnv):
             info['Done']['done IK'] = done_ik
         if self.learning_from_demonstration and done:
             self.lfd_stage = 'close_hand'
+            self.lfd_close_hand_step = 0
         if done and self.print_done_info:
             print(info)
         return observation, reward, done, info

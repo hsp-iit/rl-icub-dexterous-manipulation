@@ -160,6 +160,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         # Add learning from demonstration option
         self.learning_from_demonstration = learning_from_demonstration
         self.learning_from_demonstration_max_steps = max_lfd_steps
+        self.learning_from_demonstration_num_steps = 0
 
     def _convert_train_freq(self) -> None:
         """
@@ -601,10 +602,11 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             # Rescale and perform action
             if self.learning_from_demonstration:
-                if self.num_timesteps <= self.learning_from_demonstration_max_steps:
+                if self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps:
                     new_obs, rewards, dones, infos = env.step(actions)
                     actions = infos[0]['learning from demonstration action']
                     buffer_actions = self.policy.scale_action(actions)
+                    self.learning_from_demonstration_num_steps += 1
                 else:
                     print("-----End of data collection for learning from demonstration!!!-----")
                     self.learning_from_demonstration = False
@@ -621,8 +623,11 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             # Give access to local variables
             callback.update_locals(locals())
             # Only stop training if return value is False, not when it is None.
-            if callback.on_step() is False:
-                return RolloutReturn(num_collected_steps * env.num_envs, num_collected_episodes, continue_training=False)
+            if not self.learning_from_demonstration:
+                if callback.on_step() is False:
+                    return RolloutReturn(num_collected_steps * env.num_envs,
+                                         num_collected_episodes,
+                                         continue_training=False)
 
             # Retrieve reward and episode length if using Monitor wrapper
             self._update_info_buffer(infos, dones)
