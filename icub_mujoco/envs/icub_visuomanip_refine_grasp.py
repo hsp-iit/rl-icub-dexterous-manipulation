@@ -3,6 +3,7 @@ import numpy as np
 from icub_mujoco.utils.pcd_utils import pcd_from_depth, points_in_world_coord
 from icub_mujoco.utils.superquadrics_utils import SuperquadricEstimator
 from dm_control.utils import inverse_kinematics as ik
+import random
 
 
 class ICubEnvRefineGrasp(ICubEnv):
@@ -151,6 +152,9 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                           'geom'))
             pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
             self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
+            if self.superq_pose['position'][0] == 0.00:
+                print('Grasp pose not found. Resetting the environment.')
+                self.reset_model()
             self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
                                             dtype=np.float64)
             qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
@@ -160,6 +164,32 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                     joint_names=self.joints_to_control_ik)
             if qpos_sol_final.success:
                 qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
+            else:
+                max_delta_position_perturb = 1
+                while max_delta_position_perturb < 10:
+                    print('Solution not found for superquadric grasp pose, perturb position randomly adding an '
+                          'offset in the range [{:.2f}, {:.2f}]'. format(-0.01*max_delta_position_perturb,
+                                                                         0.01*max_delta_position_perturb))
+                    tmp_superq_position = self.superq_pose['position'].copy()
+                    tmp_superq_position[0] = tmp_superq_position[0] + random.uniform(-0.01*max_delta_position_perturb,
+                                                                                     0.01*max_delta_position_perturb)
+                    tmp_superq_position[1] = tmp_superq_position[1] + random.uniform(-0.01 * max_delta_position_perturb,
+                                                                                     0.01 * max_delta_position_perturb)
+                    tmp_superq_position[2] = tmp_superq_position[2] + random.uniform(-0.01 * max_delta_position_perturb,
+                                                                                     0.01 * max_delta_position_perturb)
+                    qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                            site_name='r_hand_dh_frame_site',
+                                                            target_pos=tmp_superq_position,
+                                                            target_quat=self.superq_pose['quaternion'],
+                                                            joint_names=self.joints_to_control_ik)
+                    if qpos_sol_final.success:
+                        qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
+                        break
+                    else:
+                        max_delta_position_perturb += 0.1
+                if max_delta_position_perturb >= 10:
+                    print('Solution not found after superquadric perturbation. Resetting the environment.')
+                    self.reset_model()
             current_state = self.get_state()
             current_state[self.joints_to_control_ik_ids] = qpos_sol_final
             self.set_state(current_state)
