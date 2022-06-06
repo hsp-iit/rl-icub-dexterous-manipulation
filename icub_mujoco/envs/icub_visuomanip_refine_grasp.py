@@ -4,6 +4,7 @@ from icub_mujoco.utils.pcd_utils import pcd_from_depth, points_in_world_coord
 from icub_mujoco.utils.superquadrics_utils import SuperquadricEstimator
 from dm_control.utils import inverse_kinematics as ik
 import random
+from pyquaternion import Quaternion
 
 
 class ICubEnvRefineGrasp(ICubEnv):
@@ -49,10 +50,19 @@ class ICubEnvRefineGrasp(ICubEnv):
         if 'cartesian' in self.icub_observation_space:
             self.target_ik[self.cartesian_ids] = self.target_ik[self.cartesian_ids] + action[:len(self.cartesian_ids)]
             done_ik = False
+            if self.cartesian_orientation == 'ypr':
+                qy = Quaternion(axis=[0, 0, 1], angle=self.target_ik[3])
+                qp = Quaternion(axis=[0, 1, 0], angle=self.target_ik[4])
+                qr = Quaternion(axis=[1, 0, 0], angle=self.target_ik[5])
+                # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L1018
+                target_ik_pyquaternion = qr * qp * qy
+                target_ik_quaternion = target_ik_pyquaternion.q
+            else:
+                target_ik_quaternion = self.target_ik[3:7]
             qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
                                                     site_name='r_hand_dh_frame_site',
                                                     target_pos=self.target_ik[:3],
-                                                    target_quat=self.target_ik[3:7],
+                                                    target_quat=target_ik_quaternion,
                                                     joint_names=self.joints_to_control_ik)
             if qpos_ik_result.success:
                 qpos_ik = qpos_ik_result.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
@@ -156,8 +166,13 @@ class ICubEnvRefineGrasp(ICubEnv):
             if self.superq_pose['position'][0] == 0.00:
                 print('Grasp pose not found. Resetting the environment.')
                 self.reset_model()
-            self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
-                                            dtype=np.float64)
+            if self.cartesian_orientation == 'ypr':
+                self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
+                self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['ypr']),
+                                                dtype=np.float64)
+            else:
+                self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
+                                                dtype=np.float64)
             qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
                                                     site_name='r_hand_dh_frame_site',
                                                     target_pos=self.superq_pose['position'],

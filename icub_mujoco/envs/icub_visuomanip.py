@@ -31,7 +31,7 @@ class ICubEnv(gym.Env):
                  render_objects_com=False,
                  training_components=('r_arm', 'torso_yaw'),
                  ik_components=(),
-                 cartesian_components=('all',),
+                 cartesian_components=('all_ypr',),
                  initial_qpos_path='../config/initial_qpos_actuated_hand.yaml',
                  print_done_info=False,
                  reward_goal=1.0,
@@ -47,6 +47,7 @@ class ICubEnv(gym.Env):
                  max_lfd_steps=10000,
                  max_delta_qpos=0.1,
                  max_delta_cartesian_pos=0.02,
+                 max_delta_cartesian_rot=0.1,
                  ):
 
         # Load xml model
@@ -115,9 +116,29 @@ class ICubEnv(gym.Env):
                     print('Using cartesian observation space. {} cannot be used as training component.'.format(
                         tr_component))
             self.cartesian_components = cartesian_components
-            if 'all' in self.cartesian_components:
+            self.cartesian_orientation = 'ypr'
+            if 'all_ypr' in self.cartesian_components:
+                self.cartesian_ids = list(range(6))
+            elif 'all_quaternion' in self.cartesian_components:
+                self.cartesian_orientation = 'quaternion'
                 self.cartesian_ids = list(range(7))
+            elif 'yaw' in self.cartesian_components \
+                    or 'pitch' in self.cartesian_components or 'roll' in self.cartesian_components:
+                self.cartesian_ids = []
+                if 'x' in self.cartesian_components:
+                    self.cartesian_ids.append(0)
+                if 'y' in self.cartesian_components:
+                    self.cartesian_ids.append(1)
+                if 'z' in self.cartesian_components:
+                    self.cartesian_ids.append(2)
+                if 'yaw' in self.cartesian_components:
+                    self.cartesian_ids.append(3)
+                if 'pitch' in self.cartesian_components:
+                    self.cartesian_ids.append(4)
+                if 'roll' in self.cartesian_components:
+                    self.cartesian_ids.append(5)
             else:
+                self.cartesian_orientation = 'quaternion'
                 self.cartesian_ids = []
                 if 'x' in self.cartesian_components:
                     self.cartesian_ids.append(0)
@@ -405,6 +426,7 @@ class ICubEnv(gym.Env):
         # Set spaces
         self.max_delta_qpos = max_delta_qpos
         self.max_delta_cartesian_pos = max_delta_cartesian_pos
+        self.max_delta_cartesian_rot = max_delta_cartesian_rot
         self._set_action_space()
         self._set_action_space_with_touch()
         self._set_observation_space()
@@ -449,8 +471,15 @@ class ICubEnv(gym.Env):
 
     def _set_action_space(self):
         if 'cartesian' in self.icub_observation_space:
-            low = np.repeat(-self.max_delta_cartesian_pos, len(self.cartesian_ids))
-            high = np.repeat(self.max_delta_cartesian_pos, len(self.cartesian_ids))
+            low = np.array([])
+            high = np.array([])
+            for cartesian_id in self.cartesian_ids:
+                if cartesian_id <= 2:
+                    low = np.append(low, -self.max_delta_cartesian_pos)
+                    high = np.append(high, self.max_delta_cartesian_pos)
+                else:
+                    low = np.append(low, -self.max_delta_cartesian_rot)
+                    high = np.append(high, self.max_delta_cartesian_rot)
         else:
             low = np.array([])
             high = np.array([])
@@ -467,8 +496,15 @@ class ICubEnv(gym.Env):
 
     def _set_action_space_with_touch(self):
         if 'cartesian' in self.icub_observation_space:
-            low = np.repeat(-self.max_delta_cartesian_pos, len(self.cartesian_ids))
-            high = np.repeat(self.max_delta_cartesian_pos, len(self.cartesian_ids))
+            low = np.array([])
+            high = np.array([])
+            for cartesian_id in self.cartesian_ids:
+                if cartesian_id <= 2:
+                    low = np.append(low, -self.max_delta_cartesian_pos)
+                    high = np.append(high, self.max_delta_cartesian_pos)
+                else:
+                    low = np.append(low, -self.max_delta_cartesian_rot)
+                    high = np.append(high, self.max_delta_cartesian_rot)
         else:
             low = np.array([])
             high = np.array([])
@@ -656,10 +692,16 @@ class ICubEnv(gym.Env):
                         obs['joints'] = np.append(obs['joints'],
                                                   np.sum(named_qpos[actuator['jnt']] * actuator['coeff']))
                 elif space == 'cartesian':
-                    obs['cartesian'] = np.concatenate(
-                        (self.env.physics.named.data.xpos[self.eef_name],
-                         Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
-                                                      (3, 3)), atol=1e-05).q))[self.cartesian_ids]
+                    if self.cartesian_orientation == 'ypr':
+                        obs['cartesian'] = np.concatenate(
+                            (self.env.physics.named.data.xpos[self.eef_name],
+                             Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                          (3, 3)), atol=1e-05).yaw_pitch_roll))[self.cartesian_ids]
+                    else:
+                        obs['cartesian'] = np.concatenate(
+                            (self.env.physics.named.data.xpos[self.eef_name],
+                             Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                          (3, 3)), atol=1e-05).q))[self.cartesian_ids]
                 elif space == 'features':
                     obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
                                                                                      width=640,
@@ -697,9 +739,15 @@ class ICubEnv(gym.Env):
                                 np.sum(named_qpos[actuator['jnt']] * actuator['coeff']))
             return obs
         elif 'cartesian' in self.icub_observation_space and len(self.icub_observation_space) == 1:
-            return np.concatenate((self.env.physics.named.data.xpos[self.eef_name],
-                                   Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
-                                                                (3, 3)), atol=1e-05).q))[self.cartesian_ids]
+            if self.cartesian_orientation == 'ypr':
+                return np.concatenate((self.env.physics.named.data.xpos[self.eef_name],
+                                       Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                                    (3, 3)),
+                                                  atol=1e-05).yaw_pitch_roll))[self.cartesian_ids]
+            else:
+                return np.concatenate((self.env.physics.named.data.xpos[self.eef_name],
+                                       Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
+                                                                    (3, 3)), atol=1e-05).q))[self.cartesian_ids]
         elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.feature_extractor(self.env.physics.render(height=480, width=640, camera_id=self.obs_camera))
         elif 'touch' in self.icub_observation_space and len(self.icub_observation_space) == 1:

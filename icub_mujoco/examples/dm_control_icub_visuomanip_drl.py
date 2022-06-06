@@ -172,9 +172,13 @@ parser.add_argument('--ik_components',
 parser.add_argument('--cartesian_components',
                     type=str,
                     nargs='+',
-                    default=['all'],
-                    help='Specify the joints that must be used for cartesian control. Choose values in x, y, z, qw, '
-                         'qx, qy, qz or all (default option) to use all the joints.')
+                    default=['all_ypr'],
+                    help='Specify the eef components that must be used for cartesian control. Choose values in x, y, '
+                         'z, for eef position. For eef orientation control, choose values in qw, qx, qy, qz for '
+                         'quaternion orientation control or in yaw, pitch, roll for ypr orientation control. To '
+                         'control all the position components and all the rotation components use all_ypr '
+                         '(default option, with ypr orientation control) or all_quaternion (with quaternion '
+                         'orientation control.')
 parser.add_argument('--training_device',
                     type=str,
                     default='auto',
@@ -212,6 +216,11 @@ parser.add_argument('--max_delta_cartesian_pos',
                     type=float,
                     default=0.02,
                     help='Set max delta pos for cartesian control. Default is 0.02.')
+parser.add_argument('--max_delta_cartesian_rot',
+                    action='store',
+                    type=float,
+                    default=0.1,
+                    help='Set max delta rot for cartesian control. Default is 0.1.')
 
 args = parser.parse_args()
 
@@ -263,7 +272,8 @@ if args.task == 'reaching':
                            learning_from_demonstration=args.learning_from_demonstration,
                            max_lfd_steps=args.max_lfd_steps,
                            max_delta_qpos=args.max_delta_qpos,
-                           max_delta_cartesian_pos=args.max_delta_cartesian_pos)
+                           max_delta_cartesian_pos=args.max_delta_cartesian_pos,
+                           max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 elif args.task == 'gaze_control':
     iCub = ICubEnvGazeControl(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
@@ -288,7 +298,8 @@ elif args.task == 'gaze_control':
                               learning_from_demonstration=args.learning_from_demonstration,
                               max_lfd_steps=args.max_lfd_steps,
                               max_delta_qpos=args.max_delta_qpos,
-                              max_delta_cartesian_pos=args.max_delta_cartesian_pos)
+                              max_delta_cartesian_pos=args.max_delta_cartesian_pos,
+                              max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 elif args.task == 'refine_grasp':
     iCub = ICubEnvRefineGrasp(model_path=args.xml_model_path,
                               icub_observation_space=args.icub_observation_space,
@@ -319,7 +330,8 @@ elif args.task == 'refine_grasp':
                               learning_from_demonstration=args.learning_from_demonstration,
                               max_lfd_steps=args.max_lfd_steps,
                               max_delta_qpos=args.max_delta_qpos,
-                              max_delta_cartesian_pos=args.max_delta_cartesian_pos)
+                              max_delta_cartesian_pos=args.max_delta_cartesian_pos,
+                              max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
@@ -349,7 +361,8 @@ elif args.task == 'keep_grasp':
                             learning_from_demonstration=args.learning_from_demonstration,
                             max_lfd_steps=args.max_lfd_steps,
                             max_delta_qpos=args.max_delta_qpos,
-                            max_delta_cartesian_pos=args.max_delta_cartesian_pos)
+                            max_delta_cartesian_pos=args.max_delta_cartesian_pos,
+                            max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 elif args.task == 'lift_grasped_object':
     iCub = ICubEnvLiftGraspedObject(model_path=args.xml_model_path,
                                     icub_observation_space=args.icub_observation_space,
@@ -379,7 +392,8 @@ elif args.task == 'lift_grasped_object':
                                     learning_from_demonstration=args.learning_from_demonstration,
                                     max_lfd_steps=args.max_lfd_steps,
                                     max_delta_qpos=args.max_delta_qpos,
-                                    max_delta_cartesian_pos=args.max_delta_cartesian_pos)
+                                    max_delta_cartesian_pos=args.max_delta_cartesian_pos,
+                                    max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 else:
     raise ValueError('The task specified as argument is not valid. Quitting.')
 
