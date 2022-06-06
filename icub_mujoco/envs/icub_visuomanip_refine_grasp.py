@@ -258,7 +258,7 @@ class ICubEnvRefineGrasp(ICubEnv):
             # Lift
             action_ik = self.lift_object()
         else:
-            action_ik = np.zeros(len(self.cartesian_components))
+            action_ik = np.zeros(len(self.cartesian_ids))
         return np.concatenate((action_ik, action_fingers))
 
     def close_hand(self):
