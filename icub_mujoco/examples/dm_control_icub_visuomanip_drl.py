@@ -50,6 +50,10 @@ parser.add_argument('--reward_single_step_multiplier',
                     type=float,
                     default=10.0,
                     help='Set the multiplication factor of the default per-step reward in meters or pixels.')
+parser.add_argument('--reward_dist_superq_center',
+                    action='store_true',
+                    help='Add a reward component in the grasp refinement task for the distance of the superquadric '
+                         'center in the xy axes of the eef.')
 parser.add_argument('--joints_margin',
                     action='store',
                     type=float,
@@ -311,6 +315,7 @@ elif args.task == 'refine_grasp':
                               reward_out_of_joints=args.reward_out_of_joints,
                               reward_end_timesteps=args.reward_end_timesteps,
                               reward_single_step_multiplier=args.reward_single_step_multiplier,
+                              reward_dist_superq_center=args.reward_dist_superq_center,
                               print_done_info=args.print_done_info,
                               objects=args.objects,
                               use_table=args.use_table,
@@ -424,7 +429,7 @@ if args.test_model:
 else:
     if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
         or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
-        or 'flare' in args.icub_observation_space) \
+        or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space) \
             and len(args.icub_observation_space) == 1:
         model = SAC("MlpPolicy",
                     iCub,

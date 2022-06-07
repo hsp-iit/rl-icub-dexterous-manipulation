@@ -27,6 +27,8 @@ class SuperquadricEstimator:
         self.sq_estimator.SetBoolValue("random_sampling", False)
         # Compute superquadric
         sq_vec = self.vector_superquadric(self.sq_estimator.computeSuperq(pointcloud))
+        sq_center = sq_vec.front().center[0]
+        sq_center[2] += 0.95
         # Compute grasp pose
         grasp_res_hand = self.grasp_estimator.computeGraspPoses(sq_vec)
         best_grasp_position = grasp_res_hand.grasp_poses.front().position[0]
@@ -44,7 +46,8 @@ class SuperquadricEstimator:
         best_grasp_pose = rt_dh
         best_grasp_pose_quat = Quaternion(matrix=best_grasp_pose[:3, :3], atol=1e-05)
         best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3], best_grasp_pose[1, 3], best_grasp_pose[2, 3]],
-                                  'quaternion': best_grasp_pose_quat.q}
+                                  'quaternion': best_grasp_pose_quat.q,
+                                  'superq_center': sq_center}
         return best_grasp_pose_to_ret
 
     @staticmethod

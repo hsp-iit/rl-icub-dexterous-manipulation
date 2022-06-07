@@ -20,7 +20,10 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.prev_obj_zpos = None
         self.reward_obj_height = True
+        self.already_touched_with_2_fingers = False
         self.already_touched_with_5_fingers = False
+
+        self.prev_dist_superq_center = None
 
         self.superq_pose = None
         self.target_ik = None
@@ -93,6 +96,8 @@ class ICubEnvRefineGrasp(ICubEnv):
             done_limits = False
         done_goal = self.goal_reached()
         observation = self._get_obs()
+        if self.number_of_contacts >= 2:
+            self.already_touched_with_2_fingers = True
         if self.number_of_contacts == 5:
             self.already_touched_with_5_fingers = True
         done_timesteps = self.steps >= self._max_episode_steps
@@ -137,6 +142,12 @@ class ICubEnvRefineGrasp(ICubEnv):
             if (rew_height > 0 and self.number_of_contacts == 5) or \
                     (rew_height < 0 and self.already_touched_with_5_fingers):
                 reward += rew_height
+        if self.reward_dist_superq_center and not self.already_touched_with_2_fingers:
+            superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
+            current_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
+            delta_dist_superq_center = self.prev_dist_superq_center - current_dist_superq_center
+            self.prev_dist_superq_center = current_dist_superq_center
+            reward += delta_dist_superq_center * 100
         if done_goal:
             reward += self.reward_goal
         return reward
@@ -211,8 +222,12 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.set_state(current_state)
             self.update_init_qpos_act_from_current_state(current_state)
             self.env.physics.forward()
+            self.already_touched_with_2_fingers = False
             self.already_touched_with_5_fingers = False
             self.previous_number_of_contacts = self.compute_num_fingers_touching_object()
+            if self.reward_dist_superq_center:
+                superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
+                self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
         return self._get_obs()
 
     def update_init_qpos_act_from_current_state(self, current_state):

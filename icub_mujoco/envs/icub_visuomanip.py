@@ -38,6 +38,7 @@ class ICubEnv(gym.Env):
                  reward_out_of_joints=-1.0,
                  reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
+                 reward_dist_superq_center=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
@@ -463,6 +464,7 @@ class ICubEnv(gym.Env):
         self.reward_out_of_joints = reward_out_of_joints
         self.reward_single_step_multiplier = reward_single_step_multiplier
         self.reward_end_timesteps = reward_end_timesteps
+        self.reward_dist_superq_center = reward_dist_superq_center
 
         # Reset environment
         self.reset()
@@ -560,6 +562,11 @@ class ICubEnv(gym.Env):
                                                         high=np.inf,
                                                         shape=flare_shape,
                                                         dtype=np.float32)
+                elif space == 'superquadric_center':
+                    obs_space['superquadric_center'] = gym.spaces.Box(low=-np.inf,
+                                                                      high=np.inf,
+                                                                      shape=[3],
+                                                                      dtype=np.float32)
             self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
@@ -728,6 +735,14 @@ class ICubEnv(gym.Env):
                                                self.flare_features[4] - features,
                                                features]
                     obs['flare'] = np.concatenate(self.flare_features, axis=1)
+                elif space == 'superquadric_center':
+                    if hasattr(self, 'superq_pose'):
+                        if self.superq_pose is None:
+                            obs['superquadric_center'] = np.zeros(3, dtype=np.float32)
+                        else:
+                            obs['superquadric_center'] = self.superq_pose['superq_center']
+                    else:
+                        obs['superquadric_center'] = np.zeros(3, dtype=np.float32)
             return obs
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
@@ -773,6 +788,14 @@ class ICubEnv(gym.Env):
                                        self.flare_features[4] - features,
                                        features]
             return np.concatenate(self.flare_features, axis=1)
+        elif 'superquadric_center' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            if hasattr(self, 'superq_pose'):
+                if self.superq_pose is None:
+                    return np.zeros(3, dtype=np.float32)
+                else:
+                    return self.superq_pose['superq_center']
+            else:
+                return np.zeros(3, dtype=np.float32)
 
     def step(self, action):
         raise NotImplementedError
@@ -920,6 +943,27 @@ class ICubEnv(gym.Env):
             p_cam = np.matmul(np.linalg.inv(cam_world), p_world)
             com_xyzs.append(np.array([p_cam[0, 3], p_cam[1, 3], p_cam[2, 3]]))
         return com_xyzs
+
+    def point_in_r_hand_dh_frame(self, point):
+        # Point roto-translation matrix in world coordinates
+        p_world = np.array([[1, 0, 0, point[0]],
+                            [0, 1, 0, point[1]],
+                            [0, 0, 1, point[2]],
+                            [0, 0, 0, 1]],
+                           dtype=np.float32)
+        # r_hand_dh_frame roto-translation matrix in world coordinates
+        dh_frame_world = np.array([[1, 0, 0, 0],
+                                   [0, 1, 0, 0],
+                                   [0, 0, 1, 0],
+                                   [0, 0, 0, 1]],
+                                  dtype=np.float32)
+        dh_frame_pos = self.env.physics.named.data.site_xpos['r_hand_dh_frame_site']
+        dh_frame_world[:3, -1] = dh_frame_pos
+        dh_frame_rot = np.reshape(self.env.physics.named.data.site_xmat['r_hand_dh_frame_site'], (3, 3))
+        dh_frame_world[:3, :3] = dh_frame_rot
+        # Point roto-translation matrix in r_hand_dh_frame coordinates
+        p_r_hand_dh_frame = np.matmul(np.linalg.inv(dh_frame_world), p_world)
+        return np.array([p_r_hand_dh_frame[0, 3], p_r_hand_dh_frame[1, 3], p_r_hand_dh_frame[2, 3]])
 
     def points_in_pixel_coord(self, points):
         com_uvs = []
