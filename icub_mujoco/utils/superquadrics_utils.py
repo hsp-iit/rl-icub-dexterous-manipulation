@@ -14,7 +14,7 @@ class SuperquadricEstimator:
         self.grasp_estimator = self.sb.GraspEstimatorApp()
         self.vector_superquadric = self.sb.vector_superquadric
 
-    def compute_grasp_pose_superquadrics(self, pcd):
+    def compute_grasp_pose_superquadrics(self, pcd, object_class="default"):
         pointcloud = self.sb.PointCloud()
         points = self.sb.deque_Vector3d()
         colors = self.sb.vector_vector_uchar()
@@ -25,6 +25,9 @@ class SuperquadricEstimator:
         pointcloud.setColors(colors)
         self.sq_estimator.SetIntegerValue("optimizer_points", 100)
         self.sq_estimator.SetBoolValue("random_sampling", False)
+        # https://github.com/robotology/superquadric-lib/blob/f38e76324a863c9c21b059b586a9e88618db11c9/src
+        # /SuperquadricLib/SuperquadricModel/src/superquadricEstimator.cpp#L293
+        self.sq_estimator.SetStringValue("object_class", object_class)
         # Compute superquadric
         sq_vec = self.vector_superquadric(self.sq_estimator.computeSuperq(pointcloud))
         sq_center = sq_vec.front().center[0]
