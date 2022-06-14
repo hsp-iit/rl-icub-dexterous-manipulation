@@ -182,6 +182,9 @@ class ICubEnvRefineGrasp(ICubEnv):
             if self.superq_pose['position'][0] == 0.00:
                 print('Grasp pose not found. Resetting the environment.')
                 self.reset_model()
+            # Use distanced superq pose if required and if not in the learning from demonstratin phase
+            if self.distanced_superq_grasp_pose and not self.learning_from_demonstration:
+                self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
             if self.cartesian_orientation == 'ypr':
                 self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
                 self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['ypr']),

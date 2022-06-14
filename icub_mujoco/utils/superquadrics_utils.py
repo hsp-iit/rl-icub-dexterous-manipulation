@@ -13,6 +13,7 @@ class SuperquadricEstimator:
         self.sq_estimator = self.sb.SuperqEstimatorApp()
         self.grasp_estimator = self.sb.GraspEstimatorApp()
         self.vector_superquadric = self.sb.vector_superquadric
+        self.distance_from_grasp_pose_disanced_position = 0.05
 
     def compute_grasp_pose_superquadrics(self, pcd, object_class="default"):
         pointcloud = self.sb.PointCloud()
@@ -48,9 +49,18 @@ class SuperquadricEstimator:
         rt_dh[:3, -1] = tr
         best_grasp_pose = rt_dh
         best_grasp_pose_quat = Quaternion(matrix=best_grasp_pose[:3, :3], atol=1e-05)
+        # Find distanced position on the sq_center-best_grasp_pos line
+        mx, my, mz = self.line_coefficients_between_two_point(sq_center,
+                                                              [best_grasp_pose[0, 3],
+                                                               best_grasp_pose[1, 3],
+                                                               best_grasp_pose[2, 3]],)
+        distanced_position = np.array([best_grasp_pose[0, 3] + mx * self.distance_from_grasp_pose_disanced_position,
+                                       best_grasp_pose[1, 3] + my * self.distance_from_grasp_pose_disanced_position,
+                                       best_grasp_pose[2, 3] + mz * self.distance_from_grasp_pose_disanced_position])
         best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3], best_grasp_pose[1, 3], best_grasp_pose[2, 3]],
                                   'quaternion': best_grasp_pose_quat.q,
-                                  'superq_center': sq_center}
+                                  'superq_center': sq_center,
+                                  'distanced_grasp_position': distanced_position}
         return best_grasp_pose_to_ret
 
     @staticmethod
@@ -61,3 +71,15 @@ class SuperquadricEstimator:
         z = axisangle[2] * s
         w = math.cos(axisangle[3] / 2)
         return np.array([w, x, y, z])
+
+    @staticmethod
+    def line_coefficients_between_two_point(point1, point2):
+        if len(point1) != 3 or len(point2) != 3:
+            raise ValueError('Points must have length 3.')
+        point1 = np.array(point1)
+        point2 = np.array(point2)
+        dist = np.linalg.norm(point2 - point1)
+        mx = point2[0] - point1[0]
+        my = point2[1] - point1[1]
+        mz = point2[2] - point1[2]
+        return mx/dist, my/dist, mz/dist

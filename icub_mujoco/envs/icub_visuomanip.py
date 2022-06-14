@@ -50,6 +50,7 @@ class ICubEnv(gym.Env):
                  lfd_keep_only_successful_episodes=False,
                  max_delta_cartesian_pos=0.02,
                  max_delta_cartesian_rot=0.1,
+                 distanced_superq_grasp_pose=False,
                  ):
 
         # Load xml model
@@ -96,6 +97,9 @@ class ICubEnv(gym.Env):
         self.null_reward_out_image = null_reward_out_image
         self.lift_object_height = lift_object_height
         self.curriculum_learning = curriculum_learning
+
+        # Set if using the original superquadric grasp pose or the distanced pose
+        self.distanced_superq_grasp_pose = distanced_superq_grasp_pose
 
         # Focal length set used to compute fovy in the xml file
         self.fy = 617.783447265625

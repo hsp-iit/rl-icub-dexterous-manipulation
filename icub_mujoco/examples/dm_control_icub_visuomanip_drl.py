@@ -229,6 +229,9 @@ parser.add_argument('--max_delta_cartesian_rot',
                     type=float,
                     default=0.1,
                     help='Set max delta rot for cartesian control. Default is 0.1.')
+parser.add_argument('--distanced_superq_grasp_pose',
+                    action='store_true',
+                    help='Use curriculum learning for joints offsets.')
 
 args = parser.parse_args()
 
@@ -343,7 +346,8 @@ elif args.task == 'refine_grasp':
                               lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
-                              max_delta_cartesian_rot=args.max_delta_cartesian_rot)
+                              max_delta_cartesian_rot=args.max_delta_cartesian_rot,
+                              distanced_superq_grasp_pose=args.distanced_superq_grasp_pose)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
