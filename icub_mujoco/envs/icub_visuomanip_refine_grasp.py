@@ -112,7 +112,8 @@ class ICubEnvRefineGrasp(ICubEnv):
                          'limits exceeded': self.joints_out_of_range(),
                          'object falling from the table': done_object_falling,
                          'moved object': done_moved_object,
-                         'done z pos': done_z_pos}}
+                         'done z pos': done_z_pos},
+                'is_success': done_goal}
         if self.learning_from_demonstration:
             info['learning from demonstration action'] = action_lfd
         if 'cartesian' in self.icub_observation_space:
@@ -123,6 +124,10 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.lfd_close_hand_step = 0
         if done and self.print_done_info:
             print(info)
+        # Remove self.steps from self.lfd_steps to remove unsuccessful episode steps if required
+        if done and self.lfd_keep_only_successful_episodes and not info['is_success'] and \
+                self.lfd_steps <= self.learning_from_demonstration_max_steps:
+            self.lfd_steps -= self.steps
         return observation, reward, done, info
 
     def _get_reward(self, done_limits, done_goal, done_timesteps, done_moved_object, done_z_pos, done_ik=None):

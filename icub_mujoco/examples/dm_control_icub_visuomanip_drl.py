@@ -210,6 +210,10 @@ parser.add_argument('--max_lfd_steps',
                     default=10000,
                     help='Set max learning from demonstration steps for replay buffer initialization. '
                          'Default is 10000.')
+parser.add_argument('--lfd_keep_only_successful_episodes',
+                    action='store_true',
+                    help='Store in the replay buffer only successful episodes in the learning from demonstration '
+                         'phase.')
 parser.add_argument('--max_delta_qpos',
                     action='store',
                     type=float,
@@ -275,6 +279,7 @@ if args.task == 'reaching':
                            feature_extractor_model_name=args.feature_extractor_model_name,
                            learning_from_demonstration=args.learning_from_demonstration,
                            max_lfd_steps=args.max_lfd_steps,
+                           lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                            max_delta_qpos=args.max_delta_qpos,
                            max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                            max_delta_cartesian_rot=args.max_delta_cartesian_rot)
@@ -300,6 +305,7 @@ elif args.task == 'gaze_control':
                               null_reward_out_image=args.null_reward_out_image,
                               feature_extractor_model_name=args.feature_extractor_model_name,
                               learning_from_demonstration=args.learning_from_demonstration,
+                              lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                               max_lfd_steps=args.max_lfd_steps,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
@@ -334,6 +340,7 @@ elif args.task == 'refine_grasp':
                               curriculum_learning=args.curriculum_learning,
                               learning_from_demonstration=args.learning_from_demonstration,
                               max_lfd_steps=args.max_lfd_steps,
+                              lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot)
@@ -365,6 +372,7 @@ elif args.task == 'keep_grasp':
                             curriculum_learning=args.curriculum_learning,
                             learning_from_demonstration=args.learning_from_demonstration,
                             max_lfd_steps=args.max_lfd_steps,
+                            lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                             max_delta_qpos=args.max_delta_qpos,
                             max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                             max_delta_cartesian_rot=args.max_delta_cartesian_rot)
@@ -396,6 +404,7 @@ elif args.task == 'lift_grasped_object':
                                     curriculum_learning=args.curriculum_learning,
                                     learning_from_demonstration=args.learning_from_demonstration,
                                     max_lfd_steps=args.max_lfd_steps,
+                                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                                     max_delta_qpos=args.max_delta_qpos,
                                     max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                                     max_delta_cartesian_rot=args.max_delta_cartesian_rot)
@@ -444,7 +453,8 @@ else:
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                     learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps)
+                    max_lfd_steps=args.max_lfd_steps,
+                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
     elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
         model = SAC("CnnPolicy",
                     iCub,
@@ -459,7 +469,8 @@ else:
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                     learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps)
+                    max_lfd_steps=args.max_lfd_steps,
+                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
     elif ('camera' in args.icub_observation_space
           or 'joints' in args.icub_observation_space
           or 'cartesian' in args.icub_observation_space
@@ -479,7 +490,8 @@ else:
                     curriculum_learning=args.curriculum_learning,
                     curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                     learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps)
+                    max_lfd_steps=args.max_lfd_steps,
+                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
     else:
         raise ValueError('The observation space specified as argument is not valid. Quitting.')
 

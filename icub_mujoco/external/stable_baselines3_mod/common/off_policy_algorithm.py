@@ -108,6 +108,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         curriculum_learning_components: np.array = np.empty(0),
         learning_from_demonstration: bool = False,
         max_lfd_steps: int = 10000,
+        lfd_keep_only_successful_episodes: bool = False
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -161,6 +162,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.learning_from_demonstration = learning_from_demonstration
         self.learning_from_demonstration_max_steps = max_lfd_steps
         self.learning_from_demonstration_num_steps = 0
+        self.lfd_keep_only_successful_episodes = lfd_keep_only_successful_episodes and self.learning_from_demonstration
+        self.env_steps = 0
 
     def _convert_train_freq(self) -> None:
         """
@@ -607,8 +610,15 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                     actions = infos[0]['learning from demonstration action']
                     buffer_actions = self.policy.scale_action(actions)
                     self.learning_from_demonstration_num_steps += 1
+                    if self.lfd_keep_only_successful_episodes and dones[0]:
+                        if not infos[0]['is_success']:
+                            print('Episode not successful. Removing episode.')
+                            # Prevent updating information in _update_info_buffer
+                            infos[0]['episode'] = None
+                            infos[0]['is_success'] = None
                 else:
                     print("-----End of data collection for learning from demonstration!!!-----")
+                    new_obs, rewards, dones, infos = env.step(actions)
                     self.learning_from_demonstration = False
                     # Resets episodes buffers
                     self.ep_info_buffer = deque(maxlen=100)
@@ -616,6 +626,10 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                     self._episode_num = 0
             else:
                 new_obs, rewards, dones, infos = env.step(actions)
+
+            # Keep track of the number of steps in the environment to remove unsuccessful episodes during the lfd phase,
+            # if required
+            self.env_steps += 1
 
             self.num_timesteps += env.num_envs
             num_collected_steps += 1
@@ -646,8 +660,18 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             for idx, done in enumerate(dones):
                 if done:
                     # Update stats
-                    num_collected_episodes += 1
-                    self._episode_num += 1
+                    if (self.lfd_keep_only_successful_episodes and infos[0]['is_success'] and
+                            self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps) \
+                            or not self.lfd_keep_only_successful_episodes:
+                        num_collected_episodes += 1
+                        self._episode_num += 1
+                    if self.lfd_keep_only_successful_episodes and not infos[0]['is_success'] and \
+                            self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps:
+                        self.env_steps -= infos[0]['Steps']
+                        # Set position of the replay buffer to the previous episode to remove it
+                        self.replay_buffer.pos = self.env_steps
+                        self.num_timesteps = self.env_steps
+                        self.learning_from_demonstration_num_steps = self.num_timesteps
 
                     if action_noise is not None:
                         kwargs = dict(indices=[idx]) if env.num_envs > 1 else {}
