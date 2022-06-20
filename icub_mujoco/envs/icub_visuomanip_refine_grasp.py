@@ -26,9 +26,12 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.prev_dist_superq_center = None
 
         self.superq_pose = None
+        self.superq_position = None
         self.target_ik = None
 
-        self.lfd_stage = 'close_hand'
+        self.lfd_stage = 'close_hand' if not self.lfd_with_approach else 'approach_object'
+        self.lfd_approach_object_step = 0
+        self.lfd_approach_object_max_steps = 100
         self.lfd_close_hand_step = 0
         self.lfd_close_hand_max_steps = 500
         self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
@@ -120,8 +123,9 @@ class ICubEnvRefineGrasp(ICubEnv):
             done = done or done_ik
             info['Done']['done IK'] = done_ik
         if self.learning_from_demonstration and done:
-            self.lfd_stage = 'close_hand'
+            self.lfd_stage = 'close_hand' if not self.lfd_with_approach else 'approach_object'
             self.lfd_close_hand_step = 0
+            self.lfd_approach_object_step = 0
         if done and self.print_done_info:
             print(info)
         # Remove self.steps from self.lfd_steps to remove unsuccessful episode steps if required
@@ -182,8 +186,9 @@ class ICubEnvRefineGrasp(ICubEnv):
             if self.superq_pose['position'][0] == 0.00:
                 print('Grasp pose not found. Resetting the environment.')
                 self.reset_model()
-            # Use distanced superq pose if required and if not in the learning from demonstratin phase
-            if self.distanced_superq_grasp_pose and not self.learning_from_demonstration:
+            self.superq_position = self.superq_pose['position'].copy()
+            # Use distanced superq pose if required and if not in the learning from demonstration phase
+            if self.distanced_superq_grasp_pose and (not self.learning_from_demonstration or self.lfd_with_approach):
                 self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
             if self.cartesian_orientation == 'ypr':
                 self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
@@ -275,11 +280,16 @@ class ICubEnvRefineGrasp(ICubEnv):
         if self.lfd_stage == 'close_hand':
             # Close hand
             action_fingers = self.close_hand()
-        else:
+        elif self.lfd_stage == 'approach_object':
+            action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
+        elif self.lfd_stage == 'lift_object':
             action_fingers = self.close_hand_action_fingers
         if self.lfd_stage == 'lift_object':
             # Lift
             action_ik = self.lift_object()
+        elif self.lfd_stage == 'approach_object':
+            # Approach
+            action_ik = self.approach_object()
         else:
             action_ik = np.zeros(len(self.cartesian_ids))
         return np.concatenate((action_ik, action_fingers))
@@ -308,5 +318,19 @@ class ICubEnvRefineGrasp(ICubEnv):
     def lift_object(self):
         action_ik = np.zeros(len(self.cartesian_ids))
         action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos/10
+        return action_ik
+
+    def approach_object(self):
+        self.lfd_approach_object_step += 1
+        action_ik = np.zeros(len(self.cartesian_ids))
+        action_ik[self.cartesian_ids.index(0)] = (self.superq_position[0] - self.superq_pose['position'][0]) \
+                                                    / self.lfd_approach_object_max_steps
+        action_ik[self.cartesian_ids.index(1)] = (self.superq_position[1] - self.superq_pose['position'][1]) \
+                                                    / self.lfd_approach_object_max_steps
+        action_ik[self.cartesian_ids.index(2)] = (self.superq_position[2] - self.superq_pose['position'][2]) \
+                                                    / self.lfd_approach_object_max_steps
+        if self.lfd_approach_object_step == self.lfd_approach_object_max_steps:
+            self.lfd_stage = 'close_hand'
+            self.lfd_approach_object_step = 0
         return action_ik
 

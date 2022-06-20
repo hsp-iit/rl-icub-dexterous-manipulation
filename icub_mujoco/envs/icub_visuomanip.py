@@ -48,6 +48,7 @@ class ICubEnv(gym.Env):
                  max_lfd_steps=10000,
                  max_delta_qpos=0.1,
                  lfd_keep_only_successful_episodes=False,
+                 lfd_with_approach=False,
                  max_delta_cartesian_pos=0.02,
                  max_delta_cartesian_rot=0.1,
                  distanced_superq_grasp_pose=False,
@@ -457,6 +458,7 @@ class ICubEnv(gym.Env):
         self.learning_from_demonstration = learning_from_demonstration
         self.learning_from_demonstration_max_steps = max_lfd_steps
         self.lfd_keep_only_successful_episodes = lfd_keep_only_successful_episodes and self.learning_from_demonstration
+        self.lfd_with_approach = lfd_with_approach
 
         # Set task parameters
         self.eef_name = eef_name

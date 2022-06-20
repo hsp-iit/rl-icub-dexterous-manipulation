@@ -214,6 +214,9 @@ parser.add_argument('--lfd_keep_only_successful_episodes',
                     action='store_true',
                     help='Store in the replay buffer only successful episodes in the learning from demonstration '
                          'phase.')
+parser.add_argument('--lfd_with_approach',
+                    action='store_true',
+                    help='Set if the approach to the object is included in the learning from demonstration phase.')
 parser.add_argument('--max_delta_qpos',
                     action='store',
                     type=float,
@@ -344,6 +347,7 @@ elif args.task == 'refine_grasp':
                               learning_from_demonstration=args.learning_from_demonstration,
                               max_lfd_steps=args.max_lfd_steps,
                               lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
+                              lfd_with_approach=args.lfd_with_approach,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot,
