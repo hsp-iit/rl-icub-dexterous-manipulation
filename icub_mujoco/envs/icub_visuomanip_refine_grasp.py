@@ -165,82 +165,97 @@ class ICubEnvRefineGrasp(ICubEnv):
         return self.lifted_object() and self.number_of_contacts == 5
 
     def reset_model(self):
-        super().reset_model()
-        if hasattr(self, 'superquadric_estimator'):
-            img = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera)
-            depth = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera, depth=True)
-            pcd = pcd_from_depth(depth)
-            pcd[:, 2] = -pcd[:, 2]
-            cam_id = self.env.physics.model.name2id(self.superquadrics_camera, 'camera')
-            pcd = points_in_world_coord(pcd,
-                                        cam_xpos=self.env.physics.named.data.cam_xpos[cam_id, :],
-                                        cam_xmat=np.reshape(self.env.physics.named.data.cam_xmat[cam_id, :], (3, 3)))
-            pcd[:, 2] -= 0.95
-            segm = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera,
-                                           segmentation=True)
-            ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
-                           self.env.physics.model.name2id(self.objects[0] + "/mesh_" + self.objects[0] + "_00_visual",
-                                                          'geom'))
-            pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
-            self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
-            if self.superq_pose['position'][0] == 0.00:
-                print('Grasp pose not found. Resetting the environment.')
-                self.reset_model()
-            self.superq_position = self.superq_pose['position'].copy()
-            # Use distanced superq pose if required and if not in the learning from demonstration phase
-            if self.distanced_superq_grasp_pose and (not self.learning_from_demonstration or self.lfd_with_approach):
-                self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
-            if self.cartesian_orientation == 'ypr':
-                self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
-                self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['ypr']),
-                                                dtype=np.float64)
-            else:
-                self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
-                                                dtype=np.float64)
-            qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
-                                                    site_name='r_hand_dh_frame_site',
-                                                    target_pos=self.superq_pose['position'],
-                                                    target_quat=self.superq_pose['quaternion'],
-                                                    joint_names=self.joints_to_control_ik)
-            if qpos_sol_final.success:
-                qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
-            else:
-                max_delta_position_perturb = 1
-                while max_delta_position_perturb < 10:
-                    print('Solution not found for superquadric grasp pose, perturb position randomly adding an '
-                          'offset in the range [{:.2f}, {:.2f}]'. format(-0.01*max_delta_position_perturb,
-                                                                         0.01*max_delta_position_perturb))
-                    tmp_superq_position = self.superq_pose['position'].copy()
-                    tmp_superq_position[0] = tmp_superq_position[0] + random.uniform(-0.01*max_delta_position_perturb,
-                                                                                     0.01*max_delta_position_perturb)
-                    tmp_superq_position[1] = tmp_superq_position[1] + random.uniform(-0.01 * max_delta_position_perturb,
-                                                                                     0.01 * max_delta_position_perturb)
-                    tmp_superq_position[2] = tmp_superq_position[2] + random.uniform(-0.01 * max_delta_position_perturb,
-                                                                                     0.01 * max_delta_position_perturb)
-                    qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
-                                                            site_name='r_hand_dh_frame_site',
-                                                            target_pos=tmp_superq_position,
-                                                            target_quat=self.superq_pose['quaternion'],
-                                                            joint_names=self.joints_to_control_ik)
-                    if qpos_sol_final.success:
-                        qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
-                        break
+        grasp_found = False
+        while not grasp_found:
+            super().reset_model()
+            if hasattr(self, 'superquadric_estimator'):
+                img = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera)
+                depth = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera, depth=True)
+                pcd = pcd_from_depth(depth)
+                pcd[:, 2] = -pcd[:, 2]
+                cam_id = self.env.physics.model.name2id(self.superquadrics_camera, 'camera')
+                pcd = points_in_world_coord(pcd,
+                                            cam_xpos=self.env.physics.named.data.cam_xpos[cam_id, :],
+                                            cam_xmat=np.reshape(self.env.physics.named.data.cam_xmat[cam_id, :],
+                                                                (3, 3)))
+                pcd[:, 2] -= 0.95
+                segm = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera,
+                                               segmentation=True)
+                ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
+                               self.env.physics.model.name2id(self.objects[0] + "/mesh_"
+                                                              + self.objects[0] + "_00_visual",
+                                                              'geom'))
+                pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
+                self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
+                if self.superq_pose['position'][0] == 0.00:
+                    print('Grasp pose not found. Resetting the environment.')
+                    continue
+                self.superq_position = self.superq_pose['position'].copy()
+                # Use distanced superq pose if required and if not in the learning from demonstration phase
+                if self.distanced_superq_grasp_pose and (
+                        not self.learning_from_demonstration or self.lfd_with_approach):
+                    self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
+                if self.cartesian_orientation == 'ypr':
+                    self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
+                    self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['ypr']),
+                                                    dtype=np.float64)
+                else:
+                    self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
+                                                    dtype=np.float64)
+                qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                        site_name='r_hand_dh_frame_site',
+                                                        target_pos=self.superq_pose['position'],
+                                                        target_quat=self.superq_pose['quaternion'],
+                                                        joint_names=self.joints_to_control_ik)
+                if qpos_sol_final.success:
+                    qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
+                    grasp_found = True
+                else:
+                    max_delta_position_perturb = 1
+                    while max_delta_position_perturb < 10:
+                        print('Solution not found for superquadric grasp pose, perturb position randomly adding an '
+                              'offset in the range [{:.2f}, {:.2f}]'.format(-0.01 * max_delta_position_perturb,
+                                                                            0.01 * max_delta_position_perturb))
+                        tmp_superq_position = self.superq_pose['position'].copy()
+                        tmp_superq_position[0] = tmp_superq_position[0] + \
+                                                     random.uniform(-0.01 * max_delta_position_perturb,
+                                                                    0.01 * max_delta_position_perturb)
+                        tmp_superq_position[1] = tmp_superq_position[1] + \
+                                                     random.uniform(-0.01 * max_delta_position_perturb,
+                                                                    0.01 * max_delta_position_perturb)
+                        tmp_superq_position[2] = tmp_superq_position[2] + \
+                                                     random.uniform(-0.01 * max_delta_position_perturb,
+                                                                    0.01 * max_delta_position_perturb)
+                        qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                                site_name='r_hand_dh_frame_site',
+                                                                target_pos=tmp_superq_position,
+                                                                target_quat=self.superq_pose['quaternion'],
+                                                                joint_names=self.joints_to_control_ik)
+                        if qpos_sol_final.success:
+                            qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids,
+                                                                          dtype=np.int64)]
+                            break
+                        else:
+                            max_delta_position_perturb += 0.1
+                    if max_delta_position_perturb >= 10:
+                        print('Solution not found after superquadric perturbation. Resetting the environment.')
+                        continue
                     else:
-                        max_delta_position_perturb += 0.1
-                if max_delta_position_perturb >= 10:
-                    print('Solution not found after superquadric perturbation. Resetting the environment.')
-                    self.reset_model()
-            current_state = self.get_state()
-            current_state[self.joints_to_control_ik_ids] = qpos_sol_final
-            self.set_state(current_state)
-            self.update_init_qpos_act_from_current_state(current_state)
-            self.env.physics.forward()
-            self.already_touched_with_2_fingers = False
-            self.already_touched_with_5_fingers = False
-            self.previous_number_of_contacts = self.compute_num_fingers_touching_object()
-            if self.reward_dist_superq_center:
-                superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
-                self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
+                        grasp_found = True
+                current_state = self.get_state()
+                current_state[self.joints_to_control_ik_ids] = qpos_sol_final
+                self.set_state(current_state)
+                self.update_init_qpos_act_from_current_state(current_state)
+                self.env.physics.forward()
+                self.already_touched_with_2_fingers = False
+                self.already_touched_with_5_fingers = False
+                self.previous_number_of_contacts = self.compute_num_fingers_touching_object()
+                if self.reward_dist_superq_center:
+                    superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
+                    self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
+            else:
+                # Initial reset, just need to return the observation
+                break
         return self._get_obs()
 
     def update_init_qpos_act_from_current_state(self, current_state):
@@ -317,7 +332,7 @@ class ICubEnvRefineGrasp(ICubEnv):
 
     def lift_object(self):
         action_ik = np.zeros(len(self.cartesian_ids))
-        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos/10
+        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos / 10
         return action_ik
 
     def approach_object(self):
@@ -333,4 +348,3 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.lfd_stage = 'close_hand'
             self.lfd_approach_object_step = 0
         return action_ik
-
