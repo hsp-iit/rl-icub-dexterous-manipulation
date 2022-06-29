@@ -14,7 +14,7 @@ l_shoulder_pitch: -0.159
 l_shoulder_roll: 2.0
 l_shoulder_yaw: 0.183
 # Head
-neck_pitch: -0.70
+neck_pitch: -0.50
 neck_roll: 0.0
 neck_yaw: 0.0
 # Right leg

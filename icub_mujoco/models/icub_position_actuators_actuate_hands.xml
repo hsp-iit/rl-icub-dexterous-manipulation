@@ -585,17 +585,18 @@
     <contact>
         <exclude name="exclude_contact_body_01"       body1="neck_1"          body2="chest"/>
         <exclude name="exclude_contact_body_02"       body1="neck_2"          body2="chest"/>
-        <exclude name="exclude_contact_body_03"       body1="neck_1"          body2="head"/>
-        <exclude name="exclude_contact_body_04"       body1="l_shoulder_1"    body2="l_shoulder_3"/>
-        <exclude name="exclude_contact_body_05"       body1="l_shoulder_2"    body2="l_shoulder_3"/>
-        <exclude name="exclude_contact_body_06"       body1="l_forearm"       body2="l_shoulder_3"/>
-        <exclude name="exclude_contact_body_07"       body1="l_hand"          body2="l_forearm"/>
-        <exclude name="exclude_contact_body_08"       body1="r_shoulder_1"    body2="r_shoulder_3"/>
-        <exclude name="exclude_contact_body_09"       body1="r_shoulder_2"    body2="r_shoulder_3"/>
-        <exclude name="exclude_contact_body_10"       body1="r_forearm"       body2="r_shoulder_3"/>
-        <exclude name="exclude_contact_body_11"       body1="r_hand"          body2="r_forearm"/>
-        <exclude name="exclude_contact_body_12"       body1="icub"            body2="torso_1"/>
-        <exclude name="exclude_contact_body_13"       body1="icub"            body2="torso_2"/>
+        <exclude name="exclude_contact_body_03"       body1="head"            body2="chest"/>
+        <exclude name="exclude_contact_body_04"       body1="neck_1"          body2="head"/>
+        <exclude name="exclude_contact_body_05"       body1="l_shoulder_1"    body2="l_shoulder_3"/>
+        <exclude name="exclude_contact_body_06"       body1="l_shoulder_2"    body2="l_shoulder_3"/>
+        <exclude name="exclude_contact_body_07"       body1="l_forearm"       body2="l_shoulder_3"/>
+        <exclude name="exclude_contact_body_08"       body1="l_hand"          body2="l_forearm"/>
+        <exclude name="exclude_contact_body_09"       body1="r_shoulder_1"    body2="r_shoulder_3"/>
+        <exclude name="exclude_contact_body_10"       body1="r_shoulder_2"    body2="r_shoulder_3"/>
+        <exclude name="exclude_contact_body_11"       body1="r_forearm"       body2="r_shoulder_3"/>
+        <exclude name="exclude_contact_body_12"       body1="r_hand"          body2="r_forearm"/>
+        <exclude name="exclude_contact_body_13"       body1="icub"            body2="torso_1"/>
+        <exclude name="exclude_contact_body_14"       body1="icub"            body2="torso_2"/>
     </contact>
     
     <actuator>
