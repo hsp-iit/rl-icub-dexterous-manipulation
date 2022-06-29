@@ -235,21 +235,23 @@ parser.add_argument('--max_delta_cartesian_rot',
 parser.add_argument('--distanced_superq_grasp_pose',
                     action='store_true',
                     help='Use curriculum learning for joints offsets.')
+parser.add_argument('--control_gaze',
+                    action='store_true',
+                    help='Set if using gaze control.')
 
 args = parser.parse_args()
 
 objects_positions = []
 num_pos = 0
-curr_obj_pos = ''
+curr_obj_pos = np.empty(shape=0, dtype=np.float32)
 for pos in args.objects_positions:
-    curr_obj_pos += pos
+    curr_obj_pos = np.append(curr_obj_pos, pos)
     if num_pos < 2:
-        curr_obj_pos += ' '
         num_pos += 1
     else:
         objects_positions.append(curr_obj_pos)
         num_pos = 0
-        curr_obj_pos = ''
+        curr_obj_pos = np.empty(shape=0, dtype=np.float32)
 
 objects_quaternions = []
 num_quat = 0
@@ -351,7 +353,8 @@ elif args.task == 'refine_grasp':
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot,
-                              distanced_superq_grasp_pose=args.distanced_superq_grasp_pose)
+                              distanced_superq_grasp_pose=args.distanced_superq_grasp_pose,
+                              control_gaze=args.control_gaze)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,

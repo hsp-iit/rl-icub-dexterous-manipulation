@@ -2,6 +2,7 @@ from icub_mujoco.envs.icub_visuomanip import ICubEnv
 import numpy as np
 from icub_mujoco.utils.pcd_utils import pcd_from_depth, points_in_world_coord
 from icub_mujoco.utils.superquadrics_utils import SuperquadricEstimator
+from icub_mujoco.utils.gaze_controller import GazeController
 from dm_control.utils import inverse_kinematics as ik
 import random
 from pyquaternion import Quaternion
@@ -17,6 +18,10 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
         self.superquadric_estimator = SuperquadricEstimator()
+
+        if self.control_gaze:
+            self.gaze_controller = GazeController()
+            self.fixation_point = self.objects_positions[0]
 
         self.prev_obj_zpos = None
         self.reward_obj_height = True
@@ -38,6 +43,13 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.lfd_steps = 0
 
     def step(self, action):
+        if self.control_gaze:
+            neck_qpos = self.gaze_controller.gaze_control(self.fixation_point,
+                                                          self.env.physics.named.data.qpos['neck_pitch'],
+                                                          self.env.physics.named.data.qpos['neck_roll'],
+                                                          self.env.physics.named.data.qpos['neck_yaw'],
+                                                          self.env.physics.named.data.xpos['chest'],
+                                                          self.env.physics.named.data.xmat['chest'])
         if self.learning_from_demonstration:
             if self.lfd_steps <= self.learning_from_demonstration_max_steps:
                 self.lfd_steps += 1
@@ -88,6 +100,8 @@ class ICubEnvRefineGrasp(ICubEnv):
         target = np.clip(np.add(self.init_icub_act_after_superquadrics, action),
                          self.actuators_space.low + self.actuators_margin,
                          self.actuators_space.high - self.actuators_margin)
+        if self.control_gaze:
+            target[self.actuators_to_control_gaze_controller_ids] = np.reshape(neck_qpos.x, (3,))
         if 'cartesian' in self.icub_observation_space:
             if not done_ik:
                 target[self.actuators_to_control_ik_ids] = qpos_ik

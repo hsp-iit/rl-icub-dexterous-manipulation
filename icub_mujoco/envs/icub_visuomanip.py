@@ -52,6 +52,7 @@ class ICubEnv(gym.Env):
                  max_delta_cartesian_pos=0.02,
                  max_delta_cartesian_rot=0.1,
                  distanced_superq_grasp_pose=False,
+                 control_gaze=False,
                  ):
 
         # Load xml model
@@ -267,6 +268,7 @@ class ICubEnv(gym.Env):
         self.actuators_to_control_no_fingers_ids = []
         self.actuators_to_control_fingers_ids = []
         self.actuators_to_control_ik_ids = []
+        self.actuators_to_control_gaze_controller_ids = [-1, -1, -1]
         self.init_icub_act = np.array([], dtype=np.float32)
         self.joints_to_control_icub = []
         self.actuators_margin = np.array([], dtype=np.float32)
@@ -323,6 +325,13 @@ class ICubEnv(gym.Env):
                     self.actuators_to_control_fingers_ids.append(actuator_id)
             if actuator.name in self.actuators_to_control_no_fingers:
                 self.actuators_to_control_no_fingers_ids.append(actuator_id)
+            if 'neck' in actuator.name:
+                if 'pitch' in actuator.name:
+                    self.actuators_to_control_gaze_controller_ids[0] = actuator_id
+                if 'roll' in actuator.name:
+                    self.actuators_to_control_gaze_controller_ids[1] = actuator_id
+                if 'yaw' in actuator.name:
+                    self.actuators_to_control_gaze_controller_ids[2] = actuator_id
             if 'cartesian' in self.icub_observation_space:
                 if actuator.name in self.actuators_to_control_ik:
                     self.actuators_to_control_ik_ids.append(actuator_id)
@@ -402,6 +411,9 @@ class ICubEnv(gym.Env):
                     self.joints_to_control_no_hand_ids = np.append(self.joints_to_control_no_hand_ids, id)
             if joint in self.joints_to_control_ik:
                 self.joints_to_control_ik_ids = np.append(self.joints_to_control_ik_ids, id)
+
+        # Set if controlling gaze
+        self.control_gaze = control_gaze
 
         # Compute fingers-objects touch variables
         self.contact_geom_fingers_names = ['col_RightThumb3',
