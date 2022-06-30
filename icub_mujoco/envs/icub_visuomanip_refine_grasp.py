@@ -17,7 +17,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         super().__init__(**kwargs)
 
         self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
-        self.superquadric_estimator = SuperquadricEstimator()
+        self.superquadric_estimator = SuperquadricEstimator(self.pregrasp_distance_from_grasp_pose)
 
         if self.control_gaze:
             self.gaze_controller = GazeController()
@@ -176,7 +176,10 @@ class ICubEnvRefineGrasp(ICubEnv):
         return reward
 
     def goal_reached(self):
-        return self.lifted_object() and self.number_of_contacts == 5
+        if self.goal_reached_only_with_lift_refine_grasp:
+            return self.lifted_object()
+        else:
+            return self.lifted_object() and self.number_of_contacts == 5
 
     def reset_model(self):
         grasp_found = False

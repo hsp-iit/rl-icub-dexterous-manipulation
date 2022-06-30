@@ -39,6 +39,7 @@ class ICubEnv(gym.Env):
                  reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
                  reward_dist_superq_center=False,
+                 goal_reached_only_with_lift_refine_grasp=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
@@ -49,6 +50,7 @@ class ICubEnv(gym.Env):
                  max_delta_qpos=0.1,
                  lfd_keep_only_successful_episodes=False,
                  lfd_with_approach=False,
+                 pregrasp_distance_from_grasp_pose=0.05,
                  max_delta_cartesian_pos=0.02,
                  max_delta_cartesian_rot=0.1,
                  distanced_superq_grasp_pose=False,
@@ -471,6 +473,7 @@ class ICubEnv(gym.Env):
         self.learning_from_demonstration_max_steps = max_lfd_steps
         self.lfd_keep_only_successful_episodes = lfd_keep_only_successful_episodes and self.learning_from_demonstration
         self.lfd_with_approach = lfd_with_approach
+        self.pregrasp_distance_from_grasp_pose = pregrasp_distance_from_grasp_pose
 
         # Set task parameters
         self.eef_name = eef_name
@@ -485,6 +488,7 @@ class ICubEnv(gym.Env):
         self.reward_single_step_multiplier = reward_single_step_multiplier
         self.reward_end_timesteps = reward_end_timesteps
         self.reward_dist_superq_center = reward_dist_superq_center
+        self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
 
         # Reset environment
         self.reset()

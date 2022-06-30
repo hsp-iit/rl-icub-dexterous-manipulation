@@ -6,14 +6,14 @@ from pyquaternion import Quaternion
 
 class SuperquadricEstimator:
 
-    def __init__(self):
+    def __init__(self, distance_from_grasp_pose_disanced_position):
         sys.path.append('/usr/local/lib/superquadriclib/bindings')
         import superquadric_bindings as sb
         self.sb = sb
         self.sq_estimator = self.sb.SuperqEstimatorApp()
         self.grasp_estimator = self.sb.GraspEstimatorApp()
         self.vector_superquadric = self.sb.vector_superquadric
-        self.distance_from_grasp_pose_disanced_position = 0.05
+        self.distance_from_grasp_pose_disanced_position = distance_from_grasp_pose_disanced_position
 
     def compute_grasp_pose_superquadrics(self, pcd, object_class="default"):
         pointcloud = self.sb.PointCloud()

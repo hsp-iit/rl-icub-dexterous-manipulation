@@ -54,6 +54,9 @@ parser.add_argument('--reward_dist_superq_center',
                     action='store_true',
                     help='Add a reward component in the grasp refinement task for the distance of the superquadric '
                          'center in the xy axes of the eef.')
+parser.add_argument('--goal_reached_only_with_lift_refine_grasp',
+                    action='store_true',
+                    help='Successful episode only with object lifted in grasp refinement task.')
 parser.add_argument('--joints_margin',
                     action='store',
                     type=float,
@@ -217,6 +220,11 @@ parser.add_argument('--lfd_keep_only_successful_episodes',
 parser.add_argument('--lfd_with_approach',
                     action='store_true',
                     help='Set if the approach to the object is included in the learning from demonstration phase.')
+parser.add_argument('--pregrasp_distance_from_grasp_pose',
+                    action='store',
+                    type=float,
+                    default=0.05,
+                    help='Set the pre-grasp distance from the grasp pose.')
 parser.add_argument('--max_delta_qpos',
                     action='store',
                     type=float,
@@ -330,6 +338,7 @@ elif args.task == 'refine_grasp':
                               reward_end_timesteps=args.reward_end_timesteps,
                               reward_single_step_multiplier=args.reward_single_step_multiplier,
                               reward_dist_superq_center=args.reward_dist_superq_center,
+                              goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               print_done_info=args.print_done_info,
                               objects=args.objects,
                               use_table=args.use_table,
@@ -350,6 +359,7 @@ elif args.task == 'refine_grasp':
                               max_lfd_steps=args.max_lfd_steps,
                               lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                               lfd_with_approach=args.lfd_with_approach,
+                              pregrasp_distance_from_grasp_pose=args.pregrasp_distance_from_grasp_pose,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot,
