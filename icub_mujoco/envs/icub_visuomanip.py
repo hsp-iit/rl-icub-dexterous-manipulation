@@ -55,6 +55,7 @@ class ICubEnv(gym.Env):
                  max_delta_cartesian_rot=0.1,
                  distanced_superq_grasp_pose=False,
                  control_gaze=False,
+                 ik_solver='idyntree'
                  ):
 
         # Load xml model
@@ -261,6 +262,13 @@ class ICubEnv(gym.Env):
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso_yaw')])
             if 'all' in self.ik_components and len(self.ik_components) == 1:
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names])
+
+        # Set IK solver
+        if ik_solver in ('idyntree', 'dm_robotics', 'dm_control'):
+            self.ik_solver = ik_solver
+        else:
+            print('The required IK solver is not avalable. Using idyntree.')
+            self.ik_solver = 'idyntree'
 
         # Extract joints-tendons information for each actuator
         self.init_icub_qpos_dict = {}

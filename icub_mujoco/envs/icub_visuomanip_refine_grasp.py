@@ -6,6 +6,8 @@ from icub_mujoco.utils.gaze_controller import GazeController
 from dm_control.utils import inverse_kinematics as ik
 import random
 from pyquaternion import Quaternion
+from icub_mujoco.utils.idyntree_ik import IDynTreeIK
+from icub_mujoco.utils.dm_robotics_ik import DMRoboticsIK
 
 
 class ICubEnvRefineGrasp(ICubEnv):
@@ -34,11 +36,22 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.superq_position = None
         self.target_ik = None
 
+        if self.ik_solver == 'idyntree':
+            self.ik_idyntree_reduced_model = False
+            self.ik_idyntree = IDynTreeIK(joints_to_control=self.joints_to_control_ik_sorted,
+                                          joints_icub=self.joint_names_icub,
+                                          eef_frame='r_hand_dh_frame',
+                                          reduced_model=self.ik_idyntree_reduced_model)
+        elif self.ik_solver == 'dm_robotics':
+            self.ik_dm_robotics = DMRoboticsIK(self.world_entity.mjcf_model,
+                                               joints_to_control=self.joints_to_control_ik_sorted)
+
         self.lfd_stage = 'close_hand' if not self.lfd_with_approach else 'approach_object'
         self.lfd_approach_object_step = 0
         self.lfd_approach_object_max_steps = 100
         self.lfd_close_hand_step = 0
         self.lfd_close_hand_max_steps = 500
+        self.lfd_approach_position = None
         self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
         self.lfd_steps = 0
 
@@ -77,15 +90,33 @@ class ICubEnvRefineGrasp(ICubEnv):
                 target_ik_quaternion = target_ik_pyquaternion.q
             else:
                 target_ik_quaternion = self.target_ik[3:7]
-            qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
-                                                    site_name='r_hand_dh_frame_site',
-                                                    target_pos=self.target_ik[:3],
-                                                    target_quat=target_ik_quaternion,
-                                                    joint_names=self.joints_to_control_ik)
-            if qpos_ik_result.success:
-                qpos_ik = qpos_ik_result.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
+
+            if self.ik_solver == 'idyntree':
+                ik_sol, solved = self.ik_idyntree.solve_ik(eef_pos=self.target_ik[:3],
+                                                           eef_quat=target_ik_quaternion,
+                                                           current_qpos=self.env.physics.named.data.qpos,
+                                                           desired_configuration=None)
+                if not self.ik_idyntree_reduced_model:
+                    qpos_ik = ik_sol[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
+                else:
+                    qpos_ik = ik_sol
+                done_ik = not solved
+            elif self.ik_solver == 'dm_robotics':
+                ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.target_ik[:3],
+                                                              eef_quat=target_ik_quaternion,
+                                                              current_qpos=None)
+                qpos_ik = ik_sol
+                done_ik = not solved
             else:
-                done_ik = True
+                qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                        site_name='r_hand_dh_frame_site',
+                                                        target_pos=self.target_ik[:3],
+                                                        target_quat=target_ik_quaternion,
+                                                        joint_names=self.joints_to_control_ik)
+                if qpos_ik_result.success:
+                    qpos_ik = qpos_ik_result.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
+                else:
+                    done_ik = True
             # Use as action only the offsets for the joints to control (e.g. hands)
             action = action[len(self.cartesian_ids):]
         qpos_jnt_tendons = np.empty([0, ], dtype=np.float32)
@@ -186,6 +217,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         while not grasp_found:
             super().reset_model()
             if hasattr(self, 'superquadric_estimator'):
+                self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
                 img = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera)
                 depth = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera, depth=True)
                 pcd = pcd_from_depth(depth)
@@ -195,7 +227,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                                             cam_xpos=self.env.physics.named.data.cam_xpos[cam_id, :],
                                             cam_xmat=np.reshape(self.env.physics.named.data.cam_xmat[cam_id, :],
                                                                 (3, 3)))
-                pcd[:, 2] -= 0.95
+                pcd[:, 2] -= 1.0
                 segm = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera,
                                                segmentation=True)
                 ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
@@ -219,15 +251,38 @@ class ICubEnvRefineGrasp(ICubEnv):
                 else:
                     self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['quaternion']),
                                                     dtype=np.float64)
-                qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
-                                                        site_name='r_hand_dh_frame_site',
-                                                        target_pos=self.superq_pose['position'],
-                                                        target_quat=self.superq_pose['quaternion'],
-                                                        joint_names=self.joints_to_control_ik)
-                if qpos_sol_final.success:
-                    qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids, dtype=np.int64)]
-                    grasp_found = True
+
+                if self.ik_solver == 'idyntree':
+                    ik_sol, solved = self.ik_idyntree.solve_ik(eef_pos=self.superq_pose['position'],
+                                                               eef_quat=self.superq_pose['quaternion'],
+                                                               current_qpos=self.env.physics.named.data.qpos,
+                                                               desired_configuration=None)
+                    if solved:
+                        if not self.ik_idyntree_reduced_model:
+                            qpos_sol_final_qpos = ik_sol
+                        else:
+                            qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
+                            qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
+                        grasp_found = True
+                elif self.ik_solver == 'dm_robotics':
+                    ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.superq_pose['position'],
+                                                                  eef_quat=self.superq_pose['quaternion'],
+                                                                  current_qpos=None)
+                    if solved:
+                        qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
+                        qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
+                        grasp_found = True
                 else:
+                    qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                            site_name='r_hand_dh_frame_site',
+                                                            target_pos=self.superq_pose['position'],
+                                                            target_quat=self.superq_pose['quaternion'],
+                                                            joint_names=self.joints_to_control_ik)
+                    if qpos_sol_final.success:
+                        qpos_sol_final_qpos = qpos_sol_final.qpos
+                        grasp_found = True
+
+                if not grasp_found:
                     max_delta_position_perturb = 1
                     while max_delta_position_perturb < 10:
                         print('Solution not found for superquadric grasp pose, perturb position randomly adding an '
@@ -235,35 +290,70 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                                             0.01 * max_delta_position_perturb))
                         tmp_superq_position = self.superq_pose['position'].copy()
                         tmp_superq_position[0] = tmp_superq_position[0] + \
-                                                     random.uniform(-0.01 * max_delta_position_perturb,
-                                                                    0.01 * max_delta_position_perturb)
+                                                 random.uniform(-0.01 * max_delta_position_perturb,
+                                                                0.01 * max_delta_position_perturb)
                         tmp_superq_position[1] = tmp_superq_position[1] + \
-                                                     random.uniform(-0.01 * max_delta_position_perturb,
-                                                                    0.01 * max_delta_position_perturb)
+                                                 random.uniform(-0.01 * max_delta_position_perturb,
+                                                                0.01 * max_delta_position_perturb)
                         tmp_superq_position[2] = tmp_superq_position[2] + \
-                                                     random.uniform(-0.01 * max_delta_position_perturb,
-                                                                    0.01 * max_delta_position_perturb)
-                        qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
-                                                                site_name='r_hand_dh_frame_site',
-                                                                target_pos=tmp_superq_position,
-                                                                target_quat=self.superq_pose['quaternion'],
-                                                                joint_names=self.joints_to_control_ik)
-                        if qpos_sol_final.success:
-                            qpos_sol_final = qpos_sol_final.qpos[np.array(self.joints_to_control_ik_ids,
-                                                                          dtype=np.int64)]
+                                                 random.uniform(-0.01 * max_delta_position_perturb,
+                                                                0.01 * max_delta_position_perturb)
+                        if self.ik_solver == 'idyntree':
+                            ik_sol, solved = self.ik_idyntree.solve_ik(eef_pos=self.superq_pose['position'],
+                                                                       eef_quat=self.superq_pose['quaternion'],
+                                                                       current_qpos=self.env.physics.named.data.qpos,
+                                                                       desired_configuration=None)
+                            if solved:
+                                if not self.ik_idyntree_reduced_model:
+                                    qpos_sol_final_qpos = ik_sol
+                                else:
+                                    qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
+                                    qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
+                                grasp_found = True
+                        elif self.ik_solver == 'dm_robotics':
+                            ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.superq_pose['position'],
+                                                                          eef_quat=self.superq_pose['quaternion'],
+                                                                          current_qpos=None)
+                            if solved:
+                                qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
+                                qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
+                                grasp_found = True
+                        else:
+                            qpos_sol_final = ik.qpos_from_site_pose(physics=self.env.physics,
+                                                                    site_name='r_hand_dh_frame_site',
+                                                                    target_pos=self.superq_pose['position'],
+                                                                    target_quat=self.superq_pose['quaternion'],
+                                                                    joint_names=self.joints_to_control_ik)
+                            if qpos_sol_final.success:
+                                qpos_sol_final_qpos = qpos_sol_final.qpos
+                                grasp_found = True
+                        if grasp_found:
                             break
                         else:
                             max_delta_position_perturb += 0.1
                     if max_delta_position_perturb >= 10:
                         print('Solution not found after superquadric perturbation. Resetting the environment.')
                         continue
-                    else:
-                        grasp_found = True
-                current_state = self.get_state()
-                current_state[self.joints_to_control_ik_ids] = qpos_sol_final
-                self.set_state(current_state)
-                self.update_init_qpos_act_from_current_state(current_state)
-                self.env.physics.forward()
+
+                self.update_init_qpos_act_after_superquadrics(qpos_sol_final_qpos)
+                target = self.init_icub_act_after_superquadrics.copy()
+                num_steps_initial_movement = 100
+                initial_qpos = self.env.physics.data.qpos[:72].copy()
+                for i in range(num_steps_initial_movement):
+                    qpos_i = self.go_to(initial_qpos,
+                                        qpos_sol_final_qpos[:72],
+                                        i,
+                                        num_steps_initial_movement)
+                    for actuator_id, actuator_dict in enumerate(self.actuators_dict):
+                        if actuator_id in self.actuators_to_control_ik_ids:
+                            target[actuator_id] = 0.0
+                            for j in range(len(actuator_dict['jnt'])):
+                                target[actuator_id] += qpos_i[self.joint_ids_icub_dict[actuator_dict['jnt'][j]]] * \
+                                                        actuator_dict['coeff'][j]
+
+                    self.do_simulation(target, self.frame_skip, increase_steps=False)
+                    self._get_obs()
+
                 self.already_touched_with_2_fingers = False
                 self.already_touched_with_5_fingers = False
                 self.previous_number_of_contacts = self.compute_num_fingers_touching_object()
@@ -281,6 +371,15 @@ class ICubEnvRefineGrasp(ICubEnv):
             for i in range(len(actuator_dict['jnt'])):
                 self.init_icub_act_after_superquadrics[actuator_id] += \
                     current_state[self.joint_ids_icub_dict[actuator_dict['jnt'][i]]] * actuator_dict['coeff'][i]
+
+    def update_init_qpos_act_after_superquadrics(self, superq_qpos):
+        self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
+        for actuator_id, actuator_dict in enumerate(self.actuators_dict):
+            if actuator_id in self.actuators_to_control_ik_ids:
+                self.init_icub_act_after_superquadrics[actuator_id] = 0.0
+                for i in range(len(actuator_dict['jnt'])):
+                    self.init_icub_act_after_superquadrics[actuator_id] += \
+                        superq_qpos[self.joint_ids_icub_dict[actuator_dict['jnt'][i]]] * actuator_dict['coeff'][i]
 
     def diff_num_contacts(self):
         diff = self.number_of_contacts - self.previous_number_of_contacts
@@ -355,13 +454,16 @@ class ICubEnvRefineGrasp(ICubEnv):
     def approach_object(self):
         self.lfd_approach_object_step += 1
         action_ik = np.zeros(len(self.cartesian_ids))
-        action_ik[self.cartesian_ids.index(0)] = (self.superq_position[0] - self.superq_pose['position'][0]) \
+        if self.lfd_approach_position is None:
+            self.lfd_approach_position = self.superq_pose['position'].copy()
+        action_ik[self.cartesian_ids.index(0)] = (self.superq_position[0] - self.lfd_approach_position[0]) \
                                                     / self.lfd_approach_object_max_steps
-        action_ik[self.cartesian_ids.index(1)] = (self.superq_position[1] - self.superq_pose['position'][1]) \
+        action_ik[self.cartesian_ids.index(1)] = (self.superq_position[1] - self.lfd_approach_position[1]) \
                                                     / self.lfd_approach_object_max_steps
-        action_ik[self.cartesian_ids.index(2)] = (self.superq_position[2] - self.superq_pose['position'][2]) \
+        action_ik[self.cartesian_ids.index(2)] = (self.superq_position[2] - self.lfd_approach_position[2]) \
                                                     / self.lfd_approach_object_max_steps
         if self.lfd_approach_object_step == self.lfd_approach_object_max_steps:
             self.lfd_stage = 'close_hand'
             self.lfd_approach_object_step = 0
+            self.lfd_approach_position = None
         return action_ik

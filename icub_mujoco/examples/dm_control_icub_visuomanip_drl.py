@@ -246,6 +246,10 @@ parser.add_argument('--distanced_superq_grasp_pose',
 parser.add_argument('--control_gaze',
                     action='store_true',
                     help='Set if using gaze control.')
+parser.add_argument('--ik_solver',
+                    type=str,
+                    default='idyntree',
+                    help='Set the IK solver between idyntree, dm_robotics and dm_control.')
 
 args = parser.parse_args()
 
@@ -364,7 +368,8 @@ elif args.task == 'refine_grasp':
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot,
                               distanced_superq_grasp_pose=args.distanced_superq_grasp_pose,
-                              control_gaze=args.control_gaze)
+                              control_gaze=args.control_gaze,
+                              ik_solver=args.ik_solver)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
