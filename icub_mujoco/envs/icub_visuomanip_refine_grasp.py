@@ -96,17 +96,21 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                            eef_quat=target_ik_quaternion,
                                                            current_qpos=self.env.physics.named.data.qpos,
                                                            desired_configuration=None)
-                if not self.ik_idyntree_reduced_model:
-                    qpos_ik = ik_sol[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
+                if solved:
+                    if not self.ik_idyntree_reduced_model:
+                        qpos_ik = ik_sol[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
+                    else:
+                        qpos_ik = ik_sol
                 else:
-                    qpos_ik = ik_sol
-                done_ik = not solved
+                    done_ik = True
             elif self.ik_solver == 'dm_robotics':
                 ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.target_ik[:3],
                                                               eef_quat=target_ik_quaternion,
                                                               current_qpos=None)
-                qpos_ik = ik_sol
-                done_ik = not solved
+                if solved:
+                    qpos_ik = ik_sol
+                else:
+                    done_ik = True
             else:
                 qpos_ik_result = ik.qpos_from_site_pose(physics=self.env.physics,
                                                         site_name='r_hand_dh_frame_site',
@@ -338,10 +342,10 @@ class ICubEnvRefineGrasp(ICubEnv):
                 self.update_init_qpos_act_after_superquadrics(qpos_sol_final_qpos)
                 target = self.init_icub_act_after_superquadrics.copy()
                 num_steps_initial_movement = 100
-                initial_qpos = self.env.physics.data.qpos[:72].copy()
+                initial_qpos = self.env.physics.data.qpos[:len(self.joint_ids_icub)].copy()
                 for i in range(num_steps_initial_movement):
                     qpos_i = self.go_to(initial_qpos,
-                                        qpos_sol_final_qpos[:72],
+                                        qpos_sol_final_qpos[:len(self.joint_ids_icub)],
                                         i,
                                         num_steps_initial_movement)
                     for actuator_id, actuator_dict in enumerate(self.actuators_dict):
