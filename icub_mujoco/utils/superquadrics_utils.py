@@ -32,35 +32,52 @@ class SuperquadricEstimator:
         # Compute superquadric
         sq_vec = self.vector_superquadric(self.sq_estimator.computeSuperq(pointcloud))
         sq_center = sq_vec.front().center[0]
-        sq_center[2] += 0.95
+        sq_center[2] += 1.0
         # Compute grasp pose
-        grasp_res_hand = self.grasp_estimator.computeGraspPoses(sq_vec)
-        best_grasp_position = grasp_res_hand.grasp_poses.front().position[0]
-        best_grasp_position[2] += 0.95
-        # Rototranslation world dh frame
-        rt_dh = np.array([[1, 0, 0, 0],
-                          [0, 1, 0, 0],
-                          [0, 0, 1, 0],
-                          [0, 0, 0, 1]],
-                         dtype=np.float32)
-        rt_dh[:3, :3] = Quaternion(self.axisangle_to_quat(grasp_res_hand.grasp_poses.front().axisangle[0])).\
-            rotation_matrix
-        tr = best_grasp_position
-        rt_dh[:3, -1] = tr
-        best_grasp_pose = rt_dh
-        best_grasp_pose_quat = Quaternion(matrix=best_grasp_pose[:3, :3], atol=1e-05)
-        # Find distanced position on the sq_center-best_grasp_pos line
-        mx, my, mz = self.line_coefficients_between_two_point(sq_center,
-                                                              [best_grasp_pose[0, 3],
-                                                               best_grasp_pose[1, 3],
-                                                               best_grasp_pose[2, 3]],)
-        distanced_position = np.array([best_grasp_pose[0, 3] + mx * self.distance_from_grasp_pose_disanced_position,
-                                       best_grasp_pose[1, 3] + my * self.distance_from_grasp_pose_disanced_position,
-                                       best_grasp_pose[2, 3] + mz * self.distance_from_grasp_pose_disanced_position])
-        best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3], best_grasp_pose[1, 3], best_grasp_pose[2, 3]],
-                                  'quaternion': best_grasp_pose_quat.q,
-                                  'superq_center': sq_center,
-                                  'distanced_grasp_position': distanced_position}
+        displacements = [np.array([0.02, 0.0, 0.0]), np.array([0.0, 0.02, 0.0]), np.array([0.0, 0.0, 0.02])]
+        best_grasp_pose_to_ret = None
+        for displacement in displacements:
+            self.grasp_estimator.setVector('plane', np.array([0, 0, 1.0, 0.05]))
+            self.grasp_estimator.setVector('displacement', displacement)
+            grasp_res_hand = self.grasp_estimator.computeGraspPoses(sq_vec)
+            best_grasp_position = grasp_res_hand.grasp_poses.front().position[0]
+            best_grasp_position[2] += 1.0
+            update_pose = False
+            if best_grasp_pose_to_ret is None:
+                update_pose = True
+            if best_grasp_pose_to_ret is not None:
+                if best_grasp_pose_to_ret['position'][2] < best_grasp_position[2]:
+                    update_pose = True
+            if update_pose:
+                # Rototranslation world dh frame
+                rt_dh = np.array([[1, 0, 0, 0],
+                                  [0, 1, 0, 0],
+                                  [0, 0, 1, 0],
+                                  [0, 0, 0, 1]],
+                                 dtype=np.float32)
+                rt_dh[:3, :3] = Quaternion(self.axisangle_to_quat(grasp_res_hand.grasp_poses.front().axisangle[0])). \
+                    rotation_matrix
+                tr = best_grasp_position
+                rt_dh[:3, -1] = tr
+                best_grasp_pose = rt_dh
+                best_grasp_pose_quat = Quaternion(matrix=best_grasp_pose[:3, :3], atol=1e-05)
+                # Find distanced position on the sq_center-best_grasp_pos line
+                mx, my, mz = self.line_coefficients_between_two_point(sq_center,
+                                                                      [best_grasp_pose[0, 3],
+                                                                       best_grasp_pose[1, 3],
+                                                                       best_grasp_pose[2, 3]], )
+                distanced_position = np.array([best_grasp_pose[0, 3] +
+                                               mx * self.distance_from_grasp_pose_disanced_position,
+                                               best_grasp_pose[1, 3] +
+                                               my * self.distance_from_grasp_pose_disanced_position,
+                                               best_grasp_pose[2, 3] +
+                                               mz * self.distance_from_grasp_pose_disanced_position])
+                best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3],
+                                                       best_grasp_pose[1, 3],
+                                                       best_grasp_pose[2, 3]],
+                                          'quaternion': best_grasp_pose_quat.q,
+                                          'superq_center': sq_center,
+                                          'distanced_grasp_position': distanced_position}
         return best_grasp_pose_to_ret
 
     @staticmethod
