@@ -25,12 +25,12 @@ r_hip_pitch: 0.48
 r_hip_roll: 0.023
 r_hip_yaw: -0.005
 # Right arm
-r_elbow: 0.54
+r_elbow: 1.7
 r_wrist_pitch: 0.0
-r_wrist_prosup: 0.0
+r_wrist_prosup: -0.5
 r_wrist_yaw: 0.0
 r_shoulder_pitch: -0.159
-r_shoulder_roll: 2.0
+r_shoulder_roll: 1.3
 r_shoulder_yaw: 0.183
 # Torso
 torso_pitch: 0.1
