@@ -112,8 +112,9 @@ for quat in args.eef_quaternions:
 
 for eef_position, eef_quaternion in zip(eef_positions, eef_quaternions):
     ref_pos = geometry.Pose(position=eef_position, quaternion=eef_quaternion)
-    qpos_sol = solver.solve(ref_pos)
-
+    qpos_sol = solver.solve(ref_pos,
+                            early_stop=True,
+                            stop_on_first_successful_attempt=True)
     def policy(time_step):
         id_eef_from_physics = env.physics.model.name2id(args.eef_body_name, 'body')
         del time_step  # Unused.
