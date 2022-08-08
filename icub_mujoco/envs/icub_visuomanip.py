@@ -406,6 +406,8 @@ class ICubEnv(gym.Env):
         # Store joints ids to control excluding hand joints, just for random initialization purpose
         self.joints_to_control_no_hand_ids = np.array([], dtype=np.int64)
         self.joints_to_control_ik_ids = np.array([], dtype=np.int64)
+        self.joints_to_control_ik_sorted = []
+
         for id, joint in enumerate(self.joint_names_icub):
             if joint in self.joints_to_control_icub:
                 self.joints_to_control_ids = np.append(self.joints_to_control_ids, id)
@@ -413,6 +415,7 @@ class ICubEnv(gym.Env):
                     self.joints_to_control_no_hand_ids = np.append(self.joints_to_control_no_hand_ids, id)
             if joint in self.joints_to_control_ik:
                 self.joints_to_control_ik_ids = np.append(self.joints_to_control_ik_ids, id)
+                self.joints_to_control_ik_sorted.append(joint)
 
         # Set if controlling gaze
         self.control_gaze = control_gaze
@@ -700,14 +703,15 @@ class ICubEnv(gym.Env):
     def _physics_state_items(self):
         return [self.env.physics.data.qpos, self.env.physics.data.qvel, self.env.physics.data.act]
 
-    def do_simulation(self, ctrl, n_frames):
+    def do_simulation(self, ctrl, n_frames, increase_steps=True):
         for _ in range(n_frames):
             # Prevent simulation unstabillity
             try:
                 self.env.step(ctrl)
             except:
                 print('Simulation unstable, environment reset.')
-        self.steps += 1
+        if increase_steps:
+            self.steps += 1
 
     def _get_obs(self):
         self.render()
@@ -1018,3 +1022,16 @@ class ICubEnv(gym.Env):
                 self.number_of_contacts += 1
         self.number_of_contacts = len(self.fingers_touching_object)
         return self.number_of_contacts
+
+    @staticmethod
+    def go_to(qpos_init, qpos_final, current_step, total_num_steps):
+        # Minimum jerk trajectory
+        if current_step > total_num_steps * 80 / 100:
+            qpos_t = qpos_final
+        else:
+            T = total_num_steps * 80 / 100
+            t = current_step
+            t_T = t/T
+            qpos_t = qpos_init + (qpos_final - qpos_init) * (10 * t_T**3 - 15 * t_T**4 + 6 * t_T**5)
+        return qpos_t
+
