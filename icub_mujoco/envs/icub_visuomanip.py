@@ -55,7 +55,8 @@ class ICubEnv(gym.Env):
                  max_delta_cartesian_rot=0.1,
                  distanced_superq_grasp_pose=False,
                  control_gaze=False,
-                 ik_solver='idyntree'
+                 ik_solver='idyntree',
+                 use_only_right_hand_model=False
                  ):
 
         # Load xml model
@@ -65,6 +66,13 @@ class ICubEnv(gym.Env):
             fullpath = os.path.join(os.path.dirname(__file__), model_path)
         if not os.path.exists(fullpath):
             raise IOError("File %s does not exist" % fullpath)
+
+        # Check that the correct model is loaded when using ikin as IK solver
+        if ik_solver == 'ikin' and 'ikin' not in fullpath:
+            raise ValueError('The selected IK solver is ikin, but the selected iCub model uses the urdf joint limits.')
+
+        # Set whether the whole iCub model or only the right hand must be used
+        self.use_only_right_hand_model = use_only_right_hand_model
 
         # Initialize dm_control environment
         self.world = mjcf.from_path(fullpath)
@@ -198,6 +206,8 @@ class ICubEnv(gym.Env):
             self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('torso')])
         if 'torso_yaw' in self.training_components and 'torso' not in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('torso_yaw')])
+        if 'torso_pitch' in self.training_components and 'torso' not in self.training_components:
+            self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('torso_pitch')])
         if 'all' in self.training_components and len(self.training_components) == 1:
             self.actuators_to_control.extend([j for j in self.actuator_names])
 
@@ -224,6 +234,8 @@ class ICubEnv(gym.Env):
             self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('torso')])
         if 'torso_yaw' in self.ik_components and 'torso' not in self.ik_components:
             self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('torso_yaw')])
+        if 'torso_pitch' in self.ik_components and 'torso' not in self.ik_components:
+            self.joints_to_control_ik.extend([j for j in self.joint_names if j.startswith('torso_pitch')])
         if 'all' in self.ik_components and len(self.ik_components) == 1:
             self.joints_to_control_ik.extend([j for j in self.joint_names])
 
@@ -260,11 +272,13 @@ class ICubEnv(gym.Env):
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso')])
             if 'torso_yaw' in self.ik_components and 'torso' not in self.ik_components:
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso_yaw')])
+            if 'torso_pitch' in self.ik_components and 'torso' not in self.ik_components:
+                self.actuators_to_control_ik.extend([j for j in self.actuator_names if j.startswith('torso_pitch')])
             if 'all' in self.ik_components and len(self.ik_components) == 1:
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names])
 
         # Set IK solver
-        if ik_solver in ('idyntree', 'dm_robotics', 'dm_control'):
+        if ik_solver in ('idyntree', 'dm_robotics', 'dm_control', 'ikin'):
             self.ik_solver = ik_solver
         else:
             print('The required IK solver is not avalable. Using idyntree.')
@@ -353,7 +367,7 @@ class ICubEnv(gym.Env):
             icub_joint = False
             jnt = joint
             while jnt.parent is not None and not icub_joint:
-                if jnt.parent.full_identifier == 'icub':
+                if jnt.parent.full_identifier == 'icub' or jnt.parent.full_identifier == 'icub_r_hand':
                     icub_joint = True
                     if joint.full_identifier not in self.init_icub_qpos_dict:
                         self.init_icub_qpos_dict[joint.full_identifier] = 0.0
@@ -488,7 +502,7 @@ class ICubEnv(gym.Env):
 
         # Set task parameters
         self.eef_name = eef_name
-        self.eef_id_xpos = self.env.physics.model.name2id('r_hand', 'body')
+        self.eef_id_xpos = self.env.physics.model.name2id(eef_name, 'body')
         self.target_eef_pos = np.array([-0.3, 0.1, 1.01])
         self.goal_xpos_tolerance = 0.05
         self.done_if_joints_out_of_limits = done_if_joints_out_of_limits
@@ -924,9 +938,13 @@ class ICubEnv(gym.Env):
                                                                               stiffness="0.01")
 
     def track_object_with_camera(self):
-        self.world.worldbody.body['icub'].body['torso_1'].body['torso_2'].body['chest'].body['neck_1'] \
-            .body['neck_2'].body['head'].body['head_camera_track_hand'].camera._elements[0].target = \
-            self.world.worldbody.body[len(self.world.worldbody.body) - 1]
+        if self.use_only_right_hand_model:
+            self.world.worldbody.body['head_camera_track_hand'].camera._elements[0].target = \
+                self.world.worldbody.body[len(self.world.worldbody.body) - 1]
+        else:
+            self.world.worldbody.body['icub'].body['torso_1'].body['torso_2'].body['chest'].body['neck_1'] \
+                .body['neck_2'].body['head'].body['head_camera_track_hand'].camera._elements[0].target = \
+                self.world.worldbody.body[len(self.world.worldbody.body) - 1]
 
     def add_table(self):
         table_path = "../models/table.xml"
