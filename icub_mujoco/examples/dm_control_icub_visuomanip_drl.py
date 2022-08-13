@@ -20,6 +20,11 @@ parser.add_argument('--xml_model_path',
                     type=str,
                     default='../models/icub_position_actuators_actuate_hands.xml',
                     help='Set the path of the xml model.')
+parser.add_argument('--initial_qpos_path',
+                    action='store',
+                    type=str,
+                    default='../config/initial_qpos_actuated_hand.yaml',
+                    help='Set the path of the initial actuators values.')
 parser.add_argument('--tensorboard_dir',
                     action='store',
                     type=str,
@@ -249,7 +254,10 @@ parser.add_argument('--control_gaze',
 parser.add_argument('--ik_solver',
                     type=str,
                     default='idyntree',
-                    help='Set the IK solver between idyntree, dm_robotics and dm_control.')
+                    help='Set the IK solver between idyntree, dm_robotics, dm_control and ikin.')
+parser.add_argument('--use_only_right_hand_model',
+                    action='store_true',
+                    help='Use only the right hand model instead of the whole iCub.')
 
 args = parser.parse_args()
 
@@ -332,6 +340,7 @@ elif args.task == 'gaze_control':
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot)
 elif args.task == 'refine_grasp':
     iCub = ICubEnvRefineGrasp(model_path=args.xml_model_path,
+                              initial_qpos_path=args.initial_qpos_path,
                               icub_observation_space=args.icub_observation_space,
                               obs_camera=args.obs_camera,
                               track_object=args.track_object,
@@ -369,7 +378,8 @@ elif args.task == 'refine_grasp':
                               max_delta_cartesian_rot=args.max_delta_cartesian_rot,
                               distanced_superq_grasp_pose=args.distanced_superq_grasp_pose,
                               control_gaze=args.control_gaze,
-                              ik_solver=args.ik_solver)
+                              ik_solver=args.ik_solver,
+                              use_only_right_hand_model=args.use_only_right_hand_model)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
