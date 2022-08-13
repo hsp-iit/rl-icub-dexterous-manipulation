@@ -1,0 +1,10 @@
+# Right hand
+r_hand_finger: 0.01
+r_thumb_oppose: 1.5708
+r_thumb_proximal: 0.01
+r_thumb_distal: 0.01
+r_index_proximal: 0.01
+r_index_distal: 0.01
+r_middle_proximal: 0.01
+r_middle_distal: 0.01
+r_pinky: 0.3
