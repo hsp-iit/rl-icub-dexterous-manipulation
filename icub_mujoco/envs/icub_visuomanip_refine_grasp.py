@@ -196,7 +196,10 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.already_touched_with_5_fingers = True
         done_timesteps = self.steps >= self._max_episode_steps
         done_moved_object = self.moved_object()
-        done_z_pos = self.done_z_r_hand()
+        if self.do_not_consider_done_z_pos:
+            done_z_pos = False
+        else:
+            done_z_pos = self.done_z_r_hand()
         reward = self._get_reward(done_limits, done_goal, done_timesteps, done_moved_object, done_z_pos)
         done_object_falling = self.falling_object() and self.use_table
         done = done_limits or done_goal or done_timesteps or done_object_falling or done_moved_object or done_z_pos

@@ -43,6 +43,7 @@ class ICubEnv(gym.Env):
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
+                 do_not_consider_done_z_pos=False,
                  lift_object_height=1.02,
                  curriculum_learning=False,
                  learning_from_demonstration=False,
@@ -506,6 +507,7 @@ class ICubEnv(gym.Env):
         self.target_eef_pos = np.array([-0.3, 0.1, 1.01])
         self.goal_xpos_tolerance = 0.05
         self.done_if_joints_out_of_limits = done_if_joints_out_of_limits
+        self.do_not_consider_done_z_pos = do_not_consider_done_z_pos
 
         # Set reward values
         self.reward_goal = reward_goal

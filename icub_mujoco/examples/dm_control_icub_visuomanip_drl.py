@@ -132,6 +132,9 @@ parser.add_argument('--superquadrics_camera',
 parser.add_argument('--print_done_info',
                     action='store_true',
                     help='Print information at the end of each episode')
+parser.add_argument('--do_not_consider_done_z_pos',
+                    action='store_true',
+                    help='Do not consider the done_z_pos component in the grasp refinement task.')
 parser.add_argument('--objects',
                     type=str,
                     nargs='+',
@@ -366,6 +369,7 @@ elif args.task == 'refine_grasp':
                               superquadrics_camera=args.superquadrics_camera,
                               feature_extractor_model_name=args.feature_extractor_model_name,
                               done_if_joints_out_of_limits=False,
+                              do_not_consider_done_z_pos=args.do_not_consider_done_z_pos,
                               lift_object_height=args.lift_object_height,
                               curriculum_learning=args.curriculum_learning,
                               learning_from_demonstration=args.learning_from_demonstration,
