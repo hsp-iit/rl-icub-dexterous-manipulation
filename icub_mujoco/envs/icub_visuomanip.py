@@ -864,13 +864,12 @@ class ICubEnv(gym.Env):
                                                    self.state_space.low[self.joint_ids_objects[i * 7 + 2]] + 0.1)
                 random_pos[i * 7 + 3:i * 7 + 7] /= np.linalg.norm(random_pos[i * 7 + 3:i * 7 + 7])
             self.init_qpos[self.joint_ids_objects] = random_pos
-        # TODO set rotation w.r.t. world coordinates
         if self.randomly_rotate_object_z_axis:
             for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
                 object_quaternions_pyquaternion = Quaternion(self.init_qpos[
                                                                  self.joint_ids_objects[i * 7 + 3:i * 7 + 7]])
-                z_rotation_quaternion = Quaternion(axis=[0, 1, 0], angle=np.random.rand() * 2 * math.pi)
-                rotated_object_quaternions_pyquaternion = object_quaternions_pyquaternion * z_rotation_quaternion
+                z_rotation_quaternion = Quaternion(axis=[0, 0, 1], angle=np.random.rand() * 2 * math.pi)
+                rotated_object_quaternions_pyquaternion = z_rotation_quaternion * object_quaternions_pyquaternion
                 object_quaternions = rotated_object_quaternions_pyquaternion.q
                 self.init_qpos[self.joint_ids_objects[i * 7 + 3:i * 7 + 7]] = object_quaternions
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
