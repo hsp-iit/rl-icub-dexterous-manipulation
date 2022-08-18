@@ -17,6 +17,8 @@ class ICubEnv(gym.Env):
                  frame_skip=5,
                  icub_observation_space=('joints',),
                  random_initial_pos=True,
+                 ycb_video_graspable_objects_config_path='../config/ycb_video_objects_graspable_poses.yaml',
+                 random_ycb_video_graspable_object=False,
                  objects=(),
                  use_table=True,
                  objects_positions=(),
@@ -80,12 +82,27 @@ class ICubEnv(gym.Env):
         self.use_table = use_table
         if self.use_table:
             self.add_table()
+        self.random_ycb_video_graspable_object = random_ycb_video_graspable_object
+        with open(ycb_video_graspable_objects_config_path) as ycb_video_graspable_objects_config_file:
+            self.ycb_video_graspable_objects_cfg = yaml.load(ycb_video_graspable_objects_config_file,
+                                                             Loader=yaml.FullLoader)
+        self.ycb_video_graspable_objects_list = []
+        for obj in self.ycb_video_graspable_objects_cfg:
+            for graspability in self.ycb_video_graspable_objects_cfg[obj]['graspable']:
+                if self.ycb_video_graspable_objects_cfg[obj]['graspable'][graspability] == 'yes':
+                    self.ycb_video_graspable_objects_list.append(
+                        {'object': obj,
+                         'position': self.ycb_video_graspable_objects_cfg[obj]['initial_positions'][graspability],
+                         'orientation': self.ycb_video_graspable_objects_cfg[obj]['initial_orientations'][graspability],
+                         'moved_object_height': self.ycb_video_graspable_objects_cfg[obj]['moved_object_height']})
         self.objects_positions = objects_positions
         self.objects_quaternions = objects_quaternions
         self.randomly_rotate_object_z_axis = randomly_rotate_object_z_axis
         self.objects = objects
-        self.add_ycb_video_objects(self.objects)
-        if track_object:
+        self.moved_object_height = 0.98
+        self.add_ycb_video_objects(self.objects, remove_last_object=False)
+        self.track_object = track_object
+        if self.track_object:
             self.track_object_with_camera()
         self.world_entity = composer.ModelWrapperEntity(self.world)
         self.task = composer.NullTask(self.world_entity)
@@ -110,6 +127,9 @@ class ICubEnv(gym.Env):
         self.joints_margin = joints_margin
         self.null_reward_out_image = null_reward_out_image
         self.lift_object_height = lift_object_height
+        if random_ycb_video_graspable_object:
+            print('The value of lift_object_height will be overwritten whenever a new object will be added to the'
+                  'environment.')
         self.curriculum_learning = curriculum_learning
 
         # Set if using the original superquadric grasp pose or the distanced pose
@@ -538,8 +558,8 @@ class ICubEnv(gym.Env):
             high = np.array([])
         for act in self.actuators_to_control:
             if 'pinky' in act:
-                low = np.append(low, -2*self.max_delta_qpos)
-                high = np.append(high, 2*self.max_delta_qpos)
+                low = np.append(low, -2 * self.max_delta_qpos)
+                high = np.append(high, 2 * self.max_delta_qpos)
             else:
                 low = np.append(low, -self.max_delta_qpos)
                 high = np.append(high, self.max_delta_qpos)
@@ -864,6 +884,20 @@ class ICubEnv(gym.Env):
                                                    self.state_space.low[self.joint_ids_objects[i * 7 + 2]] + 0.1)
                 random_pos[i * 7 + 3:i * 7 + 7] /= np.linalg.norm(random_pos[i * 7 + 3:i * 7 + 7])
             self.init_qpos[self.joint_ids_objects] = random_pos
+        if self.random_ycb_video_graspable_object:
+            random_object = self.ycb_video_graspable_objects_list \
+                [np.random.randint(0, len(self.ycb_video_graspable_objects_list))]
+            self.objects = [random_object['object']]
+            self.objects_positions = [np.array(list(random_object['position'].values()))]
+            self.objects_quaternions = [np.array(list(random_object['orientation'].values()))]
+            self.moved_object_height = random_object['moved_object_height']
+            self.lift_object_height = self.objects_positions[0][2] + 0.1
+            self.add_ycb_video_objects(self.objects, remove_last_object=True)
+            if self.track_object:
+                self.track_object_with_camera()
+            self.env.reset()
+            self.init_qpos[self.joint_ids_objects[0:3]] = self.objects_positions[0]
+            self.init_qpos[self.joint_ids_objects[3:7]] = self.objects_quaternions[0]
         if self.randomly_rotate_object_z_axis:
             for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
                 object_quaternions_pyquaternion = Quaternion(self.init_qpos[
@@ -912,7 +946,10 @@ class ICubEnv(gym.Env):
             cv2.waitKey(1)
         return images
 
-    def add_ycb_video_objects(self, object_names):
+    def add_ycb_video_objects(self, object_names, remove_last_object):
+        if remove_last_object:
+            obj_to_rm = self.world.worldbody.body[-1]
+            obj_to_rm.remove(affect_attachments=True)
         for obj_id, obj in enumerate(object_names):
             obj_path = "../meshes/YCB_Video/{}.xml".format(obj)
             obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
@@ -964,7 +1001,7 @@ class ICubEnv(gym.Env):
                 table_mjcf.worldbody.body['table'].add('body',
                                                        name='wood_{}_{}'.format(i, j),
                                                        pos=[0, 0, 0])
-                table_mjcf.worldbody.body['table'].body['wood_{}_{}'.format(i, j)].\
+                table_mjcf.worldbody.body['table'].body['wood_{}_{}'.format(i, j)]. \
                     add('geom',
                         name='wood_{}_{}'.format(i, j),
                         pos=[pos_i, pos_j, 0],
@@ -1041,11 +1078,11 @@ class ICubEnv(gym.Env):
                 if contact['geom1'] in self.contact_geom_ids_fingers_meshes.values():
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
-                            self.contact_geom_ids_fingers_meshes.values()).index(contact['geom1'])]))
+                        self.contact_geom_ids_fingers_meshes.values()).index(contact['geom1'])]))
                 else:
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
-                            self.contact_geom_ids_fingers_meshes.values()).index(contact['geom2'])]))
+                        self.contact_geom_ids_fingers_meshes.values()).index(contact['geom2'])]))
                 self.number_of_contacts += 1
         self.number_of_contacts = len(self.fingers_touching_object)
         return self.number_of_contacts
@@ -1058,7 +1095,6 @@ class ICubEnv(gym.Env):
         else:
             T = total_num_steps * 80 / 100
             t = current_step
-            t_T = t/T
-            qpos_t = qpos_init + (qpos_final - qpos_init) * (10 * t_T**3 - 15 * t_T**4 + 6 * t_T**5)
+            t_T = t / T
+            qpos_t = qpos_init + (qpos_final - qpos_init) * (10 * t_T ** 3 - 15 * t_T ** 4 + 6 * t_T ** 5)
         return qpos_t
-

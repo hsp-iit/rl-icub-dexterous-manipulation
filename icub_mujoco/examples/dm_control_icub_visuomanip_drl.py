@@ -135,6 +135,15 @@ parser.add_argument('--print_done_info',
 parser.add_argument('--do_not_consider_done_z_pos',
                     action='store_true',
                     help='Do not consider the done_z_pos component in the grasp refinement task.')
+parser.add_argument('--random_ycb_video_graspable_object',
+                    action='store_true',
+                    help='Use a random YCB-Video object.')
+parser.add_argument('--ycb_video_graspable_objects_config_path',
+                    action='store',
+                    type=str,
+                    default='../config/ycb_video_objects_graspable_poses.yaml',
+                    help='Set the path of configuration file with the graspable configurations of the YCB-Video '
+                         'objects.')
 parser.add_argument('--objects',
                     type=str,
                     nargs='+',
@@ -210,8 +219,11 @@ parser.add_argument('--feature_extractor_model_name',
 parser.add_argument('--lift_object_height',
                     action='store',
                     type=float,
-                    default=1.05,
-                    help='Set the height of the object to complete the grasp refinement task. Default is 1.02.')
+                    default=1.02,
+                    help='Set the height of the object to complete the grasp refinement task. Default is 1.02. Note '
+                         'that this parameter is not considered if the random_ycb_video_graspable_object is passed. '
+                         'In that case the lift_object_height is set to 10cm above the initial position of the '
+                         'object at hand.')
 parser.add_argument('--learning_from_demonstration',
                     action='store_true',
                     help='Use demonstrations for replay buffer initialization.')
@@ -356,6 +368,8 @@ elif args.task == 'refine_grasp':
                               reward_dist_superq_center=args.reward_dist_superq_center,
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               print_done_info=args.print_done_info,
+                              random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
+                              ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,
                               objects=args.objects,
                               use_table=args.use_table,
                               objects_positions=objects_positions,

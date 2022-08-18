@@ -1,0 +1,527 @@
+002_master_chef_can:
+  graspable:
+    1: 'borderline'
+    2: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.02
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+003_cracker_box:
+  graspable:
+    1: 'borderline'
+    2: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.06
+    2:
+      x: -0.3
+      y: 0.0
+      z: 1.035
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.99
+  info: 'Original weight is too heavy.'
+
+004_sugar_box:
+  graspable:
+    1: 'yes'
+    2: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.04
+    2:
+      x: -0.3
+      y: 0.0
+      z: 1.0
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.98
+  info: 'Graspable.'
+
+005_tomato_soup_can:
+  graspable:
+    1: 'yes'
+    2: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.01
+    2:
+      x: -0.3
+      y: 0.0
+      z: 0.98
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+006_mustard_bottle:
+  graspable:
+    1: 'yes'
+    2: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.035
+    2:
+      x: -0.3
+      y: 0.0
+      z: 0.99
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+007_tuna_fish_can:
+  graspable:
+    1: 'borderline'
+    2: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 0.97
+    2:
+      x: -0.3
+      y: 0.1
+      z: 0.99
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 1 is borderline due to high probability of hand-table collision.'
+
+008_pudding_box:
+  graspable:
+    1: 'borderline'
+    2: 'yes'
+    3: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.97
+    2:
+      x: -0.3
+      y: 0.05
+      z: 1.015
+    3:
+      x: -0.3
+      y: 0.05
+      z: 1.015
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+    3:
+      w: 0.70710678118
+      x: 0.0
+      y: 0.70710678118
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Object axes are not aligned with the world xyz axes. Configuration 1 is borderline due to high probability of
+   hand-table collision.'
+
+009_gelatin_box:
+  graspable:
+    1: 'borderline'
+    2: 'yes'
+    3: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.97
+    2:
+      x: -0.3
+      y: 0.05
+      z: 1.0
+    3:
+      x: -0.3
+      y: 0.05
+      z: 0.995
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+    3:
+      w: 0.70710678118
+      x: 0.0
+      y: 0.70710678118
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Object axes are not aligned with the world xyz axes. Configuration 1 is borderline due to high probability of
+   hand-table collision.'
+
+010_potted_meat_can:
+  graspable:
+    1: 'yes'
+    2: 'borderline'
+    3: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.1
+      z: 1.005
+    2:
+      x: -0.3
+      y: 0.05
+      z: 0.98
+    3:
+      x: -0.3
+      y: 0.05
+      z: 1.0
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+    3:
+      w: 0.70710678118
+      x: 0.0
+      y: 0.70710678118
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 2 is borderline due to high probability of hand-table collision.'
+
+011_banana:
+  graspable:
+    1: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.965
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 1 is borderline due to high probability of hand-table collision.'
+
+019_pitcher_base:
+  graspable:
+    1: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 1.1
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 1.01
+  info: '019_pitcher_base could be grasped only from the handle. V-HACD decomposition is necessary to achieve this.'
+
+021_bleach_cleanser:
+  graspable:
+    1: 'yes'
+    2: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 1.06
+    2:
+      x: -0.3
+      y: 0.0
+      z: 0.98
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 2 is borderline due to high probability of hand-table collision.'
+
+024_bowl:
+  graspable:
+    1: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.975
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: '024_bowl is highly non-convex. V-HACD decomposition is necessary for grasping.'
+
+025_mug:
+  graspable:
+    1: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.99
+    2:
+      x: -0.3
+      y: 0.05
+      z: 0.99
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+035_power_drill:
+  graspable:
+    1: 'no'
+    2: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.98
+    2:
+      x: -0.3
+      y: 0.05
+      z: 1.06
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: '035_power_drill is highly non-convex and too heavy.'
+
+036_wood_block:
+  graspable:
+    1: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 1.07
+    2:
+      x: -0.3
+      y: 0.05
+      z: 0.99
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: '036_wood_block is too heavy.'
+
+037_scissors:
+  graspable:
+    1: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.96
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 1 is borderline due to high probability of hand-table collision.'
+
+040_large_marker:
+  graspable:
+    1: 'borderline'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.96
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Configuration 1 is borderline due to high probability of hand-table collision.'
+
+051_large_clamp:
+  graspable:
+    1: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.97
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: '051_large_clamp is highly non-convex. V-HACD decomposition is necessary for grasping.'
+
+052_extra_large_clamp:
+  graspable:
+    1: 'no'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 0.975
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: '052_extra_large_clamp is highly non-convex. V-HACD decomposition is necessary for grasping.'
+
+061_foam_brick:
+  graspable:
+    1: 'yes'
+    2: 'yes'
+    3: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.15
+      z: 0.965
+    2:
+      x: -0.3
+      y: 0.15
+      z: 0.99
+    3:
+      x: -0.3
+      y: 0.15
+      z: 0.97
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    2:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+    3:
+      w: 0.70710678118
+      x: 0.0
+      y: 0.70710678118
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'

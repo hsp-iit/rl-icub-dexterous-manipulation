@@ -280,9 +280,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                 segm = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera,
                                                segmentation=True)
                 ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
-                               self.env.physics.model.name2id(self.objects[0] + "/mesh_"
-                                                              + self.objects[0] + "_00_visual",
-                                                              'geom'))
+                               len(self.env.physics.model.geom_pos) - 2)
                 pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
                 self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
                 if self.superq_pose['position'][0] == 0.00:
@@ -474,7 +472,7 @@ class ICubEnvRefineGrasp(ICubEnv):
             if list_id % 7 != 2:
                 continue
             else:
-                if self.env.physics.data.qpos[joint_id] < 0.98:
+                if self.env.physics.data.qpos[joint_id] < self.moved_object_height:
                     return True
         return False
 
@@ -530,7 +528,7 @@ class ICubEnvRefineGrasp(ICubEnv):
 
     def lift_object(self):
         action_ik = np.zeros(len(self.cartesian_ids))
-        action_ik[self.cartesian_ids.index(2)] = self.max_delta_cartesian_pos / 10
+        action_ik[self.cartesian_ids.index(2)] = 0.002
         return action_ik
 
     def approach_object(self):
