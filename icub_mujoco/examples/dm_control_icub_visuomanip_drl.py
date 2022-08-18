@@ -15,6 +15,18 @@ parser.add_argument('--test_model',
 parser.add_argument('--record_video',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir and record.')
+parser.add_argument('--save_replay_buffer',
+                    action='store_true',
+                    help='Save the replay buffer.')
+parser.add_argument('--save_replay_buffer_path',
+                    type=str,
+                    help='Path where the replay buffer will be stored.')
+parser.add_argument('--load_replay_buffer',
+                    action='store_true',
+                    help='Load the replay buffer.')
+parser.add_argument('--load_replay_buffer_path',
+                    type=str,
+                    help='Path where the replay buffer to load is located.')
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
@@ -549,7 +561,19 @@ else:
     else:
         raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
+    if args.load_replay_buffer:
+        if args.load_replay_buffer_path:
+            model.load_replay_buffer(args.load_replay_buffer_path)
+        else:
+            model.load_replay_buffer('replay_buffer')
+
     model.learn(total_timesteps=args.total_training_timesteps,
                 eval_freq=args.eval_freq,
                 eval_env=iCub,
                 eval_log_path=args.eval_dir)
+
+    if args.save_replay_buffer:
+        if args.save_replay_buffer_path:
+            model.save_replay_buffer(args.save_replay_buffer_path)
+        else:
+            model.save_replay_buffer('replay_buffer')
