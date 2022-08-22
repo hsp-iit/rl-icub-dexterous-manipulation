@@ -1,13 +1,17 @@
 import numpy as np
 
 
-def pcd_from_depth(depth):
+def pcd_from_depth(depth,
+                   fx=617.783447265625,
+                   fy=617.783447265625,
+                   cx=320,
+                   cy=240):
     pcd = np.empty(shape=(depth.size, 3))
     pcd[:, 2] = np.reshape(depth, (depth.size,))
     grid = np.mgrid[0:depth.shape[0], 0:depth.shape[1]]
     u, v = np.reshape(grid[0], (grid[0].size, )), np.reshape(grid[1], (grid[1].size, ))
-    pcd[:, 0] = (u - 240) * pcd[:, 2] / 617.783447265625
-    pcd[:, 1] = (v - 320) * pcd[:, 2] / 617.783447265625
+    pcd[:, 0] = (u - cy) * pcd[:, 2] / fy
+    pcd[:, 1] = (v - cx) * pcd[:, 2] / fx
     return pcd
 
 
