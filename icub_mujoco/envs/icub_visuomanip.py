@@ -392,12 +392,16 @@ class ICubEnv(gym.Env):
                     icub_joint = True
                     if joint.full_identifier not in self.init_icub_qpos_dict:
                         self.init_icub_qpos_dict[joint.full_identifier] = 0.0
+                    if joint.type == "free":
+                        self.init_icub_qpos_dict[joint.full_identifier] = \
+                            self.init_icub_act_dict[joint.full_identifier]
                 jnt = jnt.parent
 
         # Set initial configuration for each joint
         self.init_qpos = np.array([], dtype=np.float32)
         self.init_qvel = np.array([], dtype=np.float32)
         self.joint_ids_icub = np.array([], dtype=np.int64)
+        self.joint_ids_icub_free = np.array([], dtype=np.int64)
         self.joint_ids_icub_dict = {}
         self.joint_ids_objects = np.array([], dtype=np.int64)
         self.joint_names_icub = []
@@ -414,11 +418,27 @@ class ICubEnv(gym.Env):
                 id_to_add = np.max(np.concatenate((self.joint_ids_icub, self.joint_ids_objects))) + 1
 
             if joint in self.init_icub_qpos_dict:
-                self.init_qpos = np.append(self.init_qpos, self.init_icub_qpos_dict[joint])
-                self.init_qvel = np.concatenate((self.init_qvel, np.zeros(1, dtype=np.float32)))
-                self.joint_ids_icub = np.append(self.joint_ids_icub, id_to_add)
-                self.joint_ids_icub_dict[joint] = id_to_add
-                self.joint_names_icub.append(joint)
+                joint_id = self.env.physics.model.name2id(joint, 'joint')
+                if self.world_entity.mjcf_model.find_all('joint')[joint_id].type == "hinge" \
+                        or self.world_entity.mjcf_model.find_all('joint')[joint_id].type is None:
+                    self.init_qpos = np.append(self.init_qpos, self.init_icub_qpos_dict[joint])
+                    self.init_qvel = np.concatenate((self.init_qvel, np.zeros(1, dtype=np.float32)))
+                    self.joint_ids_icub = np.append(self.joint_ids_icub, id_to_add)
+                    self.joint_ids_icub_dict[joint] = id_to_add
+                    self.joint_names_icub.append(joint)
+                if self.world_entity.mjcf_model.find_all('joint')[joint_id].type == "free":
+                    self.init_qpos = np.append(self.init_qpos, self.init_icub_qpos_dict[joint])
+                    self.init_qvel = np.concatenate((self.init_qvel, np.zeros(6, dtype=np.float32)))
+                    self.joint_ids_icub = np.append(self.joint_ids_icub, np.arange(id_to_add, id_to_add + 7))
+                    self.joint_ids_icub_free = np.append(self.joint_ids_icub_free, np.arange(id_to_add, id_to_add + 7))
+                    self.joint_ids_icub_dict[joint] = np.arange(id_to_add, id_to_add + 7)
+                    self.joint_names_icub.extend([joint + 'xp',
+                                                  joint + 'yp',
+                                                  joint + 'zp',
+                                                  joint + 'wq',
+                                                  joint + 'xq',
+                                                  joint + 'yq',
+                                                  joint + 'zq'])
             else:
                 joint_id = self.env.physics.model.name2id(joint, 'joint')
                 assert (self.world_entity.mjcf_model.find_all('joint')[joint_id].type == 'free')
@@ -906,6 +926,10 @@ class ICubEnv(gym.Env):
                 rotated_object_quaternions_pyquaternion = z_rotation_quaternion * object_quaternions_pyquaternion
                 object_quaternions = rotated_object_quaternions_pyquaternion.q
                 self.init_qpos[self.joint_ids_objects[i * 7 + 3:i * 7 + 7]] = object_quaternions
+        if self.use_only_right_hand_model:
+            self.env.physics.named.data.mocap_pos['icub_r_hand_welding'] = self.init_qpos[self.joint_ids_icub_free][:3]
+            self.env.physics.named.data.mocap_quat['icub_r_hand_welding'] = \
+                self.init_qpos[self.joint_ids_icub_free][3:7]
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
         return self._get_obs()

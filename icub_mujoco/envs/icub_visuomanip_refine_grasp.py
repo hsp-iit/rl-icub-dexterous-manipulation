@@ -58,10 +58,10 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
         self.lfd_steps = 0
 
-        self.r_hand_to_r_hand_dh_frame = ([[-9.65925844e-01, -2.58818979e-01, 3.88881728e-17,  -0.05765429784284365],
-                                           [1.40347148e-18,  -1.84721605e-16, -1.00000000e+00, -0.005556799999999987],
-                                           [2.58818979e-01,  -9.65925844e-01, 1.37057067e-16,  0.013693832308330513],
-                                           [0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.000000000e+00]])
+        self.r_hand_to_r_hand_dh_frame = ([[-9.65925844e-01, -2.58818979e-01, 3.88881728e-17, -0.05765429784284365],
+                                           [1.40347148e-18, -1.84721605e-16, -1.00000000e+00, -0.005556799999999987],
+                                           [2.58818979e-01, -9.65925844e-01, 1.37057067e-16, 0.013693832308330513],
+                                           [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.000000000e+00]])
         self.inv_r_hand_to_r_hand_dh_frame = np.linalg.inv(np.array(self.r_hand_to_r_hand_dh_frame))
 
     def step(self, action):
@@ -164,7 +164,10 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.env.physics.named.data.mocap_quat['icub_r_hand_welding'] = Quaternion(matrix=superq_pose_r_hand).q
             # Use as action only the offsets for the joints to control (e.g. hands)
             action = action[len(self.cartesian_ids):]
-
+            if superq_pose_r_hand[0, 3] <= -0.5 or superq_pose_r_hand[0, 3] >= 0 or \
+                    superq_pose_r_hand[1, 3] <= -0.3 or superq_pose_r_hand[1, 3] >= 0.5 or \
+                    superq_pose_r_hand[2, 3] <= 1.0 or superq_pose_r_hand[2, 3] >= 1.6:
+                done_ik = True
         qpos_jnt_tendons = np.empty([0, ], dtype=np.float32)
         for actuator in self.actuators_to_control_dict:
             qpos_jnt_tendons = np.append(qpos_jnt_tendons,
@@ -306,9 +309,17 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                    self.inv_r_hand_to_r_hand_dh_frame)
                     self.env.physics.named.data.mocap_pos['icub_r_hand_welding'] = superq_pose_r_hand[:3, 3]
                     self.env.physics.named.data.mocap_quat['icub_r_hand_welding'] = Quaternion(
-                                                                                        matrix=superq_pose_r_hand).q
+                        matrix=superq_pose_r_hand).q
+                    qpos_after_superq_with_mocap = self.init_qpos.copy()
+                    qpos_after_superq_with_mocap[self.joint_ids_icub_free] = np.concatenate(
+                        (self.env.physics.named.data.mocap_pos['icub_r_hand_welding'],
+                         self.env.physics.named.data.mocap_quat['icub_r_hand_welding']))
+                    self.set_state(
+                        np.concatenate([qpos_after_superq_with_mocap,
+                                        self.init_qvel.copy(),
+                                        self.env.physics.data.act]))
+                    self.env.physics.forward()
                     grasp_found = True
-
                 else:
                     if self.ik_solver == 'idyntree':
                         ik_sol, solved = self.ik_idyntree.solve_ik(eef_pos=self.superq_pose['position'],
@@ -537,11 +548,11 @@ class ICubEnvRefineGrasp(ICubEnv):
         if self.lfd_approach_position is None:
             self.lfd_approach_position = self.superq_pose['position'].copy()
         action_ik[self.cartesian_ids.index(0)] = (self.superq_position[0] - self.lfd_approach_position[0]) \
-                                                    / self.lfd_approach_object_max_steps
+                                                 / self.lfd_approach_object_max_steps
         action_ik[self.cartesian_ids.index(1)] = (self.superq_position[1] - self.lfd_approach_position[1]) \
-                                                    / self.lfd_approach_object_max_steps
+                                                 / self.lfd_approach_object_max_steps
         action_ik[self.cartesian_ids.index(2)] = (self.superq_position[2] - self.lfd_approach_position[2]) \
-                                                    / self.lfd_approach_object_max_steps
+                                                 / self.lfd_approach_object_max_steps
         if self.lfd_approach_object_step == self.lfd_approach_object_max_steps:
             self.lfd_stage = 'close_hand'
             self.lfd_approach_object_step = 0

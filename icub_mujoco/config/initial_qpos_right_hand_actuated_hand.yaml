@@ -1,4 +1,5 @@
 # Right hand
+r_hand_freejoint: [0.0, 0.0, 1.5, 0.707106781, 0.707106781, 0, 0]
 r_hand_finger: 0.01
 r_thumb_oppose: 1.5708
 r_thumb_proximal: 0.01
