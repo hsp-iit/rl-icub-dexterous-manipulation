@@ -12,6 +12,8 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedul
 from stable_baselines3.common.utils import polyak_update
 from stable_baselines3.sac.policies import SACPolicy
 
+from stable_baselines3.common.type_aliases import DictReplayBufferSamples
+
 
 class SAC(OffPolicyAlgorithm):
     """
@@ -205,8 +207,29 @@ class SAC(OffPolicyAlgorithm):
         actor_losses, critic_losses = [], []
 
         for gradient_step in range(gradient_steps):
-            # Sample replay buffer
-            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+            if self.replay_buffer_demo is None:
+                # Sample replay buffer
+                replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+            else:
+                replay_data_rb = self.replay_buffer.sample(int(batch_size/2), env=self._vec_normalize_env)
+                replay_data_demo = self.replay_buffer_demo.sample(batch_size - int(batch_size/2),
+                                                                  env=self._vec_normalize_env)
+                replay_data_observations = {}
+                replay_data_next_observations = {}
+                for key in list(replay_data_rb.observations.keys()):
+                    replay_data_observations[key] = th.cat((replay_data_rb.observations[key],
+                                                            replay_data_demo.observations[key]))
+                    replay_data_next_observations[key] = th.cat((replay_data_rb.next_observations[key],
+                                                                 replay_data_demo.next_observations[key]))
+                replay_data_actions = th.cat((replay_data_rb.actions, replay_data_demo.actions))
+                replay_data_dones = th.cat((replay_data_rb.dones, replay_data_demo.dones))
+                replay_data_rewards = th.cat((replay_data_rb.rewards, replay_data_demo.rewards))
+
+                replay_data = DictReplayBufferSamples(observations=replay_data_observations,
+                                                      actions=replay_data_actions,
+                                                      next_observations=replay_data_next_observations,
+                                                      dones=replay_data_dones,
+                                                      rewards=replay_data_rewards)
 
             # We need to sample because `log_std` may have changed between two gradient steps
             if self.use_sde:

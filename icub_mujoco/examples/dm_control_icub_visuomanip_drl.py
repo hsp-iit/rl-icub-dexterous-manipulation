@@ -27,6 +27,14 @@ parser.add_argument('--load_replay_buffer',
 parser.add_argument('--load_replay_buffer_path',
                     type=str,
                     help='Path where the replay buffer to load is located.')
+parser.add_argument('--train_with_two_replay_buffers',
+                    action='store_true',
+                    help='Set options to train SAC with two replay buffers. The replay buffer containing the '
+                         'demonstrations will be loaded from where specified in the '
+                         'load_demonstrations_replay_buffer_path option.')
+parser.add_argument('--load_demonstrations_replay_buffer_path',
+                    type=str,
+                    help='Path where the replay buffer with the demonstrations to be loaded is located.')
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
@@ -566,6 +574,12 @@ else:
             model.load_replay_buffer(args.load_replay_buffer_path)
         else:
             model.load_replay_buffer('replay_buffer')
+
+    if args.train_with_two_replay_buffers:
+        if args.load_demonstrations_replay_buffer_path:
+            model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
+        else:
+            model.load_demonstrations_replay_buffer('replay_buffer')
 
     model.learn(total_timesteps=args.total_training_timesteps,
                 eval_freq=args.eval_freq,

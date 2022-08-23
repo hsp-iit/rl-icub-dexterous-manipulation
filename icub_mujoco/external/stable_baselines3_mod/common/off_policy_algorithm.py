@@ -147,6 +147,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
         self.actor = None  # type: Optional[th.nn.Module]
         self.replay_buffer = None  # type: Optional[ReplayBuffer]
+        self.replay_buffer_demo = None
         # Update policy keyword arguments
         if sde_support:
             self.policy_kwargs["use_sde"] = self.use_sde
@@ -281,6 +282,35 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             self.replay_buffer.set_env(self.get_env())
             if truncate_last_traj:
                 self.replay_buffer.truncate_last_trajectory()
+
+    def load_demonstrations_replay_buffer(
+        self,
+        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        truncate_last_traj: bool = True,
+    ) -> None:
+        """
+        Load a replay buffer from a pickle file.
+
+        :param path: Path to the pickled replay buffer.
+        :param truncate_last_traj: When using ``HerReplayBuffer`` with online sampling:
+            If set to ``True``, we assume that the last trajectory in the replay buffer was finished
+            (and truncate it).
+            If set to ``False``, we assume that we continue the same trajectory (same episode).
+        """
+        self.replay_buffer_demo = load_from_pkl(path, self.verbose)
+        assert isinstance(self.replay_buffer_demo, ReplayBuffer), "The replay buffer must inherit from ReplayBuffer class"
+
+        # Backward compatibility with SB3 < 2.1.0 replay buffer
+        # Keep old behavior: do not handle timeout termination separately
+        if not hasattr(self.replay_buffer_demo, "handle_timeout_termination"):  # pragma: no cover
+            self.replay_buffer_demo.handle_timeout_termination = False
+            self.replay_buffer_demo.timeouts = np.zeros_like(self.replay_buffer_demo.dones)
+
+        if isinstance(self.replay_buffer_demo, HerReplayBuffer):
+            assert self.env is not None, "You must pass an environment at load time when using `HerReplayBuffer`"
+            self.replay_buffer_demo.set_env(self.get_env())
+            if truncate_last_traj:
+                self.replay_buffer_demo.truncate_last_trajectory()
 
     def _setup_learn(
         self,
