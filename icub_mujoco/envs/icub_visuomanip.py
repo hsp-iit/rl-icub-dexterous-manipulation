@@ -707,7 +707,7 @@ class ICubEnv(gym.Env):
                 bounds = np.concatenate([bounds, np.expand_dims(joint.range, 0)], axis=0, dtype=np.float32)
             else:
                 if joint.type == "free":
-                    if self.use_table:
+                    if self.use_table and "r_hand_freejoint" not in joint.name:
                         bounds = np.concatenate([bounds,
                                                  np.array([[-1.08, -0.28]], dtype=np.float32),
                                                  np.array([[-0.9, 0.9]], dtype=np.float32),
