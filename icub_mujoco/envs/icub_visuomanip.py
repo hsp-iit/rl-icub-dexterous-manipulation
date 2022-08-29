@@ -658,6 +658,13 @@ class ICubEnv(gym.Env):
                                                                       high=np.inf,
                                                                       shape=[3],
                                                                       dtype=np.float32)
+                elif space == 'object_pose':
+                    if len(self.objects) != 1:
+                        raise ValueError('There must be one and only one objects in the environment. Quitting.')
+                    obs_space['object_pose'] = gym.spaces.Box(low=-np.inf,
+                                                              high=np.inf,
+                                                              shape=[7],
+                                                              dtype=np.float32)
             self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
@@ -695,6 +702,13 @@ class ICubEnv(gym.Env):
             self.observation_space = gym.spaces.Box(low=-np.inf,
                                                     high=np.inf,
                                                     shape=flare_shape,
+                                                    dtype=np.float32)
+        elif 'object_pose' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            if len(self.objects) != 1:
+                raise ValueError('There must be one and only one objects in the environment. Quitting.')
+            self.observation_space = gym.spaces.Box(low=-np.inf,
+                                                    high=np.inf,
+                                                    shape=[7],
                                                     dtype=np.float32)
         else:
             raise ValueError('The observation spaces must be of type joints, camera or features. Quitting.')
@@ -835,6 +849,8 @@ class ICubEnv(gym.Env):
                             obs['superquadric_center'] = self.superq_pose['superq_center']
                     else:
                         obs['superquadric_center'] = np.zeros(3, dtype=np.float32)
+                elif space == 'object_pose':
+                    obs['object_pose'] = self.env.physics.data.qpos[self.joint_ids_objects]
             return obs
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
@@ -888,6 +904,9 @@ class ICubEnv(gym.Env):
                     return self.superq_pose['superq_center']
             else:
                 return np.zeros(3, dtype=np.float32)
+        elif 'object_pose' in self.icub_observation_space and len(self.icub_observation_space) == 1:
+            obs = self.env.physics.data.qpos[self.joint_ids_objects]
+            return obs
 
     def step(self, action):
         raise NotImplementedError
