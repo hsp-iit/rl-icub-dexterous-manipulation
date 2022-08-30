@@ -79,6 +79,10 @@ parser.add_argument('--reward_dist_superq_center',
                     action='store_true',
                     help='Add a reward component in the grasp refinement task for the distance of the superquadric '
                          'center in the xy axes of the eef.')
+parser.add_argument('--rotated_dist_superq_center',
+                    action='store_true',
+                    help='Compute the superquardric grasp pose reward w.r.t the r_hand_dh_frame rotated of 45° around '
+                         'the y axis.')
 parser.add_argument('--goal_reached_only_with_lift_refine_grasp',
                     action='store_true',
                     help='Successful episode only with object lifted in grasp refinement task.')
@@ -386,6 +390,7 @@ elif args.task == 'refine_grasp':
                               reward_end_timesteps=args.reward_end_timesteps,
                               reward_single_step_multiplier=args.reward_single_step_multiplier,
                               reward_dist_superq_center=args.reward_dist_superq_center,
+                              rotated_dist_superq_center=args.rotated_dist_superq_center,
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               print_done_info=args.print_done_info,
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,

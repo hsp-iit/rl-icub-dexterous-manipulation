@@ -249,7 +249,11 @@ class ICubEnvRefineGrasp(ICubEnv):
                     (rew_height < 0 and self.already_touched_with_5_fingers):
                 reward += rew_height
         if self.reward_dist_superq_center and not self.already_touched_with_2_fingers:
-            superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
+            if self.rotated_dist_superq_center:
+                superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(
+                    self.superq_pose['superq_center'], site_name='r_hand_dh_frame_site_rotated')
+            else:
+                superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
             current_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
             delta_dist_superq_center = self.prev_dist_superq_center - current_dist_superq_center
             self.prev_dist_superq_center = current_dist_superq_center
@@ -449,7 +453,11 @@ class ICubEnvRefineGrasp(ICubEnv):
                 self.already_touched_with_5_fingers = False
                 self.previous_number_of_contacts = self.compute_num_fingers_touching_object()
                 if self.reward_dist_superq_center:
-                    superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
+                    if self.rotated_dist_superq_center:
+                        superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(
+                            self.superq_pose['superq_center'], site_name='r_hand_dh_frame_site_rotated')
+                    else:
+                        superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
                     self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
             else:
                 # Initial reset, just need to return the observation

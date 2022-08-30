@@ -41,6 +41,7 @@ class ICubEnv(gym.Env):
                  reward_end_timesteps=-1.0,
                  reward_single_step_multiplier=10.0,
                  reward_dist_superq_center=False,
+                 rotated_dist_superq_center=False,
                  goal_reached_only_with_lift_refine_grasp=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
@@ -555,6 +556,7 @@ class ICubEnv(gym.Env):
         self.reward_single_step_multiplier = reward_single_step_multiplier
         self.reward_end_timesteps = reward_end_timesteps
         self.reward_dist_superq_center = reward_dist_superq_center
+        self.rotated_dist_superq_center = rotated_dist_superq_center
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
 
         # Reset environment
@@ -1079,7 +1081,7 @@ class ICubEnv(gym.Env):
             com_xyzs.append(np.array([p_cam[0, 3], p_cam[1, 3], p_cam[2, 3]]))
         return com_xyzs
 
-    def point_in_r_hand_dh_frame(self, point):
+    def point_in_r_hand_dh_frame(self, point, site_name='r_hand_dh_frame_site'):
         # Point roto-translation matrix in world coordinates
         p_world = np.array([[1, 0, 0, point[0]],
                             [0, 1, 0, point[1]],
@@ -1092,9 +1094,9 @@ class ICubEnv(gym.Env):
                                    [0, 0, 1, 0],
                                    [0, 0, 0, 1]],
                                   dtype=np.float32)
-        dh_frame_pos = self.env.physics.named.data.site_xpos['r_hand_dh_frame_site']
+        dh_frame_pos = self.env.physics.named.data.site_xpos[site_name]
         dh_frame_world[:3, -1] = dh_frame_pos
-        dh_frame_rot = np.reshape(self.env.physics.named.data.site_xmat['r_hand_dh_frame_site'], (3, 3))
+        dh_frame_rot = np.reshape(self.env.physics.named.data.site_xmat[site_name], (3, 3))
         dh_frame_world[:3, :3] = dh_frame_rot
         # Point roto-translation matrix in r_hand_dh_frame coordinates
         p_r_hand_dh_frame = np.matmul(np.linalg.inv(dh_frame_world), p_world)
