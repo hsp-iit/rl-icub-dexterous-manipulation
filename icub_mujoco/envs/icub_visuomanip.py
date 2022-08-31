@@ -7,6 +7,7 @@ import cv2
 import yaml
 from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
 from icub_mujoco.feature_extractors.images_feature_extractor_CLIP import ImagesFeatureExtractorCLIP
+from icub_mujoco.feature_extractors.images_feature_extractor_moco import ImagesFeatureExtractorMOCO
 from pyquaternion import Quaternion
 
 
@@ -114,6 +115,8 @@ class ICubEnv(gym.Env):
         if 'features' in icub_observation_space or 'flare' in icub_observation_space:
             if 'CLIP' in feature_extractor_model_name:
                 self.feature_extractor = ImagesFeatureExtractorCLIP(model_name=feature_extractor_model_name)
+            elif 'moco' in feature_extractor_model_name:
+                self.feature_extractor = ImagesFeatureExtractorMOCO(model_name=feature_extractor_model_name)
             else:
                 self.feature_extractor = ImagesFeatureExtractor(model_name=feature_extractor_model_name)
         self.random_initial_pos = random_initial_pos
