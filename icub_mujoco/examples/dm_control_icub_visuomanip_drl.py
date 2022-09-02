@@ -7,6 +7,14 @@ from icub_mujoco.envs.icub_visuomanip_lift_grasped_object import ICubEnvLiftGras
 from icub_mujoco.external.stable_baselines3_mod.sac import SAC
 import argparse
 import cv2
+import gym
+from icub_mujoco.external.stable_baselines3_mod.common.evaluation_bc import evaluate_policy_bc
+from stable_baselines3.common.save_util import load_from_pkl
+from imitation.algorithms import bc
+from imitation.data.types import Transitions
+from stable_baselines3.common import policies
+import torch
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--test_model',
@@ -20,18 +28,29 @@ parser.add_argument('--save_replay_buffer',
                     help='Save the replay buffer.')
 parser.add_argument('--save_replay_buffer_path',
                     type=str,
+                    default='replay_buffer',
                     help='Path where the replay buffer will be stored.')
 parser.add_argument('--load_replay_buffer',
                     action='store_true',
                     help='Load the replay buffer.')
 parser.add_argument('--load_replay_buffer_path',
                     type=str,
+                    default='replay_buffer',
                     help='Path where the replay buffer to load is located.')
 parser.add_argument('--train_with_two_replay_buffers',
                     action='store_true',
                     help='Set options to train SAC with two replay buffers. The replay buffer containing the '
                          'demonstrations will be loaded from where specified in the '
                          'load_demonstrations_replay_buffer_path option.')
+parser.add_argument('--train_with_behavior_cloning',
+                    action='store_true',
+                    help='Train a policy with behavior cloning, starting from data in a replay buffer stored in '
+                         'load_replay_buffer_path.')
+parser.add_argument('--behavior_cloning_epochs',
+                    action='store',
+                    type=int,
+                    default=1,
+                    help='Set the number of training epochs with behavior cloning. Default is 1.')
 parser.add_argument('--load_demonstrations_replay_buffer_path',
                     type=str,
                     help='Path where the replay buffer with the demonstrations to be loaded is located.')
@@ -515,84 +534,124 @@ if args.test_model:
             writer.release()
     print("Reward:", episode_reward)
 else:
-    if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
-        or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
-        or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space) \
-            and len(args.icub_observation_space) == 1:
-        model = SAC("MlpPolicy",
-                    iCub,
-                    verbose=1,
-                    tensorboard_log=args.tensorboard_dir,
-                    policy_kwargs=dict(net_arch=args.net_arch),
-                    train_freq=args.train_freq,
-                    learning_starts=args.learning_starts,
-                    create_eval_env=True,
-                    buffer_size=args.buffer_size,
-                    device=args.training_device,
-                    curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps,
-                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
-    elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
-        model = SAC("CnnPolicy",
-                    iCub,
-                    verbose=1,
-                    tensorboard_log=args.tensorboard_dir,
-                    policy_kwargs=dict(net_arch=args.net_arch),
-                    train_freq=args.train_freq,
-                    learning_starts=args.learning_starts,
-                    create_eval_env=True,
-                    buffer_size=args.buffer_size,
-                    device=args.training_device,
-                    curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps,
-                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
-    elif ('camera' in args.icub_observation_space
-          or 'joints' in args.icub_observation_space
-          or 'cartesian' in args.icub_observation_space
-          or 'features' in args.icub_observation_space
-          or 'touch' in args.icub_observation_space
-          or 'flare' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
-        model = SAC("MultiInputPolicy",
-                    iCub,
-                    verbose=1,
-                    tensorboard_log=args.tensorboard_dir,
-                    policy_kwargs=dict(net_arch=args.net_arch),
-                    train_freq=args.train_freq,
-                    learning_starts=args.learning_starts,
-                    create_eval_env=True,
-                    buffer_size=args.buffer_size,
-                    device=args.training_device,
-                    curriculum_learning=args.curriculum_learning,
-                    curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
-                    learning_from_demonstration=args.learning_from_demonstration,
-                    max_lfd_steps=args.max_lfd_steps,
-                    lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
-    else:
-        raise ValueError('The observation space specified as argument is not valid. Quitting.')
+    if not args.train_with_behavior_cloning:
+        if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
+            or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
+            or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space) \
+                and len(args.icub_observation_space) == 1:
+            model = SAC("MlpPolicy",
+                        iCub,
+                        verbose=1,
+                        tensorboard_log=args.tensorboard_dir,
+                        policy_kwargs=dict(net_arch=args.net_arch),
+                        train_freq=args.train_freq,
+                        learning_starts=args.learning_starts,
+                        create_eval_env=True,
+                        buffer_size=args.buffer_size,
+                        device=args.training_device,
+                        curriculum_learning=args.curriculum_learning,
+                        curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                        learning_from_demonstration=args.learning_from_demonstration,
+                        max_lfd_steps=args.max_lfd_steps,
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+        elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
+            model = SAC("CnnPolicy",
+                        iCub,
+                        verbose=1,
+                        tensorboard_log=args.tensorboard_dir,
+                        policy_kwargs=dict(net_arch=args.net_arch),
+                        train_freq=args.train_freq,
+                        learning_starts=args.learning_starts,
+                        create_eval_env=True,
+                        buffer_size=args.buffer_size,
+                        device=args.training_device,
+                        curriculum_learning=args.curriculum_learning,
+                        curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                        learning_from_demonstration=args.learning_from_demonstration,
+                        max_lfd_steps=args.max_lfd_steps,
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+        elif ('camera' in args.icub_observation_space
+              or 'joints' in args.icub_observation_space
+              or 'cartesian' in args.icub_observation_space
+              or 'features' in args.icub_observation_space
+              or 'touch' in args.icub_observation_space
+              or 'flare' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
+            model = SAC("MultiInputPolicy",
+                        iCub,
+                        verbose=1,
+                        tensorboard_log=args.tensorboard_dir,
+                        policy_kwargs=dict(net_arch=args.net_arch),
+                        train_freq=args.train_freq,
+                        learning_starts=args.learning_starts,
+                        create_eval_env=True,
+                        buffer_size=args.buffer_size,
+                        device=args.training_device,
+                        curriculum_learning=args.curriculum_learning,
+                        curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                        learning_from_demonstration=args.learning_from_demonstration,
+                        max_lfd_steps=args.max_lfd_steps,
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+        else:
+            raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
-    if args.load_replay_buffer:
-        if args.load_replay_buffer_path:
+        if args.load_replay_buffer:
             model.load_replay_buffer(args.load_replay_buffer_path)
-        else:
-            model.load_replay_buffer('replay_buffer')
 
-    if args.train_with_two_replay_buffers:
-        if args.load_demonstrations_replay_buffer_path:
+        if args.train_with_two_replay_buffers:
             model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
-        else:
-            model.load_demonstrations_replay_buffer('replay_buffer')
 
-    model.learn(total_timesteps=args.total_training_timesteps,
-                eval_freq=args.eval_freq,
-                eval_env=iCub,
-                eval_log_path=args.eval_dir)
+        model.learn(total_timesteps=args.total_training_timesteps,
+                    eval_freq=args.eval_freq,
+                    eval_env=iCub,
+                    eval_log_path=args.eval_dir)
 
-    if args.save_replay_buffer:
-        if args.save_replay_buffer_path:
+        if args.save_replay_buffer:
             model.save_replay_buffer(args.save_replay_buffer_path)
-        else:
-            model.save_replay_buffer('replay_buffer')
+    else:
+        # Load replay buffer and adapt it to the format required for behavior cloning
+        rb = load_from_pkl(args.load_replay_buffer_path)
+        total_obs_size = 0
+        for obs_key in rb.observations.keys():
+            total_obs_size += rb.observations[obs_key][0].squeeze().size
+        transitions_obs = np.empty((rb.buffer_size, total_obs_size))
+        transitions_next_obs = np.empty((rb.buffer_size, total_obs_size))
+        obs_start_id = 0
+        lows_obs_space = np.empty((0,))
+        highs_obs_space = np.empty((0,))
+        for obs_key in rb.observations.keys():
+            obs_end_id = obs_start_id + rb.observations[obs_key][0].squeeze().size
+            transitions_obs[:, obs_start_id:obs_end_id] = rb.observations[obs_key].squeeze()
+            transitions_next_obs[:, obs_start_id:obs_end_id] = rb.next_observations[obs_key].squeeze()
+            obs_start_id = obs_end_id
+            lows_obs_space = np.concatenate((lows_obs_space, rb.observation_space[obs_key].low.squeeze()))
+            highs_obs_space = np.concatenate((highs_obs_space, rb.observation_space[obs_key].high.squeeze()))
+
+        transitions = Transitions(obs=transitions_obs,
+                                  acts=rb.actions,
+                                  infos=np.array([{}] * rb.buffer_size),
+                                  next_obs=transitions_next_obs,
+                                  dones=rb.dones.squeeze().astype(bool))
+        obs_space = gym.spaces.Box(low=lows_obs_space, high=highs_obs_space)
+        action_space = rb.action_space
+
+        # Refer to https://github.com/HumanCompatibleAI/imitation/blob/master/src/imitation/algorithms/bc.py#L324 for
+        # lr_schedule setting
+        policy = policies.ActorCriticPolicy(observation_space=obs_space,
+                                            action_space=action_space,
+                                            net_arch=args.net_arch,
+                                            # Set lr_schedule to max value to force error if policy.optimizer
+                                            # is used by mistake (should use self.optimizer instead).
+                                            lr_schedule=lambda _: torch.finfo(torch.float32).max)
+
+        # Initialize the trainer
+        bc_trainer = bc.BC(
+            observation_space=obs_space,
+            action_space=action_space,
+            demonstrations=transitions,
+            policy=policy
+        )
+
+        bc_trainer.train(n_epochs=args.behavior_cloning_epochs)
+
+        reward, _ = evaluate_policy_bc(bc_trainer.policy, env=iCub, n_eval_episodes=100, render=False)
+        print(f"Reward after training: {reward}")
