@@ -8,6 +8,8 @@ import yaml
 from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
 from icub_mujoco.feature_extractors.images_feature_extractor_CLIP import ImagesFeatureExtractorCLIP
 from icub_mujoco.feature_extractors.images_feature_extractor_moco import ImagesFeatureExtractorMOCO
+from icub_mujoco.feature_extractors.images_depth_feature_extractor_densefusion \
+    import ImagesDepthFeatureExtractorDenseFusion
 from pyquaternion import Quaternion
 
 
@@ -113,13 +115,16 @@ class ICubEnv(gym.Env):
 
         # Set environment and task parameters
         self.icub_observation_space = icub_observation_space
+        self.feature_extractor_model_name = feature_extractor_model_name
         if 'features' in icub_observation_space or 'flare' in icub_observation_space:
-            if 'CLIP' in feature_extractor_model_name:
-                self.feature_extractor = ImagesFeatureExtractorCLIP(model_name=feature_extractor_model_name)
-            elif 'moco' in feature_extractor_model_name:
-                self.feature_extractor = ImagesFeatureExtractorMOCO(model_name=feature_extractor_model_name)
+            if 'CLIP' in self.feature_extractor_model_name:
+                self.feature_extractor = ImagesFeatureExtractorCLIP(model_name=self.feature_extractor_model_name)
+            elif 'moco' in self.feature_extractor_model_name:
+                self.feature_extractor = ImagesFeatureExtractorMOCO(model_name=self.feature_extractor_model_name)
+            elif 'densefusion' in self.feature_extractor_model_name:
+                self.feature_extractor = ImagesDepthFeatureExtractorDenseFusion()
             else:
-                self.feature_extractor = ImagesFeatureExtractor(model_name=feature_extractor_model_name)
+                self.feature_extractor = ImagesFeatureExtractor(model_name=self.feature_extractor_model_name)
         self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
@@ -823,18 +828,56 @@ class ICubEnv(gym.Env):
                              Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
                                                           (3, 3)), atol=1e-05).q))[self.cartesian_ids]
                 elif space == 'features':
-                    obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
-                                                                                     width=640,
-                                                                                     camera_id=self.obs_camera))
+                    if 'densefusion' in self.feature_extractor_model_name:
+                        obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
+                                                                                         width=640,
+                                                                                         camera_id=self.obs_camera),
+                                                                 self.env.physics.render(height=480,
+                                                                                         width=640,
+                                                                                         camera_id=self.obs_camera,
+                                                                                         depth=True),
+                                                                 self.env.physics.render(height=480,
+                                                                                         width=640,
+                                                                                         camera_id=self.obs_camera,
+                                                                                         segmentation=True),
+                                                                 self.env.physics.model.name2id(self.objects[0] +
+                                                                                                "/mesh_" +
+                                                                                                self.objects[0] +
+                                                                                                "_00_visual",
+                                                                                                'geom'))
+
+                    else:
+                        obs['features'] = self.feature_extractor(self.env.physics.render(height=480,
+                                                                                         width=640,
+                                                                                         camera_id=self.obs_camera))
                 elif space == 'touch':
                     self.compute_num_fingers_touching_object()
                     obs['touch'] = np.zeros(len(self.contact_geom_ids_fingers_meshes))
                     for finger in self.fingers_touching_object:
                         obs['touch'][self.contact_geom_fingers_names.index(finger)] = 1.0
                 elif space == 'flare':
-                    features = self.feature_extractor(self.env.physics.render(height=480,
-                                                                              width=640,
-                                                                              camera_id=self.obs_camera))
+                    if 'densefusion' in self.feature_extractor_model_name:
+                        features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                                  width=640,
+                                                                                  camera_id=self.obs_camera),
+                                                          self.env.physics.render(height=480,
+                                                                                  width=640,
+                                                                                  camera_id=self.obs_camera,
+                                                                                  depth=True),
+                                                          self.env.physics.render(height=480,
+                                                                                  width=640,
+                                                                                  camera_id=self.obs_camera,
+                                                                                  segmentation=True),
+                                                          self.env.physics.model.name2id(self.objects[0] +
+                                                                                         "/mesh_" +
+                                                                                         self.objects[0] +
+                                                                                         "_00_visual",
+                                                                                         'geom'))
+
+                    else:
+                        features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                                  width=640,
+                                                                                  camera_id=self.obs_camera))
                     if self.steps == 0:
                         self.flare_features = [features,
                                                np.zeros(features.shape),
@@ -879,7 +922,28 @@ class ICubEnv(gym.Env):
                                        Quaternion(matrix=np.reshape(self.env.physics.named.data.xmat[self.eef_name],
                                                                     (3, 3)), atol=1e-05).q))[self.cartesian_ids]
         elif 'features' in self.icub_observation_space and len(self.icub_observation_space) == 1:
-            return self.feature_extractor(self.env.physics.render(height=480, width=640, camera_id=self.obs_camera))
+            if 'densefusion' in self.feature_extractor_model_name:
+                features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera),
+                                                  self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera,
+                                                                          depth=True),
+                                                  self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera,
+                                                                          segmentation=True),
+                                                  self.env.physics.model.name2id(self.objects[0] +
+                                                                                 "/mesh_" +
+                                                                                 self.objects[0] +
+                                                                                 "_00_visual",
+                                                                                 'geom'))
+            else:
+                features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera))
+            return features
         elif 'touch' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.compute_num_fingers_touching_object()
             obs = np.zeros(len(self.contact_geom_ids_fingers_meshes))
@@ -887,9 +951,27 @@ class ICubEnv(gym.Env):
                 obs[self.contact_geom_fingers_names.index(finger)] = 1.0
             return obs
         elif 'flare' in self.icub_observation_space and len(self.icub_observation_space) == 1:
-            features = self.feature_extractor(self.env.physics.render(height=480,
-                                                                      width=640,
-                                                                      camera_id=self.obs_camera))
+            if 'densefusion' in self.feature_extractor_model_name:
+                features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera),
+                                                  self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera,
+                                                                          depth=True),
+                                                  self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera,
+                                                                          segmentation=True),
+                                                  self.env.physics.model.name2id(self.objects[0] +
+                                                                                 "/mesh_" +
+                                                                                 self.objects[0] +
+                                                                                 "_00_visual",
+                                                                                 'geom'))
+            else:
+                features = self.feature_extractor(self.env.physics.render(height=480,
+                                                                          width=640,
+                                                                          camera_id=self.obs_camera))
             if self.steps == 0:
                 self.flare_features = [features,
                                        np.zeros(features.shape),
