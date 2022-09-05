@@ -283,6 +283,9 @@ parser.add_argument('--lfd_keep_only_successful_episodes',
 parser.add_argument('--lfd_with_approach',
                     action='store_true',
                     help='Set if the approach to the object is included in the learning from demonstration phase.')
+parser.add_argument('--approach_in_reset_model',
+                    action='store_true',
+                    help='Approach the object when resetting the model.')
 parser.add_argument('--pregrasp_distance_from_grasp_pose',
                     action='store',
                     type=float,
@@ -434,6 +437,7 @@ elif args.task == 'refine_grasp':
                               max_lfd_steps=args.max_lfd_steps,
                               lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                               lfd_with_approach=args.lfd_with_approach,
+                              approach_in_reset_model=args.approach_in_reset_model,
                               pregrasp_distance_from_grasp_pose=args.pregrasp_distance_from_grasp_pose,
                               max_delta_qpos=args.max_delta_qpos,
                               max_delta_cartesian_pos=args.max_delta_cartesian_pos,

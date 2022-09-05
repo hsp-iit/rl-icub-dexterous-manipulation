@@ -64,7 +64,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.000000000e+00]])
         self.inv_r_hand_to_r_hand_dh_frame = np.linalg.inv(np.array(self.r_hand_to_r_hand_dh_frame))
 
-    def step(self, action):
+    def step(self, action, increase_steps=True):
         if self.control_gaze:
             neck_qpos = self.gaze_controller.gaze_control(self.fixation_point,
                                                           self.env.physics.named.data.qpos['neck_pitch'],
@@ -72,9 +72,11 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                           self.env.physics.named.data.qpos['neck_yaw'],
                                                           self.env.physics.named.data.xpos['chest'],
                                                           self.env.physics.named.data.xmat['chest'])
-        if self.learning_from_demonstration:
-            if self.lfd_steps <= self.learning_from_demonstration_max_steps:
-                self.lfd_steps += 1
+        if self.learning_from_demonstration or (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
+            if self.lfd_steps <= self.learning_from_demonstration_max_steps or \
+                    (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
+                if increase_steps:
+                    self.lfd_steps += 1
                 action = self.collect_demonstrations()
                 action_lfd = action
             else:
@@ -186,7 +188,7 @@ class ICubEnvRefineGrasp(ICubEnv):
             if not done_ik:
                 target[self.actuators_to_control_ik_ids] = qpos_ik
         self.prev_obj_zpos = self.env.physics.data.qpos[self.joint_ids_objects[2]]
-        self.do_simulation(target, self.frame_skip)
+        self.do_simulation(target, self.frame_skip, increase_steps=increase_steps)
         if self.done_if_joints_out_of_limits:
             done_limits = len(self.joints_out_of_range()) > 0
         else:
@@ -459,6 +461,10 @@ class ICubEnvRefineGrasp(ICubEnv):
                     else:
                         superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
                     self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
+                if self.approach_in_reset_model:
+                    self.lfd_stage = 'approach_object'
+                    while self.lfd_stage == 'approach_object':
+                        self.step(action=None, increase_steps=False)
             else:
                 # Initial reset, just need to return the observation
                 break
