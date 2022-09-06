@@ -463,8 +463,9 @@ class ICubEnvRefineGrasp(ICubEnv):
                     self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
                 if self.approach_in_reset_model:
                     self.lfd_stage = 'approach_object'
-                    while self.lfd_stage == 'approach_object':
-                        self.step(action=None, increase_steps=False)
+                    done = False
+                    while self.lfd_stage == 'approach_object' and not done:
+                        _, _, done, _ = self.step(action=None, increase_steps=False)
             else:
                 # Initial reset, just need to return the observation
                 break
