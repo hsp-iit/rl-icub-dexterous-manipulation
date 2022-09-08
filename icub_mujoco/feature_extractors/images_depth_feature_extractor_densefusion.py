@@ -165,6 +165,8 @@ class ImagesDepthFeatureExtractorDenseFusion:
         mask_label = mask[:, :, 0] == obj_segm_id
         mask = mask_depth * mask_label
         ids = np.where(mask_label == 1)
+        if len(ids[0]) <= 1:
+            return torch.zeros((1, 470), dtype=torch.float32)
         rmin = min(ids[0])
         rmax = max(ids[0])
         cmin = min(ids[1])
