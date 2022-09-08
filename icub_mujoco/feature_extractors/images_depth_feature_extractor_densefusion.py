@@ -171,6 +171,8 @@ class ImagesDepthFeatureExtractorDenseFusion:
         rmax = max(ids[0])
         cmin = min(ids[1])
         cmax = max(ids[1])
+        if rmin == rmax or cmin == cmax:
+            return torch.zeros((1, 470), dtype=torch.float32)
         choose = mask[rmin:rmax, cmin:cmax].flatten().nonzero()[0]
         if len(choose) > self.num_points:
             c_mask = np.zeros(len(choose), dtype=int)
