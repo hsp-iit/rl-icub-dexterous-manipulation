@@ -15,7 +15,7 @@ class SuperquadricEstimator:
         self.vector_superquadric = self.sb.vector_superquadric
         self.distance_from_grasp_pose_disanced_position = distance_from_grasp_pose_disanced_position
 
-    def compute_grasp_pose_superquadrics(self, pcd, object_class="default", plane_height=0.05):
+    def compute_grasp_pose_superquadrics(self, pcd, object_class="default", plane_height=0.05, height_icub_root=1.0):
         pointcloud = self.sb.PointCloud()
         points = self.sb.deque_Vector3d()
         colors = self.sb.vector_vector_uchar()
@@ -32,7 +32,7 @@ class SuperquadricEstimator:
         # Compute superquadric
         sq_vec = self.vector_superquadric(self.sq_estimator.computeSuperq(pointcloud))
         sq_center = sq_vec.front().center[0]
-        sq_center[2] += 1.0
+        sq_center[2] += height_icub_root
         # Compute grasp pose
         displacements = [np.array([0.02, 0.0, 0.0]), np.array([0.0, 0.02, 0.0]), np.array([0.0, 0.0, 0.02])]
         best_grasp_pose_to_ret = None
@@ -41,7 +41,7 @@ class SuperquadricEstimator:
             self.grasp_estimator.setVector('displacement', displacement)
             grasp_res_hand = self.grasp_estimator.computeGraspPoses(sq_vec)
             best_grasp_position = grasp_res_hand.grasp_poses.front().position[0]
-            best_grasp_position[2] += 1.0
+            best_grasp_position[2] += height_icub_root
             update_pose = False
             if best_grasp_pose_to_ret is None:
                 update_pose = True
