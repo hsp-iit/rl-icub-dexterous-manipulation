@@ -179,6 +179,8 @@ class ImagesDepthFeatureExtractorDenseFusion:
             c_mask[:self.num_points] = 1
             np.random.shuffle(c_mask)
             choose = choose[c_mask.nonzero()]
+        elif len(choose) == 0:
+            return torch.zeros((1, 470), dtype=torch.float32)
         else:
             choose = np.pad(choose, (0, self.num_points - len(choose)), 'wrap')
 
