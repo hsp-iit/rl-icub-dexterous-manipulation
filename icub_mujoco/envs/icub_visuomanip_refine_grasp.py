@@ -289,7 +289,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                 segm = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera,
                                                segmentation=True)
                 ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
-                               len(self.env.physics.model.geom_pos) - 2)
+                               self.env.physics.model.name2id(self.object_visual_mesh_name, 'geom'))
                 pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
                 self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
                 if self.superq_pose['position'][0] == 0.00:

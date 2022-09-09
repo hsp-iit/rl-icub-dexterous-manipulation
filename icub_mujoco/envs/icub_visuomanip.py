@@ -104,6 +104,8 @@ class ICubEnv(gym.Env):
         self.objects_quaternions = objects_quaternions
         self.randomly_rotate_object_z_axis = randomly_rotate_object_z_axis
         self.objects = objects
+        if len(self.objects) == 1:
+            self.object_visual_mesh_name = None
         self.moved_object_height = 0.98
         self.add_ycb_video_objects(self.objects, remove_last_object=False)
         self.track_object = track_object
@@ -138,7 +140,7 @@ class ICubEnv(gym.Env):
         self.null_reward_out_image = null_reward_out_image
         self.lift_object_height = lift_object_height
         if random_ycb_video_graspable_object:
-            print('The value of lift_object_height will be overwritten whenever a new object will be added to the'
+            print('The value of lift_object_height will be overwritten whenever a new object will be added to the '
                   'environment.')
         self.curriculum_learning = curriculum_learning
 
@@ -511,7 +513,7 @@ class ICubEnv(gym.Env):
                 if geom.mesh.name in self.contact_geom_ids_fingers_meshes.keys():
                     self.contact_geom_ids_fingers_meshes[geom.mesh.name] = \
                         self.env.physics.model.name2id(geom.full_identifier, 'geom')
-            if geom.name == 'mesh_' + self.objects[0] + '_00_collision':
+            if self.objects[0] in geom.full_identifier and '_collision' in geom.full_identifier:
                 self.contact_geom_ids_objects_meshes[geom.name] = \
                     self.env.physics.model.name2id(geom.full_identifier, 'geom')
         self.number_of_contacts = 0
@@ -1040,6 +1042,18 @@ class ICubEnv(gym.Env):
                 self.init_qpos[self.joint_ids_icub_free][3:7]
         self.set_state(np.concatenate([self.init_qpos.copy(), self.init_qvel.copy(), self.env.physics.data.act]))
         self.env.physics.forward()
+        if len(self.objects) == 1:
+            # Update visual meshes for visual information computation
+            for geom in self.world_entity.mjcf_model.find_all('geom'):
+                geom_name = geom.full_identifier
+                if self.objects[0] in geom_name and 'visual' in geom_name:
+                    self.object_visual_mesh_name = geom_name
+            # Update collision meshes for tactile information computation
+            self.contact_geom_ids_objects_meshes = {}
+            for geom in self.world_entity.mjcf_model.find_all('geom'):
+                if self.objects[0] in geom.full_identifier and '_collision' in geom.full_identifier:
+                    self.contact_geom_ids_objects_meshes[geom.name] = \
+                        self.env.physics.model.name2id(geom.full_identifier, 'geom')
         return self._get_obs()
 
     def joints_out_of_range(self):
@@ -1215,8 +1229,7 @@ class ICubEnv(gym.Env):
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
                         self.contact_geom_ids_fingers_meshes.values()).index(contact['geom2'])]))
-                self.number_of_contacts += 1
-        self.number_of_contacts = len(self.fingers_touching_object)
+        self.number_of_contacts = len(set(self.fingers_touching_object))
         return self.number_of_contacts
 
     @staticmethod
