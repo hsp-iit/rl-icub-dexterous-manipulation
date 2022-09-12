@@ -72,7 +72,9 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                           self.env.physics.named.data.qpos['neck_yaw'],
                                                           self.env.physics.named.data.xpos['chest'],
                                                           self.env.physics.named.data.xmat['chest'])
-        if self.learning_from_demonstration or (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
+        if self.learning_from_demonstration or \
+                ((self.approach_in_reset_model or self.curriculum_learning_approach_object)
+                 and self.lfd_stage == 'approach_object'):
             if self.lfd_steps <= self.learning_from_demonstration_max_steps or \
                     (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
                 if increase_steps:
@@ -461,10 +463,17 @@ class ICubEnvRefineGrasp(ICubEnv):
                     else:
                         superq_center_in_dh_frame = self.point_in_r_hand_dh_frame(self.superq_pose['superq_center'])
                     self.prev_dist_superq_center = np.linalg.norm(superq_center_in_dh_frame[:2])
-                if self.approach_in_reset_model:
+                if self.approach_in_reset_model or self.curriculum_learning_approach_object:
                     self.lfd_stage = 'approach_object'
                     done = False
                     while self.lfd_stage == 'approach_object' and not done:
+                        if self.curriculum_learning_approach_object:
+                            if self.lfd_approach_object_step / self.lfd_approach_object_max_steps > \
+                                    1 - self.total_steps / 1000:
+                                self.lfd_stage = 'close_hand'
+                                self.lfd_approach_object_step = 0
+                                self.lfd_approach_position = None
+                                break
                         _, _, done, _ = self.step(action=None, increase_steps=False)
             else:
                 # Initial reset, just need to return the observation

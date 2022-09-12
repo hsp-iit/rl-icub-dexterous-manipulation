@@ -167,7 +167,10 @@ parser.add_argument('--track_object',
                     help='Set the target of the tracking camera to the object, instead of the default r_hand')
 parser.add_argument('--curriculum_learning',
                     action='store_true',
-                    help='Use curriculum learning for joints offsets.')
+                    help='Use curriculum learning for joints/cartesian offsets.')
+parser.add_argument('--curriculum_learning_approach_object',
+                    action='store_true',
+                    help='Use curriculum learning in the distance of the pre-grasp pose from the object.')
 parser.add_argument('--superquadrics_camera',
                     type=str,
                     default='head_cam',
@@ -308,7 +311,8 @@ parser.add_argument('--max_delta_cartesian_rot',
                     help='Set max delta rot for cartesian control. Default is 0.1.')
 parser.add_argument('--distanced_superq_grasp_pose',
                     action='store_true',
-                    help='Use curriculum learning for joints offsets.')
+                    help='Start the refine grasping task from a pre-grasp pose distanced '
+                         '--pregrasp_distance_from_grasp_pose from the desired grasp pose.')
 parser.add_argument('--control_gaze',
                     action='store_true',
                     help='Set if using gaze control.')
@@ -433,6 +437,7 @@ elif args.task == 'refine_grasp':
                               do_not_consider_done_z_pos=args.do_not_consider_done_z_pos,
                               lift_object_height=args.lift_object_height,
                               curriculum_learning=args.curriculum_learning,
+                              curriculum_learning_approach_object=args.curriculum_learning_approach_object,
                               learning_from_demonstration=args.learning_from_demonstration,
                               max_lfd_steps=args.max_lfd_steps,
                               lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,

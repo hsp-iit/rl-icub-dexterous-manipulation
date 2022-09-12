@@ -52,6 +52,7 @@ class ICubEnv(gym.Env):
                  do_not_consider_done_z_pos=False,
                  lift_object_height=1.02,
                  curriculum_learning=False,
+                 curriculum_learning_approach_object=False,
                  learning_from_demonstration=False,
                  max_lfd_steps=10000,
                  max_delta_qpos=0.1,
@@ -130,6 +131,7 @@ class ICubEnv(gym.Env):
         self.random_initial_pos = random_initial_pos
         self.frame_skip = frame_skip
         self.steps = 0
+        self.total_steps = 0
         self._max_episode_steps = 2000
         self.render_cameras = render_cameras
         self.obs_camera = obs_camera
@@ -143,6 +145,7 @@ class ICubEnv(gym.Env):
             print('The value of lift_object_height will be overwritten whenever a new object will be added to the '
                   'environment.')
         self.curriculum_learning = curriculum_learning
+        self.curriculum_learning_approach_object = curriculum_learning_approach_object
 
         # Set if using the original superquadric grasp pose or the distanced pose
         self.distanced_superq_grasp_pose = distanced_superq_grasp_pose
@@ -770,6 +773,7 @@ class ICubEnv(gym.Env):
         self.actuators_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def reset(self):
+        self.total_steps += self.steps
         self.steps = 0
         ob = self.reset_model()
         return ob
