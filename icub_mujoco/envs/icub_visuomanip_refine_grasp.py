@@ -469,7 +469,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                     while self.lfd_stage == 'approach_object' and not done:
                         if self.curriculum_learning_approach_object:
                             if self.lfd_approach_object_step / self.lfd_approach_object_max_steps > \
-                                    1 - self.total_steps / 1000:
+                                    1 - self.total_steps / 1000000:
                                 self.lfd_stage = 'close_hand'
                                 self.lfd_approach_object_step = 0
                                 self.lfd_approach_position = None
