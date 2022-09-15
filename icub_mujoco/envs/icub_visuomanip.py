@@ -45,6 +45,7 @@ class ICubEnv(gym.Env):
                  reward_single_step_multiplier=10.0,
                  reward_dist_superq_center=False,
                  rotated_dist_superq_center=False,
+                 reward_line_pregrasp_superq_center=False,
                  goal_reached_only_with_lift_refine_grasp=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
@@ -572,6 +573,7 @@ class ICubEnv(gym.Env):
         self.reward_end_timesteps = reward_end_timesteps
         self.reward_dist_superq_center = reward_dist_superq_center
         self.rotated_dist_superq_center = rotated_dist_superq_center
+        self.reward_line_pregrasp_superq_center = reward_line_pregrasp_superq_center
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
 
         # Reset environment
