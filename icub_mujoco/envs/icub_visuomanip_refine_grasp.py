@@ -33,6 +33,7 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.prev_dist_superq_center = None
         self.prev_dist_line_superq_center = None
+        self.prev_dist_superq_grasp_position = None
 
         self.superq_pose = None
         self.superq_position = None
@@ -271,6 +272,12 @@ class ICubEnvRefineGrasp(ICubEnv):
             delta_dist_line_superq_center = self.prev_dist_line_superq_center - current_dist_line_superq_center
             self.prev_dist_line_superq_center = current_dist_line_superq_center
             reward += delta_dist_line_superq_center * 100
+        if self.reward_dist_original_superq_grasp_position and not self.already_touched_with_2_fingers:
+            current_dist_superq_grasp_position = np.linalg.norm(
+                self.env.physics.named.data.xpos['r_hand_dh_frame'] - self.superq_pose['original_position'])
+            delta_dist_superq_grasp_position = self.prev_dist_superq_grasp_position - current_dist_superq_grasp_position
+            self.prev_dist_superq_grasp_position = current_dist_superq_grasp_position
+            reward += delta_dist_superq_grasp_position * 100
         if done_goal:
             reward += self.reward_goal
         return reward
@@ -310,6 +317,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                 # Use distanced superq pose if required and if not in the learning from demonstration phase
                 if self.distanced_superq_grasp_pose and (
                         not self.learning_from_demonstration or self.lfd_with_approach):
+                    self.superq_pose['original_position'] = self.superq_pose['position'].copy()
                     self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
                 if self.cartesian_orientation == 'ypr':
                     self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
@@ -477,6 +485,9 @@ class ICubEnvRefineGrasp(ICubEnv):
                         self.point_to_line_distance(self.env.physics.named.data.xpos['r_hand_dh_frame'],
                                                     self.superq_pose['superq_center'],
                                                     self.superq_pose['distanced_grasp_position'])
+                if self.reward_dist_original_superq_grasp_position:
+                    self.prev_dist_superq_grasp_position = np.linalg.norm(
+                        self.env.physics.named.data.xpos['r_hand_dh_frame'] - self.superq_pose['original_position'])
                 if self.approach_in_reset_model or self.curriculum_learning_approach_object:
                     self.lfd_stage = 'approach_object'
                     done = False
