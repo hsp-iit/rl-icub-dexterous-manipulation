@@ -6,7 +6,8 @@ import icub
 class IKinIK:
 
     def __init__(self,
-                 joints_to_control_names):
+                 joints_to_control_names,
+                 real_robot_limits=False):
 
         self.arm_chain = icub.iCubArm('right_v2.5')
         icub.iCubAdditionalArmConstraints(self.arm_chain)
@@ -22,10 +23,53 @@ class IKinIK:
 
         # Initialize arm and solver
         self.chain = icub.iKinChain(self.arm_chain)
+        if real_robot_limits:
+            self.set_real_robot_arm_chain_link_limits()
         self.solver = icub.iKinIpOptMin(self.chain, 0, 1e-2, 1e-2, 5000, verbose=0)
 
         # Initialize variable to store solutions at the previous step
         self.prev_sol = None
+
+    def set_real_robot_arm_chain_link_limits(self):
+        # Torso limits from https://github.com/robotology/robots-configuration/blob/
+        # master/iCubGenova01/hardware/motorControl/icub_torso.xml
+        # Arm limits from https://github.com/robotology/robots-configuration/blob/
+        # master/iCubGenova01/hardware/motorControl/icub_right_arm.xml
+        deg2rad = np.pi / 180
+        tot_torso_joints = 0
+        if 'torso_pitch' in self.joints_to_control_names:
+            self.chain.access(0).setMin(-22 * deg2rad)
+            self.chain.access(0).setMax(70 * deg2rad)
+            tot_torso_joints += 1
+        if 'torso_roll' in self.joints_to_control_names:
+            self.chain.access(tot_torso_joints).setMin(-30 * deg2rad)
+            self.chain.access(tot_torso_joints).setMax(30 * deg2rad)
+            tot_torso_joints += 1
+        if 'torso_yaw' in self.joints_to_control_names:
+            self.chain.access(tot_torso_joints).setMin(-50 * deg2rad)
+            self.chain.access(tot_torso_joints).setMax(50 * deg2rad)
+            tot_torso_joints += 1
+        # r_shoulder_pitch
+        self.chain.access(tot_torso_joints).setMin(-95.5 * deg2rad)
+        self.chain.access(tot_torso_joints).setMax(10 * deg2rad)
+        # r_shoulder_roll
+        self.chain.access(tot_torso_joints + 1).setMin(0 * deg2rad)
+        self.chain.access(tot_torso_joints + 1).setMax(161 * deg2rad)
+        # r_shoulder_yaw
+        self.chain.access(tot_torso_joints + 2).setMin(-30 * deg2rad)
+        self.chain.access(tot_torso_joints + 2).setMax(75 * deg2rad)
+        # r_elbow
+        self.chain.access(tot_torso_joints + 3).setMin(15 * deg2rad)
+        self.chain.access(tot_torso_joints + 3).setMax(106 * deg2rad)
+        # r_wrist_prosup
+        self.chain.access(tot_torso_joints + 4).setMin(-60 * deg2rad)
+        self.chain.access(tot_torso_joints + 4).setMax(60 * deg2rad)
+        # r_wrist_pitch
+        self.chain.access(tot_torso_joints + 5).setMin(-80 * deg2rad)
+        self.chain.access(tot_torso_joints + 5).setMax(25 * deg2rad)
+        # r_wrist_yaw
+        self.chain.access(tot_torso_joints + 6).setMin(-20 * deg2rad)
+        self.chain.access(tot_torso_joints + 6).setMax(25 * deg2rad)
 
     def solve_ik(self,
                  eef_pos=None,

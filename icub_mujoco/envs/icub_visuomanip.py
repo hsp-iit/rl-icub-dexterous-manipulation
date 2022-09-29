@@ -55,6 +55,8 @@ class ICubEnv(gym.Env):
                  lift_object_height=1.02,
                  curriculum_learning=False,
                  curriculum_learning_approach_object=False,
+                 curriculum_learning_approach_object_start_step=0,
+                 curriculum_learning_approach_object_end_step=1000000,
                  learning_from_demonstration=False,
                  max_lfd_steps=10000,
                  max_delta_qpos=0.1,
@@ -148,6 +150,8 @@ class ICubEnv(gym.Env):
                   'environment.')
         self.curriculum_learning = curriculum_learning
         self.curriculum_learning_approach_object = curriculum_learning_approach_object
+        self.curriculum_learning_approach_object_start_step = curriculum_learning_approach_object_start_step
+        self.curriculum_learning_approach_object_end_step = curriculum_learning_approach_object_end_step
 
         # Set if using the original superquadric grasp pose or the distanced pose
         self.distanced_superq_grasp_pose = distanced_superq_grasp_pose

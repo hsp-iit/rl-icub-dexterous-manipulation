@@ -492,13 +492,29 @@ class ICubEnvRefineGrasp(ICubEnv):
                     self.lfd_stage = 'approach_object'
                     done = False
                     while self.lfd_stage == 'approach_object' and not done:
-                        if self.curriculum_learning_approach_object:
-                            if self.lfd_approach_object_step / self.lfd_approach_object_max_steps > \
-                                    1 - self.total_steps / 1000000:
+                        if self.curriculum_learning_approach_object and \
+                                self.total_steps < self.curriculum_learning_approach_object_start_step:
+                            if self.lfd_approach_object_step == self.lfd_approach_object_max_steps:
                                 self.lfd_stage = 'close_hand'
                                 self.lfd_approach_object_step = 0
                                 self.lfd_approach_position = None
                                 break
+                        elif self.curriculum_learning_approach_object and \
+                                self.total_steps < self.curriculum_learning_approach_object_end_step:
+                            if self.lfd_approach_object_step / self.lfd_approach_object_max_steps > \
+                                    1 - (self.total_steps - self.curriculum_learning_approach_object_start_step) / \
+                                    (self.curriculum_learning_approach_object_end_step
+                                     - self.curriculum_learning_approach_object_start_step):
+                                self.lfd_stage = 'close_hand'
+                                self.lfd_approach_object_step = 0
+                                self.lfd_approach_position = None
+                                break
+                        elif self.curriculum_learning_approach_object and \
+                                self.total_steps >= self.curriculum_learning_approach_object_end_step:
+                            self.lfd_stage = 'close_hand'
+                            self.lfd_approach_object_step = 0
+                            self.lfd_approach_position = None
+                            break
                         _, _, done, _ = self.step(action=None, increase_steps=False)
             else:
                 # Initial reset, just need to return the observation
