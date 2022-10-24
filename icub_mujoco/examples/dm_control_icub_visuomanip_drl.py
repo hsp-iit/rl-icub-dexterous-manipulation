@@ -250,7 +250,8 @@ parser.add_argument('--training_components',
                     nargs='+',
                     default=[],
                     help='Specify the joints that must be trained. Choose values in r_arm, l_arm, r_wrist, l_wrist, '
-                         'r_hand, l_hand, neck, torso, torso_yaw or all to train all the joints.')
+                         'r_hand, l_hand, r_hand_no_thumb_oppose, l_hand_no_thumb_oppose, neck, torso, torso_yaw or '
+                         'all to train all the joints.')
 parser.add_argument('--ik_components',
                     type=str,
                     nargs='+',

@@ -169,10 +169,14 @@ class ICubEnv(gym.Env):
         if 'cartesian' in self.icub_observation_space:
             self.training_components = []
             for tr_component in training_components:
-                if 'r_hand' in tr_component:
+                if tr_component == 'r_hand':
                     self.training_components.append('r_hand')
-                elif 'l_hand' in tr_component:
+                elif tr_component == 'l_hand':
                     self.training_components.append('l_hand')
+                elif tr_component == 'r_hand_no_thumb_oppose':
+                    self.training_components.append('r_hand_no_thumb_oppose')
+                elif tr_component == 'l_hand_no_thumb_oppose':
+                    self.training_components.append('l_hand_no_thumb_oppose')
                 else:
                     print('Using cartesian observation space. {} cannot be used as training component.'.format(
                         tr_component))
@@ -230,6 +234,13 @@ class ICubEnv(gym.Env):
                                                                                  j.startswith('r_index') or
                                                                                  j.startswith('r_middle') or
                                                                                  j.startswith('r_pinky'))])
+        if 'r_hand_no_thumb_oppose' in self.training_components:
+            self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('r_hand') or
+                                                                                 j.startswith('r_thumb') or
+                                                                                 j.startswith('r_index') or
+                                                                                 j.startswith('r_middle') or
+                                                                                 j.startswith('r_pinky')) and
+                                                                                not j == 'r_thumb_oppose'])
         if 'l_arm' in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('l_wrist') or
                                                                                  j.startswith('l_elbow') or
@@ -242,6 +253,13 @@ class ICubEnv(gym.Env):
                                                                                  j.startswith('l_index') or
                                                                                  j.startswith('l_middle') or
                                                                                  j.startswith('l_pinky'))])
+        if 'l_hand_no_thumb_oppose' in self.training_components:
+            self.actuators_to_control.extend([j for j in self.actuator_names if (j.startswith('l_hand') or
+                                                                                 j.startswith('l_thumb') or
+                                                                                 j.startswith('l_index') or
+                                                                                 j.startswith('l_middle') or
+                                                                                 j.startswith('l_pinky')) and
+                                                                                not j == 'l_thumb_oppose'])
         if 'neck' in self.training_components:
             self.actuators_to_control.extend([j for j in self.actuator_names if j.startswith('neck')])
         if 'torso' in self.training_components:
