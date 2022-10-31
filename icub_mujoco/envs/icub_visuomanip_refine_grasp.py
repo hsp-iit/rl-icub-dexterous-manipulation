@@ -242,9 +242,15 @@ class ICubEnvRefineGrasp(ICubEnv):
             return self.reward_out_of_joints
         if done_timesteps:
             return self.reward_end_timesteps
-        if done_moved_object or done_z_pos:
-            return -1
-        if done_ik:
+        if done_moved_object:
+            if not self.high_negative_reward_approach_failures:
+                return -1
+            else:
+                if self.already_touched_with_2_fingers:
+                    return -1
+                else:
+                    return -100
+        if done_ik or done_z_pos:
             return -1
         reward = 0
         reward += self.diff_num_contacts()

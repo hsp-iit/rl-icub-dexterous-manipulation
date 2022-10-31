@@ -113,6 +113,9 @@ parser.add_argument('--reward_dist_original_superq_grasp_position',
 parser.add_argument('--goal_reached_only_with_lift_refine_grasp',
                     action='store_true',
                     help='Successful episode only with object lifted in grasp refinement task.')
+parser.add_argument('--high_negative_reward_approach_failures',
+                    action='store_true',
+                    help='Strongly penalize moved object in the approach phase in the grasp refinement task.')
 parser.add_argument('--joints_margin',
                     action='store',
                     type=float,
@@ -437,6 +440,7 @@ elif args.task == 'refine_grasp':
                               reward_dist_superq_center=args.reward_dist_superq_center,
                               reward_line_pregrasp_superq_center=args.reward_line_pregrasp_superq_center,
                               reward_dist_original_superq_grasp_position=args.reward_dist_original_superq_grasp_position,
+                              high_negative_reward_approach_failures=args.high_negative_reward_approach_failures,
                               rotated_dist_superq_center=args.rotated_dist_superq_center,
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               print_done_info=args.print_done_info,

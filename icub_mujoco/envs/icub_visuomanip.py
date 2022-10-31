@@ -47,6 +47,7 @@ class ICubEnv(gym.Env):
                  rotated_dist_superq_center=False,
                  reward_line_pregrasp_superq_center=False,
                  reward_dist_original_superq_grasp_position=False,
+                 high_negative_reward_approach_failures=False,
                  goal_reached_only_with_lift_refine_grasp=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
@@ -599,6 +600,7 @@ class ICubEnv(gym.Env):
         self.reward_line_pregrasp_superq_center = reward_line_pregrasp_superq_center
         self.reward_dist_original_superq_grasp_position = reward_dist_original_superq_grasp_position
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
+        self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
 
         # Reset environment
         self.reset()
