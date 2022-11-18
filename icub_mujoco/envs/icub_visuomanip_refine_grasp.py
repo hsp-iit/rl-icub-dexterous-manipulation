@@ -59,6 +59,8 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.lfd_approach_position = None
         self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
         self.lfd_steps = 0
+        self.pre_approach_object_steps = 0
+        self.pre_approach_object_max_steps = 100
 
         self.r_hand_to_r_hand_dh_frame = ([[-9.65925844e-01, -2.58818979e-01, 3.88881728e-17, -0.05765429784284365],
                                            [1.40347148e-18, -1.84721605e-16, -1.00000000e+00, -0.005556799999999987],
@@ -66,7 +68,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.000000000e+00]])
         self.inv_r_hand_to_r_hand_dh_frame = np.linalg.inv(np.array(self.r_hand_to_r_hand_dh_frame))
 
-    def step(self, action, increase_steps=True):
+    def step(self, action, increase_steps=True, pre_approach_phase=False):
         if self.control_gaze:
             neck_qpos = self.gaze_controller.gaze_control(self.fixation_point,
                                                           self.env.physics.named.data.qpos['neck_pitch'],
@@ -74,17 +76,18 @@ class ICubEnvRefineGrasp(ICubEnv):
                                                           self.env.physics.named.data.qpos['neck_yaw'],
                                                           self.env.physics.named.data.xpos['chest'],
                                                           self.env.physics.named.data.xmat['chest'])
-        if self.learning_from_demonstration or \
-                ((self.approach_in_reset_model or self.curriculum_learning_approach_object)
-                 and self.lfd_stage == 'approach_object'):
-            if self.lfd_steps <= self.learning_from_demonstration_max_steps or \
-                    (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
-                if increase_steps:
-                    self.lfd_steps += 1
-                action = self.collect_demonstrations()
-                action_lfd = action
-            else:
-                self.learning_from_demonstration = False
+        if not pre_approach_phase:
+            if self.learning_from_demonstration or \
+                    ((self.approach_in_reset_model or self.curriculum_learning_approach_object)
+                     and self.lfd_stage == 'approach_object'):
+                if self.lfd_steps <= self.learning_from_demonstration_max_steps or \
+                        (self.approach_in_reset_model and self.lfd_stage == 'approach_object'):
+                    if increase_steps:
+                        self.lfd_steps += 1
+                    action = self.collect_demonstrations()
+                    action_lfd = action
+                else:
+                    self.learning_from_demonstration = False
         # If the hand is touching the object, remove constraints on fingers actuators
         if self.number_of_contacts == 0:
             action = np.clip(action, self.action_space.low, self.action_space.high)
@@ -220,7 +223,7 @@ class ICubEnvRefineGrasp(ICubEnv):
                          'moved object': done_moved_object,
                          'done z pos': done_z_pos},
                 'is_success': done_goal}
-        if self.learning_from_demonstration:
+        if self.learning_from_demonstration and not pre_approach_phase:
             info['learning from demonstration action'] = action_lfd
         if 'cartesian' in self.icub_observation_space:
             done = done or done_ik
@@ -324,7 +327,10 @@ class ICubEnvRefineGrasp(ICubEnv):
                 if self.distanced_superq_grasp_pose and (
                         not self.learning_from_demonstration or self.lfd_with_approach):
                     self.superq_pose['original_position'] = self.superq_pose['position'].copy()
-                    self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
+                    if self.pregrasp_distance_from_grasp_pose >= 0.1:
+                        self.superq_pose['position'] = self.superq_pose['distanced_grasp_position'].copy()
+                    else:
+                        self.superq_pose['position'] = self.superq_pose['distanced_grasp_position_10_cm'].copy()
                 if self.cartesian_orientation == 'ypr':
                     self.superq_pose['ypr'] = np.array(Quaternion(self.superq_pose['quaternion']).yaw_pitch_roll)
                     self.target_ik = np.concatenate((self.superq_pose['position'], self.superq_pose['ypr']),
@@ -494,6 +500,14 @@ class ICubEnvRefineGrasp(ICubEnv):
                 if self.reward_dist_original_superq_grasp_position:
                     self.prev_dist_superq_grasp_position = np.linalg.norm(
                         self.env.physics.named.data.xpos['r_hand_dh_frame'] - self.superq_pose['original_position'])
+                if self.pregrasp_distance_from_grasp_pose < 0.1:
+                    done = False
+                    while self.pre_approach_object_steps < self.pre_approach_object_max_steps and not done:
+                        action = np.concatenate([self.pre_approach_object(),
+                                                 np.zeros(len(self.actuators_to_control_fingers_ids))])
+                        _, _, done, _ = self.step(action=action, increase_steps=False, pre_approach_phase=True)
+                        self._get_obs()
+                    self.pre_approach_object_steps = 0
                 if self.approach_in_reset_model or self.curriculum_learning_approach_object:
                     self.lfd_stage = 'approach_object'
                     done = False
@@ -628,6 +642,16 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.lfd_stage = 'close_hand'
             self.lfd_approach_object_step = 0
             self.lfd_approach_position = None
+        return action_ik
+
+    def pre_approach_object(self, ):
+        self.pre_approach_object_steps += 1
+        final_pose = self.superq_pose['distanced_grasp_position'].copy()
+        initial_pose = self.superq_pose['distanced_grasp_position_10_cm'].copy()
+        action_ik = np.zeros(len(self.cartesian_ids))
+        action_ik[self.cartesian_ids.index(0)] = (final_pose[0] - initial_pose[0]) / self.pre_approach_object_max_steps
+        action_ik[self.cartesian_ids.index(1)] = (final_pose[1] - initial_pose[1]) / self.pre_approach_object_max_steps
+        action_ik[self.cartesian_ids.index(2)] = (final_pose[2] - initial_pose[2]) / self.pre_approach_object_max_steps
         return action_ik
 
     # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html

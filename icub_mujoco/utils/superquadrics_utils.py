@@ -72,12 +72,16 @@ class SuperquadricEstimator:
                                                my * self.distance_from_grasp_pose_disanced_position,
                                                best_grasp_pose[2, 3] +
                                                mz * self.distance_from_grasp_pose_disanced_position])
+                distanced_position_10_cm = np.array([best_grasp_pose[0, 3] + mx * 0.1,
+                                                     best_grasp_pose[1, 3] + my * 0.1,
+                                                     best_grasp_pose[2, 3] + mz * 0.1])
                 best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3],
                                                        best_grasp_pose[1, 3],
                                                        best_grasp_pose[2, 3]],
                                           'quaternion': best_grasp_pose_quat.q,
                                           'superq_center': sq_center,
-                                          'distanced_grasp_position': distanced_position}
+                                          'distanced_grasp_position': distanced_position,
+                                          'distanced_grasp_position_10_cm': distanced_position_10_cm}
         return best_grasp_pose_to_ret
 
     @staticmethod
