@@ -16,22 +16,11 @@ def pcd_from_depth(depth,
 
 
 def points_in_world_coord(points, cam_xpos, cam_xmat):
-    xyzs = []
-    for point in points:
-        # Point roto-translation matrix in world coordinates
-        p_cam = np.array([[1, 0, 0, point[1]],
-                          [0, 1, 0, -point[0]],
-                          [0, 0, 1, point[2]],
-                          [0, 0, 0, 1]],
-                         dtype=np.float32)
-        cam_world = np.array([[1, 0, 0, 0],
-                              [0, 1, 0, 0],
-                              [0, 0, 1, 0],
-                              [0, 0, 0, 1]],
-                             dtype=np.float32)
-        cam_world[:3, -1] = cam_xpos
-        cam_world[:3, :3] = cam_xmat
-        # Point roto-translation matrix in camera coordinates
-        p_world = np.matmul(cam_world, p_cam)
-        xyzs.append(np.array([p_world[0, 3], p_world[1, 3], p_world[2, 3]]))
-    return np.array(xyzs)
+    p_cam = np.stack([np.eye(4, dtype=np.float32)]*len(points), axis=-1)
+    p_cam[:3, 3, :] = np.array([np.array(points[:, 1]), np.array(-points[:, 0]), np.array(points[:, 2])])
+    cam_world = np.eye(4, dtype=np.float32)
+    cam_world[:3, -1] = cam_xpos
+    cam_world[:3, :3] = cam_xmat
+    # Points roto-translation matrix in camera coordinates
+    p_world = np.matmul(p_cam.transpose(), cam_world.transpose()).transpose()
+    return p_world[:3, 3, :].transpose()
