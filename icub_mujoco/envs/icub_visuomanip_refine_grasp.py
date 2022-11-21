@@ -53,14 +53,20 @@ class ICubEnvRefineGrasp(ICubEnv):
 
         self.lfd_stage = 'close_hand' if not self.lfd_with_approach else 'approach_object'
         self.lfd_approach_object_step = 0
-        self.lfd_approach_object_max_steps = 100
+        if self.pregrasp_distance_from_grasp_pose < 0.1:
+            self.lfd_approach_object_max_steps = int(100 * (1 - self.pregrasp_distance_from_grasp_pose / 0.1))
+        else:
+            self.lfd_approach_object_max_steps = 100
         self.lfd_close_hand_step = 0
         self.lfd_close_hand_max_steps = 500
         self.lfd_approach_position = None
         self.close_hand_action_fingers = np.zeros(len(self.actuators_to_control_fingers_ids))
         self.lfd_steps = 0
         self.pre_approach_object_steps = 0
-        self.pre_approach_object_max_steps = 100
+        if self.pregrasp_distance_from_grasp_pose < 0.1:
+            self.pre_approach_object_max_steps = 100 - self.lfd_approach_object_max_steps
+        else:
+            self.pre_approach_object_max_steps = 100
 
         self.r_hand_to_r_hand_dh_frame = ([[-9.65925844e-01, -2.58818979e-01, 3.88881728e-17, -0.05765429784284365],
                                            [1.40347148e-18, -1.84721605e-16, -1.00000000e+00, -0.005556799999999987],
@@ -465,7 +471,7 @@ class ICubEnvRefineGrasp(ICubEnv):
 
                     self.update_init_qpos_act_after_superquadrics(qpos_sol_final_qpos)
                     target = self.init_icub_act_after_superquadrics.copy()
-                    num_steps_initial_movement = 100
+                    num_steps_initial_movement = 50
                     initial_qpos = self.env.physics.data.qpos[:len(self.joint_ids_icub)].copy()
                     for i in range(num_steps_initial_movement):
                         qpos_i = self.go_to(initial_qpos,
