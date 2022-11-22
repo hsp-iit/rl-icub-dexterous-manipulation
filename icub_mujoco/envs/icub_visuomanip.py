@@ -1256,11 +1256,11 @@ class ICubEnv(gym.Env):
                 if contact.geom1 in self.contact_geom_ids_fingers_meshes.values():
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
-                        self.contact_geom_ids_fingers_meshes.values()).index(contact.geom1)]))
+                            self.contact_geom_ids_fingers_meshes.values()).index(contact.geom1)]))
                 else:
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
-                        self.contact_geom_ids_fingers_meshes.values()).index(contact.geom2)]))
+                            self.contact_geom_ids_fingers_meshes.values()).index(contact.geom2)]))
         self.number_of_contacts = len(set(self.fingers_touching_object))
         return self.number_of_contacts
 
