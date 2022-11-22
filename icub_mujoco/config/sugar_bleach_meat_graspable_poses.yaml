@@ -1,0 +1,52 @@
+004_sugar_box:
+  graspable:
+    1: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.0
+      z: 1.0
+  initial_orientations:
+    1:
+      w: 0.70710678118
+      x: 0.70710678118
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.98
+  info: 'Graspable.'
+
+010_potted_meat_can:
+  graspable:
+    1: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.1
+      z: 1.005
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+021_bleach_cleanser:
+  graspable:
+    1: 'yes'
+  initial_positions:
+    1:
+      x: -0.3
+      y: 0.05
+      z: 1.06
+  initial_orientations:
+    1:
+      w: 1.0
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  moved_object_height: 0.95
+  info: 'Graspable.'
+
+
