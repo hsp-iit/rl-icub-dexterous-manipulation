@@ -113,6 +113,7 @@ class ICubEnv(gym.Env):
         if len(self.objects) == 1:
             self.object_visual_mesh_name = None
         self.moved_object_height = 0.98
+        self.obj_mjcf = None
         self.add_ycb_video_objects(self.objects, remove_last_object=False)
         self.track_object = track_object
         if self.track_object:
@@ -1126,12 +1127,11 @@ class ICubEnv(gym.Env):
 
     def add_ycb_video_objects(self, object_names, remove_last_object):
         if remove_last_object:
-            obj_to_rm = self.world.worldbody.body[-1]
-            obj_to_rm.remove(affect_attachments=True)
+            self.obj_mjcf.detach()
         for obj_id, obj in enumerate(object_names):
             obj_path = "../meshes/YCB_Video/{}.xml".format(obj)
-            obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
-            self.world.attach(obj_mjcf.root_model)
+            self.obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
+            self.world.attach(self.obj_mjcf.root_model)
             self.world.worldbody.body[len(self.world.worldbody.body) - 1].pos = \
                 self.objects_positions[obj_id] if self.objects_positions else np.array([np.random.rand() - 1.18,
                                                                                         np.random.rand() * 2 - 1.0,
