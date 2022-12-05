@@ -39,3 +39,10 @@ pip install .
 cd ../../../../utils
 python ycb_video_obj_to_msh_meshes.py
 ```
+
+If you need to use the [**Scanned Objects**](https://github.com/kevinzakka/mujoco_scanned_objects) objects:
+
+```
+cd icub_mujoco/meshes
+git clone https://github.com/kevinzakka/mujoco_scanned_objects.git
+```
