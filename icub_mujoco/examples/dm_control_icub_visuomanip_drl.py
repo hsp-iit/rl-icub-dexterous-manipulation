@@ -211,6 +211,14 @@ parser.add_argument('--ycb_video_graspable_objects_config_path',
                     default='../config/ycb_video_objects_graspable_poses.yaml',
                     help='Set the path of configuration file with the graspable configurations of the YCB-Video '
                          'objects.')
+parser.add_argument('--random_mujoco_scanned_object',
+                    action='store_true',
+                    help='Use a random object from the mujoco scanned objects dataset.')
+parser.add_argument('--mujoco_scanned_objects_config_path',
+                    action='store',
+                    type=str,
+                    default='../config/mujoco_scanned_objects_graspable.yaml',
+                    help='Set the path of configuration file with the graspable mujoco_scanned_objects.')
 parser.add_argument('--objects',
                     type=str,
                     nargs='+',
@@ -446,6 +454,8 @@ elif args.task == 'refine_grasp':
                               print_done_info=args.print_done_info,
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
                               ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,
+                              random_mujoco_scanned_object=args.random_mujoco_scanned_object,
+                              mujoco_scanned_objects_config_path=args.mujoco_scanned_objects_config_path,
                               objects=args.objects,
                               use_table=args.use_table,
                               objects_positions=objects_positions,

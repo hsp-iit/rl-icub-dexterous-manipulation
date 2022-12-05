@@ -12,6 +12,8 @@ from icub_mujoco.feature_extractors.images_depth_feature_extractor_densefusion \
     import ImagesDepthFeatureExtractorDenseFusion
 from pyquaternion import Quaternion
 
+import time
+
 
 class ICubEnv(gym.Env):
 
@@ -21,7 +23,9 @@ class ICubEnv(gym.Env):
                  icub_observation_space=('joints',),
                  random_initial_pos=True,
                  ycb_video_graspable_objects_config_path='../config/ycb_video_objects_graspable_poses.yaml',
+                 mujoco_scanned_objects_config_path='../config/mujoco_scanned_objects_graspable.yaml',
                  random_ycb_video_graspable_object=False,
+                 random_mujoco_scanned_object=False,
                  objects=(),
                  use_table=True,
                  objects_positions=(),
@@ -106,12 +110,25 @@ class ICubEnv(gym.Env):
                          'position': self.ycb_video_graspable_objects_cfg[obj]['initial_positions'][graspability],
                          'orientation': self.ycb_video_graspable_objects_cfg[obj]['initial_orientations'][graspability],
                          'moved_object_height': self.ycb_video_graspable_objects_cfg[obj]['moved_object_height']})
+        self.random_mujoco_scanned_object = random_mujoco_scanned_object
+        with open(mujoco_scanned_objects_config_path) as mujoco_scanned_objects_graspable_objects_config_file:
+            self.mujoco_scanned_objects_graspable_objects_cfg = \
+                yaml.load(mujoco_scanned_objects_graspable_objects_config_file,
+                          Loader=yaml.FullLoader)
+        self.mujoco_scanned_objects_graspable_list = []
+        for obj in self.mujoco_scanned_objects_graspable_objects_cfg:
+            if self.mujoco_scanned_objects_graspable_objects_cfg[obj]['graspable']:
+                self.mujoco_scanned_objects_graspable_list.append(
+                    {'object': obj,
+                     'position': [-0.3, 0.0, 0.95],
+                     'orientation': [1.0, 0, 0, 0],
+                     'moved_object_height': 0.93})
         self.objects_positions = objects_positions
         self.objects_quaternions = objects_quaternions
         self.randomly_rotate_object_z_axis = randomly_rotate_object_z_axis
         self.objects = objects
         if len(self.objects) == 1:
-            self.object_visual_mesh_name = None
+            self.object_visual_mesh_name = 'model//unnamed_geom_0'
         self.moved_object_height = 0.98
         self.obj_mjcf = None
         self.add_ycb_video_objects(self.objects, remove_last_object=False)
@@ -771,7 +788,7 @@ class ICubEnv(gym.Env):
                         bounds = np.concatenate([bounds,
                                                  np.array([[-1.08, -0.28]], dtype=np.float32),
                                                  np.array([[-0.9, 0.9]], dtype=np.float32),
-                                                 np.array([[0.95, 1.2]], dtype=np.float32),
+                                                 np.array([[0.93, 1.2]], dtype=np.float32),
                                                  np.array([[-1.0, 1.0]], dtype=np.float32),
                                                  np.array([[-1.0, 1.0]], dtype=np.float32),
                                                  np.array([[-1.0, 1.0]], dtype=np.float32),
@@ -1061,6 +1078,20 @@ class ICubEnv(gym.Env):
             self.env.reset()
             self.init_qpos[self.joint_ids_objects[0:3]] = self.objects_positions[0]
             self.init_qpos[self.joint_ids_objects[3:7]] = self.objects_quaternions[0]
+        if self.random_mujoco_scanned_object:
+            random_object = self.mujoco_scanned_objects_graspable_list \
+                [np.random.randint(0, len(self.mujoco_scanned_objects_graspable_list))]
+            self.objects = [random_object['object']]
+            self.objects_positions = [np.array(random_object['position'])]
+            self.objects_quaternions = [np.array(random_object['orientation'])]
+            self.moved_object_height = random_object['moved_object_height']
+            self.lift_object_height = self.objects_positions[0][2] + 0.1
+            self.add_mujoco_scanned_objects(self.objects, remove_last_object=True)
+            if self.track_object:
+                self.track_object_with_camera()
+            self.env.reset()
+            self.init_qpos[self.joint_ids_objects[0:3]] = self.objects_positions[0]
+            self.init_qpos[self.joint_ids_objects[3:7]] = self.objects_quaternions[0]
         if self.randomly_rotate_object_z_axis:
             for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
                 object_quaternions_pyquaternion = Quaternion(self.init_qpos[
@@ -1130,6 +1161,34 @@ class ICubEnv(gym.Env):
             self.obj_mjcf.detach()
         for obj_id, obj in enumerate(object_names):
             obj_path = "../meshes/YCB_Video/{}.xml".format(obj)
+            self.obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
+            self.world.attach(self.obj_mjcf.root_model)
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].pos = \
+                self.objects_positions[obj_id] if self.objects_positions else np.array([np.random.rand() - 1.18,
+                                                                                        np.random.rand() * 2 - 1.0,
+                                                                                        1.2])
+            if self.objects_quaternions:
+                object_quaternions = self.objects_quaternions[obj_id]
+            else:
+                object_quaternions = np.array([np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0,
+                                               np.random.rand() * 2 - 1.0])
+                object_quaternions /= np.linalg.norm(object_quaternions)
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].quat = object_quaternions
+            self.world.worldbody.body[len(self.world.worldbody.body) - 1].add('joint',
+                                                                              name=obj,
+                                                                              type="free",
+                                                                              pos="0 0 0",
+                                                                              limited="false",
+                                                                              damping="0.0",
+                                                                              stiffness="0.01")
+
+    def add_mujoco_scanned_objects(self, object_names, remove_last_object):
+        if remove_last_object:
+            self.obj_mjcf.detach()
+        for obj_id, obj in enumerate(object_names):
+            obj_path = "../meshes/mujoco_scanned_objects/models/{}/model.xml".format(obj)
             self.obj_mjcf = mjcf.from_path(obj_path, escape_separators=True)
             self.world.attach(self.obj_mjcf.root_model)
             self.world.worldbody.body[len(self.world.worldbody.body) - 1].pos = \
