@@ -160,6 +160,9 @@ parser.add_argument('--icub_observation_space',
                          'features the features extracted by the camera specified with the argument obs_camera '
                          'and touch the tactile information. If you pass multiple argument, you will use a '
                          'MultiInputPolicy.')
+parser.add_argument('--exclude_vertical_touches',
+                    action='store_true',
+                    help='Do not consider vertical contacts to compute the number of fingers touching an object.')
 parser.add_argument('--eef_name',
                     type=str,
                     default='r_hand',
@@ -251,7 +254,7 @@ parser.add_argument('--objects_quaternions',
                          'If the value are not specified, the initial orientation of all the objects is set randomly.')
 parser.add_argument('--randomly_rotate_object_z_axis',
                     action='store_true',
-                    help='Randomy rotate objects on the table around the z axis.')
+                    help='Randomly rotate objects on the table around the z axis.')
 parser.add_argument('--task',
                     type=str,
                     default='reaching',
@@ -451,6 +454,7 @@ elif args.task == 'refine_grasp':
                               high_negative_reward_approach_failures=args.high_negative_reward_approach_failures,
                               rotated_dist_superq_center=args.rotated_dist_superq_center,
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
+                              exclude_vertical_touches=args.exclude_vertical_touches,
                               print_done_info=args.print_done_info,
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
                               ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,

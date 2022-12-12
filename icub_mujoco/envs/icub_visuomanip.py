@@ -53,6 +53,7 @@ class ICubEnv(gym.Env):
                  reward_dist_original_superq_grasp_position=False,
                  high_negative_reward_approach_failures=False,
                  goal_reached_only_with_lift_refine_grasp=False,
+                 exclude_vertical_touches=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
@@ -618,6 +619,7 @@ class ICubEnv(gym.Env):
         self.reward_line_pregrasp_superq_center = reward_line_pregrasp_superq_center
         self.reward_dist_original_superq_grasp_position = reward_dist_original_superq_grasp_position
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
+        self.exclude_vertical_touches = exclude_vertical_touches
         self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
 
         # Reset environment
@@ -1312,6 +1314,9 @@ class ICubEnv(gym.Env):
                 and contact.geom2 in self.contact_geom_ids_objects_meshes.values()) or \
                     (contact.geom1 in self.contact_geom_ids_objects_meshes.values()
                      and contact.geom2 in self.contact_geom_ids_fingers_meshes.values()):
+                if self.exclude_vertical_touches:
+                    if contact.frame[2] > 1 / math.sqrt(2) or contact.frame[2] < - 1 / math.sqrt(2):
+                        continue
                 if contact.geom1 in self.contact_geom_ids_fingers_meshes.values():
                     self.fingers_touching_object.append((list(
                         self.contact_geom_ids_fingers_meshes.keys())[list(
