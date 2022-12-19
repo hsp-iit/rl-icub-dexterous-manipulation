@@ -9,7 +9,7 @@ import gym
 import numpy as np
 import torch as th
 
-from stable_baselines3.common.base_class import BaseAlgorithm
+from icub_mujoco.external.stable_baselines3_mod.common.base_class import BaseAlgorithm
 from stable_baselines3.common.buffers import DictReplayBuffer, ReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise, VectorizedActionNoise
