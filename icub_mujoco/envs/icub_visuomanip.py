@@ -54,6 +54,7 @@ class ICubEnv(gym.Env):
                  high_negative_reward_approach_failures=False,
                  goal_reached_only_with_lift_refine_grasp=False,
                  exclude_vertical_touches=False,
+                 min_fingers_touching_object=5,
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
@@ -620,6 +621,7 @@ class ICubEnv(gym.Env):
         self.reward_dist_original_superq_grasp_position = reward_dist_original_superq_grasp_position
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
         self.exclude_vertical_touches = exclude_vertical_touches
+        self.min_fingers_touching_object = min_fingers_touching_object
         self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
 
         # Reset environment

@@ -266,7 +266,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         if self.reward_obj_height:
             rew_height = (self.env.physics.data.qpos[self.joint_ids_objects[2]] - self.prev_obj_zpos) * 1000
             # Add positive reward only if all fingers are in contact, add negative reward in any case
-            if (rew_height > 0 and self.number_of_contacts == 5) or \
+            if (rew_height > 0 and self.number_of_contacts >= self.min_fingers_touching_object) or \
                     (rew_height < 0 and self.already_touched_with_5_fingers):
                 reward += rew_height
         if self.reward_dist_superq_center and not self.already_touched_with_2_fingers:

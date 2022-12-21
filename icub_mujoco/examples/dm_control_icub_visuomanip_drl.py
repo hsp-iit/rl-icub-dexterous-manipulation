@@ -163,6 +163,12 @@ parser.add_argument('--icub_observation_space',
 parser.add_argument('--exclude_vertical_touches',
                     action='store_true',
                     help='Do not consider vertical contacts to compute the number of fingers touching an object.')
+parser.add_argument('--min_fingers_touching_object',
+                    action='store',
+                    type=int,
+                    default=5,
+                    help='Set the minimum number of fingers touching the object in the grasp refinement task to get a '
+                         'positive reward when lifting it. Default is 5.')
 parser.add_argument('--eef_name',
                     type=str,
                     default='r_hand',
@@ -455,6 +461,7 @@ elif args.task == 'refine_grasp':
                               rotated_dist_superq_center=args.rotated_dist_superq_center,
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               exclude_vertical_touches=args.exclude_vertical_touches,
+                              min_fingers_touching_object=args.min_fingers_touching_object,
                               print_done_info=args.print_done_info,
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
                               ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,
