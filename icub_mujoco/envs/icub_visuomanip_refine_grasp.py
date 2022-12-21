@@ -569,13 +569,22 @@ class ICubEnvRefineGrasp(ICubEnv):
         return diff
 
     def moved_object(self):
-        for list_id, joint_id in enumerate(self.joint_ids_objects):
-            # Check only the z component
-            if list_id % 7 != 2:
-                continue
-            else:
-                if self.env.physics.data.qpos[joint_id] < self.moved_object_height:
-                    return True
+        if self.random_mujoco_scanned_object:
+            # Only one object can be used for this task, so there is no need to loop
+            current_obj_rotation = Quaternion(self.env.physics.data.qpos[self.joint_ids_objects[3:7]])
+            axis_angle_curr_rot = current_obj_rotation.axis * current_obj_rotation.angle
+            # Object is moved if it is rotated of more than 90 degrees around the x or y axes
+            if axis_angle_curr_rot[0] >= np.pi / 2 or axis_angle_curr_rot[0] <= -np.pi / 2 or \
+                axis_angle_curr_rot[1] >= np.pi / 2 or axis_angle_curr_rot[1] <= -np.pi / 2:
+                return True
+        else:
+            for list_id, joint_id in enumerate(self.joint_ids_objects):
+                # Check only the z component
+                if list_id % 7 != 2:
+                    continue
+                else:
+                    if self.env.physics.data.qpos[joint_id] < self.moved_object_height:
+                        return True
         return False
 
     def lifted_object(self):
