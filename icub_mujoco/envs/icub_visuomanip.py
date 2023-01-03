@@ -1119,9 +1119,14 @@ class ICubEnv(gym.Env):
             # Update collision meshes for tactile information computation
             self.contact_geom_ids_objects_meshes = {}
             for geom in self.world_entity.mjcf_model.find_all('geom'):
-                if self.objects[0] in geom.full_identifier and '_collision' in geom.full_identifier:
-                    self.contact_geom_ids_objects_meshes[geom.name] = \
-                        self.env.physics.model.name2id(geom.full_identifier, 'geom')
+                if self.random_mujoco_scanned_object:
+                    if 'model//unnamed_geom_' in geom.full_identifier:
+                        self.contact_geom_ids_objects_meshes[geom.full_identifier] = \
+                            self.env.physics.model.name2id(geom.full_identifier, 'geom')
+                else:
+                    if self.objects[0] in geom.full_identifier and '_collision' in geom.full_identifier:
+                        self.contact_geom_ids_objects_meshes[geom.name] = \
+                            self.env.physics.model.name2id(geom.full_identifier, 'geom')
         return self._get_obs()
 
     def joints_out_of_range(self):
