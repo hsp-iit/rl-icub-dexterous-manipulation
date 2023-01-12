@@ -1,17 +1,15 @@
 # Code adapted from https://github.com/ethz-asl/vgn
-import sys
 import numpy as np
 import math
 from pyquaternion import Quaternion
 from icub_mujoco.external.vgn.src.vgn.perception import *
 from icub_mujoco.external.vgn.src.vgn.grasp import *
 from icub_mujoco.external.vgn.src.vgn.utils.transform import *
-from icub_mujoco.external.vgn.src.vgn.networks import get_network, load_network
+from icub_mujoco.external.vgn.src.vgn.networks import get_network
 import torch
 from scipy.spatial.transform import Rotation as R
 from scipy import ndimage
 from icub_mujoco.utils.ikin_ik import IKinIK
-
 
 
 class VGNEstimator:
@@ -36,6 +34,8 @@ class VGNEstimator:
         self.cam_pos = None
         self.cam_rot = None
         self.ids = None
+        self.pos_grasp_icub = None
+        self.rot_grasp_icub = None
 
     def compute_grasp_pose_vgn(self,
                                pcd,
@@ -136,7 +136,6 @@ class VGNEstimator:
         cam_pos_ext = cam_rototransl[:3, 3]
         extrinsic = Transform(R.from_matrix(cam_rot_ext), cam_pos_ext)
         tsdf.integrate(depth_img, self.cam_intrinsic, extrinsic)
-
         return tsdf
 
     def compute_grasps_from_tsdf(self, tsdf):
@@ -151,7 +150,6 @@ class VGNEstimator:
             p = np.argsort(scores)[::-1]
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps[p]]
             scores = scores[p]
-
         return grasps, scores
 
     @staticmethod
@@ -219,7 +217,6 @@ class VGNEstimator:
 
         # reject voxels with predicted widths that are too small or too large
         qual_vol[np.logical_or(width_vol < min_width, width_vol > max_width)] = 0.0
-
         return qual_vol, rot_vol, width_vol
 
     def select(self, qual_vol, rot_vol, width_vol, threshold=0.90, max_filter_size=4):
@@ -237,7 +234,6 @@ class VGNEstimator:
             grasp, score = self.select_index(qual_vol, rot_vol, width_vol, index)
             grasps.append(grasp)
             scores.append(score)
-
         return grasps, scores
 
     @staticmethod
