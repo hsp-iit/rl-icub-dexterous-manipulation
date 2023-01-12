@@ -90,7 +90,7 @@ class IKinIK:
         if 'torso_yaw' not in self.joints_to_control_names:
             self.chain.setBlockingValue(2, current_qpos['torso_yaw'][0])
 
-        current_qpos= yarp.Vector(current_qpos[joints_to_control_ik_ids])
+        current_qpos = yarp.Vector(current_qpos[joints_to_control_ik_ids])
         target_eef_pos = eef_pos.copy()
         target_eef_pos[2] -= 1
         target = yarp.Vector(np.concatenate((target_eef_pos, eef_axis_angle)))
