@@ -2,6 +2,7 @@ from icub_mujoco.envs.icub_visuomanip import ICubEnv
 import numpy as np
 from icub_mujoco.utils.pcd_utils import pcd_from_depth, points_in_world_coord
 from icub_mujoco.utils.superquadrics_utils import SuperquadricEstimator
+from icub_mujoco.utils.vgn_utils import VGNEstimator
 from icub_mujoco.utils.gaze_controller import GazeController
 from dm_control.utils import inverse_kinematics as ik
 import random
@@ -20,7 +21,12 @@ class ICubEnvRefineGrasp(ICubEnv):
         super().__init__(**kwargs)
 
         self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
-        self.superquadric_estimator = SuperquadricEstimator(self.pregrasp_distance_from_grasp_pose)
+        if self.grasp_planner == 'superquadrics':
+            self.superquadric_estimator = SuperquadricEstimator(self.pregrasp_distance_from_grasp_pose)
+        elif self.grasp_planner == 'vgn':
+            self.vgn_estimator = VGNEstimator(self.pregrasp_distance_from_grasp_pose, self.joints_to_control_ik)
+        else:
+            raise ValueError('The selected grasp planner must be either superquadrics or vgn.')
 
         if self.control_gaze:
             self.gaze_controller = GazeController()
@@ -38,6 +44,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         self.superq_pose = None
         self.superq_position = None
         self.target_ik = None
+        self.vgn_pose = None
 
         if self.ik_solver == 'idyntree':
             self.ik_idyntree_reduced_model = False
@@ -307,7 +314,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         grasp_found = False
         while not grasp_found:
             super().reset_model()
-            if hasattr(self, 'superquadric_estimator'):
+            if hasattr(self, 'superquadric_estimator') or hasattr(self, 'vgn_estimator'):
                 self.init_icub_act_after_superquadrics = self.init_icub_act.copy()
                 img = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera)
                 depth = self.env.physics.render(height=480, width=640, camera_id=self.superquadrics_camera, depth=True)
@@ -324,7 +331,24 @@ class ICubEnvRefineGrasp(ICubEnv):
                 ids = np.where(np.reshape(segm[:, :, 0], (segm[:, :, 0].size,)) ==
                                self.env.physics.model.name2id(self.object_visual_mesh_name, 'geom'))
                 pcd_colors = np.concatenate((pcd, np.reshape(img, (int(img.size / 3), 3))), axis=1)[ids]
-                self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
+                if self.grasp_planner == 'superquadrics':
+                    self.superq_pose = self.superquadric_estimator.compute_grasp_pose_superquadrics(pcd_colors)
+                elif self.grasp_planner == 'vgn':
+                    ids_2d = np.where(segm[:, :, 0] == self.env.physics.model.name2id(self.object_visual_mesh_name,
+                                                                                      'geom'))
+                    self.vgn_pose = \
+                        self.vgn_estimator.compute_grasp_pose_vgn(pcd_colors,
+                                                                  depth,
+                                                                  self.env.physics.named.data.cam_xpos[cam_id, :],
+                                                                  np.reshape(
+                                                                      self.env.physics.named.data.cam_xmat[cam_id, :],
+                                                                      (3, 3)),
+                                                                  ids_2d,
+                                                                  self.env.physics.named.data.qpos,
+                                                                  self.joints_to_control_ik_ids
+                                                                  )
+
+                    self.superq_pose = self.vgn_pose
                 if self.superq_pose['position'][0] == 0.00:
                     print('Grasp pose not found. Resetting the environment.')
                     continue

@@ -76,7 +76,8 @@ class ICubEnv(gym.Env):
                  distanced_superq_grasp_pose=False,
                  control_gaze=False,
                  ik_solver='idyntree',
-                 use_only_right_hand_model=False
+                 use_only_right_hand_model=False,
+                 grasp_planner='superquadrics'
                  ):
 
         # Load xml model
@@ -623,6 +624,9 @@ class ICubEnv(gym.Env):
         self.exclude_vertical_touches = exclude_vertical_touches
         self.min_fingers_touching_object = min_fingers_touching_object
         self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
+
+        # Set grasp planner
+        self.grasp_planner = grasp_planner
 
         # Reset environment
         self.reset()
