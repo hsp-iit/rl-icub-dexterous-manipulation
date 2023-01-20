@@ -42,6 +42,12 @@ parser.add_argument('--train_with_two_replay_buffers',
                     help='Set options to train SAC with two replay buffers. The replay buffer containing the '
                          'demonstrations will be loaded from where specified in the '
                          'load_demonstrations_replay_buffer_path option.')
+parser.add_argument('--train_with_OERLD',
+                    action='store_true',
+                    help='Set options to train SAC with the loss function in the paper "Overcoming Exploration in '
+                         'Reinforcement Learning with Demonstrations". The replay buffer containing the '
+                         'demonstrations will be loaded from where specified in the '
+                         'load_demonstrations_replay_buffer_path option.')
 parser.add_argument('--train_with_behavior_cloning',
                     action='store_true',
                     help='Train a policy with behavior cloning, starting from data in a replay buffer stored in '
@@ -169,6 +175,9 @@ parser.add_argument('--min_fingers_touching_object',
                     default=5,
                     help='Set the minimum number of fingers touching the object in the grasp refinement task to get a '
                          'positive reward when lifting it. Default is 5.')
+parser.add_argument('--scale_pos_lift_reward_wrt_touching_fingers',
+                    action='store_true',
+                    help='Multiply the positive lift rewards by the fraction of fingers in contact with the object.')
 parser.add_argument('--eef_name',
                     type=str,
                     default='r_hand',
@@ -466,6 +475,7 @@ elif args.task == 'refine_grasp':
                               goal_reached_only_with_lift_refine_grasp=args.goal_reached_only_with_lift_refine_grasp,
                               exclude_vertical_touches=args.exclude_vertical_touches,
                               min_fingers_touching_object=args.min_fingers_touching_object,
+                              scale_pos_lift_reward_wrt_touching_fingers=args.scale_pos_lift_reward_wrt_touching_fingers,
                               print_done_info=args.print_done_info,
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
                               ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,
@@ -661,6 +671,9 @@ else:
 
         if args.train_with_two_replay_buffers:
             model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
+        elif args.train_with_OERLD:
+            model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
+            model.train_with_OERLD = True
 
         model.learn(total_timesteps=args.total_training_timesteps,
                     eval_freq=args.eval_freq,

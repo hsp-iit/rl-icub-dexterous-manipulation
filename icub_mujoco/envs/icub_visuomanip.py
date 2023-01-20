@@ -55,6 +55,7 @@ class ICubEnv(gym.Env):
                  goal_reached_only_with_lift_refine_grasp=False,
                  exclude_vertical_touches=False,
                  min_fingers_touching_object=5,
+                 scale_pos_lift_reward_wrt_touching_fingers=False,
                  joints_margin=0.0,
                  null_reward_out_image=False,
                  done_if_joints_out_of_limits=True,
@@ -623,6 +624,7 @@ class ICubEnv(gym.Env):
         self.goal_reached_only_with_lift_refine_grasp = goal_reached_only_with_lift_refine_grasp
         self.exclude_vertical_touches = exclude_vertical_touches
         self.min_fingers_touching_object = min_fingers_touching_object
+        self.scale_pos_lift_reward_wrt_touching_fingers = scale_pos_lift_reward_wrt_touching_fingers
         self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
 
         # Set grasp planner

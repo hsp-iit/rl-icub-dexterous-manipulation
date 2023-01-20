@@ -152,6 +152,8 @@ class SAC(OffPolicyAlgorithm):
         self.target_update_interval = target_update_interval
         self.ent_coef_optimizer = None
 
+        self.train_with_OERLD = False
+
         if _init_setup_model:
             self._setup_model()
 
@@ -206,10 +208,38 @@ class SAC(OffPolicyAlgorithm):
         ent_coef_losses, ent_coefs = [], []
         actor_losses, critic_losses = [], []
 
+        if self.train_with_OERLD:
+            bc_losses = []
+
         for gradient_step in range(gradient_steps):
             if self.replay_buffer_demo is None:
                 # Sample replay buffer
                 replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+            elif self.train_with_OERLD:
+                # Sample replay_data for actor and critics updates both from the usual replay buffer and from the
+                # demonstrations buffer.
+                # Use replay_data_demo also for bc loss computation
+                # In the OERLD paper N = 1024, ND = 128
+                demo_batch_size = int(np.ceil(batch_size/8))
+                replay_data_rb = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+                replay_data_demo = self.replay_buffer_demo.sample(demo_batch_size,
+                                                                  env=self._vec_normalize_env)
+                replay_data_observations = {}
+                replay_data_next_observations = {}
+                for key in list(replay_data_rb.observations.keys()):
+                    replay_data_observations[key] = th.cat((replay_data_rb.observations[key],
+                                                            replay_data_demo.observations[key]))
+                    replay_data_next_observations[key] = th.cat((replay_data_rb.next_observations[key],
+                                                                 replay_data_demo.next_observations[key]))
+                replay_data_actions = th.cat((replay_data_rb.actions, replay_data_demo.actions))
+                replay_data_dones = th.cat((replay_data_rb.dones, replay_data_demo.dones))
+                replay_data_rewards = th.cat((replay_data_rb.rewards, replay_data_demo.rewards))
+
+                replay_data = DictReplayBufferSamples(observations=replay_data_observations,
+                                                      actions=replay_data_actions,
+                                                      next_observations=replay_data_next_observations,
+                                                      dones=replay_data_dones,
+                                                      rewards=replay_data_rewards)
             else:
                 replay_data_rb = self.replay_buffer.sample(int(batch_size/2), env=self._vec_normalize_env)
                 replay_data_demo = self.replay_buffer_demo.sample(batch_size - int(batch_size/2),
@@ -291,6 +321,21 @@ class SAC(OffPolicyAlgorithm):
             actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
             actor_losses.append(actor_loss.item())
 
+            if self.train_with_OERLD:
+                # Compute q values for "Q-Filter" in the OERLD paper, take the last values of the q-value tensors,
+                # according to the torch.cat ordering in the replay buffer
+                min_current_q_value, _ = th.min(th.cat(current_q_values, dim=1), dim=1, keepdim=True)
+                min_current_q_value_demo = min_current_q_value[batch_size:]
+                min_qf_pi_demo = min_qf_pi[batch_size:]
+                mask = th.gt(min_current_q_value_demo, min_qf_pi_demo)
+                # In the OERLD paper, the lr for the BC loss is 1/N_D
+                # The mse_loss divides the sum of squared differences by N_D
+                bc_loss = F.mse_loss(self.actor(replay_data_demo.observations) * mask, replay_data_demo.actions * mask)
+                # The mse_loss is divided by the current lr s.t. the lr is not applied twice
+                bc_loss /= self.lr_schedule(self._current_progress_remaining)
+                bc_losses.append(bc_loss.item())
+                actor_loss += bc_loss
+
             # Optimize the actor
             self.actor.optimizer.zero_grad()
             actor_loss.backward()
@@ -305,6 +350,8 @@ class SAC(OffPolicyAlgorithm):
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/ent_coef", np.mean(ent_coefs))
         self.logger.record("train/actor_loss", np.mean(actor_losses))
+        if self.train_with_OERLD:
+            self.logger.record("train/bc_loss", np.mean(bc_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
         if len(ent_coef_losses) > 0:
             self.logger.record("train/ent_coef_loss", np.mean(ent_coef_losses))
