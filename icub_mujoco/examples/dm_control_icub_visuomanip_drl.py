@@ -368,6 +368,9 @@ parser.add_argument('--ik_solver',
                     type=str,
                     default='idyntree',
                     help='Set the IK solver between idyntree, dm_robotics, dm_control and ikin.')
+parser.add_argument('--limit_torso_pitch_ikin',
+                    action='store_true',
+                    help='Set if using a limited range for torso_pitch joint in the iKin IK solver.')
 parser.add_argument('--use_only_right_hand_model',
                     action='store_true',
                     help='Use only the right hand model instead of the whole iCub.')
@@ -512,6 +515,7 @@ elif args.task == 'refine_grasp':
                               distanced_superq_grasp_pose=args.distanced_superq_grasp_pose,
                               control_gaze=args.control_gaze,
                               ik_solver=args.ik_solver,
+                              limit_torso_pitch_ikin=args.limit_torso_pitch_ikin,
                               use_only_right_hand_model=args.use_only_right_hand_model,
                               grasp_planner=args.grasp_planner)
 elif args.task == 'keep_grasp':

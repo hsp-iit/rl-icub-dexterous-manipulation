@@ -16,7 +16,8 @@ class VGNEstimator:
 
     def __init__(self,
                  distance_from_grasp_pose_distanced_position,
-                 iKin_joints_to_control_names):
+                 iKin_joints_to_control_names,
+                 limit_torso_pitch_ikin=False):
         self.distance_from_grasp_pose_disanced_position = distance_from_grasp_pose_distanced_position
         self.cam_intrinsic = CameraIntrinsic(640, 480, 617.783447265625, 617.783447265625, 320.0, 240.0)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -26,7 +27,7 @@ class VGNEstimator:
         self.mediany = 0
         self.medianz = 0
         if len(iKin_joints_to_control_names) > 0:
-            self.iKin_IK_solver = IKinIK(iKin_joints_to_control_names)
+            self.iKin_IK_solver = IKinIK(iKin_joints_to_control_names, limit_torso_pitch=limit_torso_pitch_ikin)
         else:
             self.iKin_IK_solver = None
         self.pcd = None

@@ -24,7 +24,9 @@ class ICubEnvRefineGrasp(ICubEnv):
         if self.grasp_planner == 'superquadrics':
             self.superquadric_estimator = SuperquadricEstimator(self.pregrasp_distance_from_grasp_pose)
         elif self.grasp_planner == 'vgn':
-            self.vgn_estimator = VGNEstimator(self.pregrasp_distance_from_grasp_pose, self.joints_to_control_ik)
+            self.vgn_estimator = VGNEstimator(self.pregrasp_distance_from_grasp_pose,
+                                              self.joints_to_control_ik,
+                                              self.limit_torso_pitch_ikin)
         else:
             raise ValueError('The selected grasp planner must be either superquadrics or vgn.')
 
@@ -56,7 +58,8 @@ class ICubEnvRefineGrasp(ICubEnv):
             self.ik_dm_robotics = DMRoboticsIK(self.world_entity.mjcf_model,
                                                joints_to_control=self.joints_to_control_ik_sorted)
         elif self.ik_solver == 'ikin':
-            self.ik_ikin = IKinIK(self.joints_to_control_ik)
+            self.ik_ikin = IKinIK(self.joints_to_control_ik,
+                                  limit_torso_pitch=self.limit_torso_pitch_ikin)
 
         self.lfd_stage = 'close_hand' if not self.lfd_with_approach else 'approach_object'
         self.lfd_approach_object_step = 0

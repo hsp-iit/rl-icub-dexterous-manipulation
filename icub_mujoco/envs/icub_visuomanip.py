@@ -77,6 +77,7 @@ class ICubEnv(gym.Env):
                  distanced_superq_grasp_pose=False,
                  control_gaze=False,
                  ik_solver='idyntree',
+                 limit_torso_pitch_ikin=False,
                  use_only_right_hand_model=False,
                  grasp_planner='superquadrics'
                  ):
@@ -366,6 +367,8 @@ class ICubEnv(gym.Env):
         else:
             print('The required IK solver is not avalable. Using idyntree.')
             self.ik_solver = 'idyntree'
+
+        self.limit_torso_pitch_ikin = limit_torso_pitch_ikin
 
         # Extract joints-tendons information for each actuator
         self.init_icub_qpos_dict = {}

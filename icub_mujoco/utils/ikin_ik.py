@@ -7,7 +7,8 @@ class IKinIK:
 
     def __init__(self,
                  joints_to_control_names,
-                 real_robot_limits=False):
+                 real_robot_limits=False,
+                 limit_torso_pitch=False):
 
         self.arm_chain = icub.iCubArm('right_v2.5')
         icub.iCubAdditionalArmConstraints(self.arm_chain)
@@ -25,6 +26,8 @@ class IKinIK:
         self.chain = icub.iKinChain(self.arm_chain)
         if real_robot_limits:
             self.set_real_robot_arm_chain_link_limits()
+        if 'torso_pitch' in self.joints_to_control_names and limit_torso_pitch:
+            self.chain.access(0).setMax(0.5)
         self.solver = icub.iKinIpOptMin(self.chain, 0, 1e-2, 1e-2, 5000, verbose=0)
 
         # Initialize variable to store solutions at the previous step
