@@ -31,6 +31,7 @@ class ICubEnv(gym.Env):
                  objects_positions=(),
                  objects_quaternions=(),
                  randomly_rotate_object_z_axis=False,
+                 randomly_move_objects=False,
                  eef_name='r_hand',
                  render_cameras=(),
                  obs_camera='head_cam',
@@ -131,6 +132,7 @@ class ICubEnv(gym.Env):
         self.objects_positions = objects_positions
         self.objects_quaternions = objects_quaternions
         self.randomly_rotate_object_z_axis = randomly_rotate_object_z_axis
+        self.randomly_move_objects = randomly_move_objects
         self.objects = objects
         if len(self.objects) == 1:
             self.object_visual_mesh_name = 'model//unnamed_geom_0'
@@ -1113,6 +1115,10 @@ class ICubEnv(gym.Env):
                 rotated_object_quaternions_pyquaternion = z_rotation_quaternion * object_quaternions_pyquaternion
                 object_quaternions = rotated_object_quaternions_pyquaternion.q
                 self.init_qpos[self.joint_ids_objects[i * 7 + 3:i * 7 + 7]] = object_quaternions
+        if self.randomly_move_objects:
+            for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
+                self.init_qpos[self.joint_ids_objects[i * 7 + 0]] = np.random.uniform(-0.35, -0.25)
+                self.init_qpos[self.joint_ids_objects[i * 7 + 1]] = np.random.uniform(-0.05, 0.15)
         if self.use_only_right_hand_model:
             self.env.physics.named.data.mocap_pos['icub_r_hand_welding'] = self.init_qpos[self.joint_ids_icub_free][:3]
             self.env.physics.named.data.mocap_quat['icub_r_hand_welding'] = \

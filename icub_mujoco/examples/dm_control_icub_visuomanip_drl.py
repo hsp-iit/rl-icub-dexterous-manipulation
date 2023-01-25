@@ -270,6 +270,9 @@ parser.add_argument('--objects_quaternions',
 parser.add_argument('--randomly_rotate_object_z_axis',
                     action='store_true',
                     help='Randomly rotate objects on the table around the z axis.')
+parser.add_argument('--randomly_move_objects',
+                    action='store_true',
+                    help='Randomly move objects on the table.')
 parser.add_argument('--task',
                     type=str,
                     default='reaching',
@@ -489,6 +492,7 @@ elif args.task == 'refine_grasp':
                               objects_positions=objects_positions,
                               objects_quaternions=objects_quaternions,
                               randomly_rotate_object_z_axis=args.randomly_rotate_object_z_axis,
+                              randomly_move_objects=args.randomly_move_objects,
                               random_initial_pos=not args.fixed_initial_pos,
                               training_components=args.training_components,
                               ik_components=args.ik_components,
