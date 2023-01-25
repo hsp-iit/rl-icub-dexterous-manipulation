@@ -1117,8 +1117,8 @@ class ICubEnv(gym.Env):
                 self.init_qpos[self.joint_ids_objects[i * 7 + 3:i * 7 + 7]] = object_quaternions
         if self.randomly_move_objects:
             for i in range(int(len(self.init_qpos[self.joint_ids_objects]) / 7)):
-                self.init_qpos[self.joint_ids_objects[i * 7 + 0]] = np.random.uniform(-0.35, -0.25)
-                self.init_qpos[self.joint_ids_objects[i * 7 + 1]] = np.random.uniform(-0.05, 0.15)
+                self.init_qpos[self.joint_ids_objects[i * 7 + 0]] = np.random.uniform(-0.4, -0.3)
+                self.init_qpos[self.joint_ids_objects[i * 7 + 1]] = np.random.uniform(-0.1, 0.1)
         if self.use_only_right_hand_model:
             self.env.physics.named.data.mocap_pos['icub_r_hand_welding'] = self.init_qpos[self.joint_ids_icub_free][:3]
             self.env.physics.named.data.mocap_quat['icub_r_hand_welding'] = \
