@@ -14,6 +14,10 @@ from imitation.algorithms import bc
 from imitation.data.types import Transitions
 from stable_baselines3.common import policies
 import torch
+from icub_mujoco.external.d3rlpy_mod.d3rlpy.algos.awac import AWAC
+from d3rlpy.wrappers.sb3 import to_mdp_dataset
+from d3rlpy.models.encoders import VectorEncoderFactory
+from icub_mujoco.external.d3rlpy_mod.d3rlpy.online.buffers import ReplayBuffer
 
 
 parser = argparse.ArgumentParser()
@@ -52,6 +56,10 @@ parser.add_argument('--train_with_behavior_cloning',
                     action='store_true',
                     help='Train a policy with behavior cloning, starting from data in a replay buffer stored in '
                          'load_replay_buffer_path.')
+parser.add_argument('--train_with_AWAC',
+                    action='store_true',
+                    help='Train a policy with AWAC, using as offline data the replay buffer stored in '
+                         'load_demonstrations_replay_buffer_path.')
 parser.add_argument('--behavior_cloning_epochs',
                     action='store',
                     type=int,
@@ -614,7 +622,7 @@ if args.test_model:
             writer.release()
     print("Reward:", episode_reward)
 else:
-    if not args.train_with_behavior_cloning:
+    if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
             or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
             or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space) \
@@ -690,6 +698,47 @@ else:
 
         if args.save_replay_buffer:
             model.save_replay_buffer(args.save_replay_buffer_path)
+    elif args.train_with_AWAC:
+        # Load replay buffer and convert it to a mdp dataset
+        rb = load_from_pkl(args.load_demonstrations_replay_buffer_path)
+        total_obs_size = 0
+        for obs_key in rb.observations.keys():
+            total_obs_size += rb.observations[obs_key][0].squeeze().size
+        transitions_obs = np.empty((rb.buffer_size, total_obs_size))
+        obs_start_id = 0
+        for obs_key in rb.observations.keys():
+            obs_end_id = obs_start_id + rb.observations[obs_key][0].squeeze().size
+            transitions_obs[:, obs_start_id:obs_end_id] = rb.observations[obs_key].squeeze()
+            obs_start_id = obs_end_id
+        rb.observations = np.expand_dims(transitions_obs, 1)
+
+        # Convert to d3rlpy MDPDataset
+        dataset = to_mdp_dataset(rb)
+
+        actor = VectorEncoderFactory(hidden_units=args.net_arch, activation='relu')
+        critic = VectorEncoderFactory(hidden_units=args.net_arch, activation='relu')
+
+        # Initialize
+        awac = AWAC(actor_encoder_factory=actor,
+                    critic_encoder_factory=critic,
+                    batch_size=256,
+                    lam=0.3,
+                    use_gpu=True)
+
+        # Train offline
+        awac.fit(dataset,
+                 n_steps=25000,
+                 n_steps_per_epoch=25000,
+                 tensorboard_dir=args.tensorboard_dir)
+
+        buffer = ReplayBuffer(maxlen=args.buffer_size, episodes=dataset.episodes)
+
+        # Train online
+        awac.fit_online(iCub,
+                        n_steps=args.total_training_timesteps,
+                        n_steps_per_epoch=100000,
+                        buffer=buffer,
+                        tensorboard_dir=args.tensorboard_dir)
     else:
         # Load replay buffer and adapt it to the format required for behavior cloning
         rb = load_from_pkl(args.load_replay_buffer_path)

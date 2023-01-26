@@ -11,6 +11,7 @@ setup(
         'pyyaml',
         'torchvision',
         'pyquaternion',
-        'clip @ git+https://github.com/openai/CLIP.git'
+        'clip @ git+https://github.com/openai/CLIP.git',
+        'd3rlpy==1.1.1'
     ]
 )
