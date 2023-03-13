@@ -160,6 +160,10 @@ parser.add_argument('--eval_dir',
                     type=str,
                     default='logs_eval',
                     help='Set the directory where evaluation files are saved. Default directory is logs_eval.')
+parser.add_argument('--pretrained_model_dir',
+                    action='store',
+                    type=str,
+                    help='Set the directory where the requested pretrained model is saved.')
 parser.add_argument('--eval_freq',
                     action='store',
                     type=int,
@@ -171,7 +175,9 @@ parser.add_argument('--icub_observation_space',
                     default='joints',
                     help='Set the observation space: joints will use as observation space joints positions, '
                          'camera will use information from the camera specified with the argument obs_camera, '
-                         'features the features extracted by the camera specified with the argument obs_camera '
+                         'features the features extracted by the camera specified with the argument obs_camera, '
+                         'flare a combination of the features with information at the previous timesteps,'
+                         'pretrained_output the output of the pre-trained policy stored in pretrained_model_dir'
                          'and touch the tactile information. If you pass multiple argument, you will use a '
                          'MultiInputPolicy.')
 parser.add_argument('--exclude_vertical_touches',
@@ -529,7 +535,8 @@ elif args.task == 'refine_grasp':
                               ik_solver=args.ik_solver,
                               limit_torso_pitch_ikin=args.limit_torso_pitch_ikin,
                               use_only_right_hand_model=args.use_only_right_hand_model,
-                              grasp_planner=args.grasp_planner)
+                              grasp_planner=args.grasp_planner,
+                              pretrained_model_dir=args.pretrained_model_dir)
 elif args.task == 'keep_grasp':
     iCub = ICubEnvKeepGrasp(model_path=args.xml_model_path,
                             icub_observation_space=args.icub_observation_space,
@@ -625,7 +632,8 @@ else:
     if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
             or 'features' in args.icub_observation_space or 'touch' in args.icub_observation_space
-            or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space) \
+            or 'flare' in args.icub_observation_space or 'superquadric_center' in args.icub_observation_space
+            or 'pretrained_output' in args.icub_observation_space) \
                 and len(args.icub_observation_space) == 1:
             model = SAC("MlpPolicy",
                         iCub,
@@ -663,7 +671,8 @@ else:
               or 'cartesian' in args.icub_observation_space
               or 'features' in args.icub_observation_space
               or 'touch' in args.icub_observation_space
-              or 'flare' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
+              or 'flare' in args.icub_observation_space
+              or 'pretrained_output' in args.icub_observation_space) and len(args.icub_observation_space) > 1:
             model = SAC("MultiInputPolicy",
                         iCub,
                         verbose=1,

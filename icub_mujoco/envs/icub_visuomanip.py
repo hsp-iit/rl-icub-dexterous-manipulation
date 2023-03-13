@@ -11,8 +11,7 @@ from icub_mujoco.feature_extractors.images_feature_extractor_moco import ImagesF
 from icub_mujoco.feature_extractors.images_depth_feature_extractor_densefusion \
     import ImagesDepthFeatureExtractorDenseFusion
 from pyquaternion import Quaternion
-
-import time
+from icub_mujoco.external.stable_baselines3_mod.sac import SAC
 
 
 class ICubEnv(gym.Env):
@@ -80,7 +79,8 @@ class ICubEnv(gym.Env):
                  ik_solver='idyntree',
                  limit_torso_pitch_ikin=False,
                  use_only_right_hand_model=False,
-                 grasp_planner='superquadrics'
+                 grasp_planner='superquadrics',
+                 pretrained_model_dir=None
                  ):
 
         # Load xml model
@@ -635,6 +635,13 @@ class ICubEnv(gym.Env):
         # Set grasp planner
         self.grasp_planner = grasp_planner
 
+        # Upload pre-trained model
+        if pretrained_model_dir is not None:
+            # If the model is pretrained with an algorithm different from SAC, this part must be extended
+            self.pretrained_model = SAC.load(pretrained_model_dir + '/best_model.zip')
+
+        self.prev_obs = None
+
         # Reset environment
         self.reset()
         self.env.reset()
@@ -968,6 +975,12 @@ class ICubEnv(gym.Env):
                         obs['superquadric_center'] = np.zeros(3, dtype=np.float32)
                 elif space == 'object_pose':
                     obs['object_pose'] = self.env.physics.data.qpos[self.joint_ids_objects]
+            if 'pretrained_output' in self.icub_observation_space:
+                # If the observation space of the pretrained model and of the model to be trained are different, this
+                # part must be extended
+                action, _ = self.pretrained_model.predict(obs, deterministic=True)
+                obs['pretrained_output'] = action
+            self.prev_obs = obs
             return obs
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             return self.env.physics.render(height=480, width=640, camera_id=self.obs_camera)
