@@ -725,6 +725,11 @@ class ICubEnv(gym.Env):
                                                               high=np.inf,
                                                               shape=[7],
                                                               dtype=np.float32)
+                elif space == 'pretrained_output':
+                    obs_space['pretrained_output'] = gym.spaces.Box(low=self.action_space.low,
+                                                                    high=self.action_space.high,
+                                                                    shape=self.action_space.shape,
+                                                                    dtype=self.action_space.dtype)
             self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
