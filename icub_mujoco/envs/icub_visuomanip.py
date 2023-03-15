@@ -582,7 +582,6 @@ class ICubEnv(gym.Env):
         self.max_delta_cartesian_pos = max_delta_cartesian_pos
         self.max_delta_cartesian_rot = max_delta_cartesian_rot
         self._set_action_space()
-        self._set_action_space_with_touch()
         self._set_observation_space()
         self._set_state_space()
         self._set_actuators_space()
@@ -671,30 +670,6 @@ class ICubEnv(gym.Env):
         self.action_space = gym.spaces.Box(low=low.astype(np.float32),
                                            high=high.astype(np.float32),
                                            dtype=np.float32)
-
-    def _set_action_space_with_touch(self):
-        if 'cartesian' in self.icub_observation_space:
-            low = np.array([])
-            high = np.array([])
-            for cartesian_id in self.cartesian_ids:
-                if cartesian_id <= 2:
-                    low = np.append(low, -self.max_delta_cartesian_pos)
-                    high = np.append(high, self.max_delta_cartesian_pos)
-                else:
-                    low = np.append(low, -self.max_delta_cartesian_rot)
-                    high = np.append(high, self.max_delta_cartesian_rot)
-        else:
-            low = np.array([])
-            high = np.array([])
-        for act in self.actuators_to_control:
-            low = np.append(low, -self.max_delta_qpos)
-            if 'proximal' in act or 'distal' in act or 'pinky' in act:
-                high = np.append(high, np.inf)
-            else:
-                high = np.append(high, self.max_delta_qpos)
-        self.action_space_with_touch = gym.spaces.Box(low=low.astype(np.float32),
-                                                      high=high.astype(np.float32),
-                                                      dtype=np.float32)
 
     def _set_observation_space(self):
         if len(self.icub_observation_space) > 1:

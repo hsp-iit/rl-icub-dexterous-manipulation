@@ -107,11 +107,7 @@ class ICubEnvRefineGrasp(ICubEnv):
         # Residual learning
         if 'pretrained_output' in self.prev_obs.keys() and not pre_approach_phase:
             action += self.prev_obs['pretrained_output']
-        # If the hand is touching the object, remove constraints on fingers actuators
-        if self.number_of_contacts == 0:
-            action = np.clip(action, self.action_space.low, self.action_space.high)
-        else:
-            action = np.clip(action, self.action_space_with_touch.low, self.action_space_with_touch.high)
+        action = np.clip(action, self.action_space.low, self.action_space.high)
         # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
         # for the other joints
         named_qpos = self.env.physics.named.data.qpos
