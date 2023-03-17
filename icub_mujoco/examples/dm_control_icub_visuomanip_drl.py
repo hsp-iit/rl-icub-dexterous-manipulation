@@ -24,6 +24,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--test_model',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir.')
+parser.add_argument('--fine_tune_model',
+                    action='store_true',
+                    help='Fine tune the best_model.zip stored in --pretrained_model_dir.')
 parser.add_argument('--record_video',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir and record.')
@@ -628,6 +631,13 @@ if args.test_model:
                 writer.write(imgs[i][:, :, ::-1])
             writer.release()
     print("Reward:", episode_reward)
+elif args.fine_tune_model:
+    model = SAC.load(args.pretrained_model_dir + '/best_model.zip', env=iCub)
+    model.learn(total_timesteps=args.total_training_timesteps,
+                eval_freq=args.eval_freq,
+                eval_env=iCub,
+                eval_log_path=args.eval_dir,
+                reset_num_timesteps=True)
 else:
     if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
