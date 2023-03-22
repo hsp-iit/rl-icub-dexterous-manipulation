@@ -10,7 +10,7 @@ from stable_baselines3.common.noise import ActionNoise
 from icub_mujoco.external.stable_baselines3_mod.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import polyak_update
-from stable_baselines3.sac.policies import SACPolicy
+from icub_mujoco.external.stable_baselines3_mod.sac.policies import SACPolicy
 
 from stable_baselines3.common.type_aliases import DictReplayBufferSamples
 
@@ -107,7 +107,8 @@ class SAC(OffPolicyAlgorithm):
         curriculum_learning_components: np.array = np.empty(0),
         learning_from_demonstration: bool = False,
         max_lfd_steps: int = 10000,
-        lfd_keep_only_successful_episodes: bool = False
+        lfd_keep_only_successful_episodes: bool = False,
+        train_with_residual_learning_pretrained_critic: bool = False
     ):
 
         super(SAC, self).__init__(
@@ -141,7 +142,8 @@ class SAC(OffPolicyAlgorithm):
             curriculum_learning_components=curriculum_learning_components,
             learning_from_demonstration=learning_from_demonstration,
             max_lfd_steps=max_lfd_steps,
-            lfd_keep_only_successful_episodes=lfd_keep_only_successful_episodes
+            lfd_keep_only_successful_episodes=lfd_keep_only_successful_episodes,
+            train_with_residual_learning_pretrained_critic=train_with_residual_learning_pretrained_critic
         )
 
         self.target_entropy = target_entropy
@@ -153,6 +155,10 @@ class SAC(OffPolicyAlgorithm):
         self.ent_coef_optimizer = None
 
         self.train_with_OERLD = False
+
+        self.pretrained_model_observation_space = None
+        if hasattr(env, 'pretrained_model'):
+            self.pretrained_model_observation_space = env.pretrained_model.observation_space
 
         if _init_setup_model:
             self._setup_model()
@@ -293,7 +299,15 @@ class SAC(OffPolicyAlgorithm):
                 # Select action according to policy
                 next_actions, next_log_prob = self.actor.action_log_prob(replay_data.next_observations)
                 # Compute the next Q values: min over all critics targets
-                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                if self.train_with_residual_learning_pretrained_critic:
+                    next_obs = replay_data.next_observations.copy()
+                    next_actions += self.policy.scale_action(
+                        next_obs['pretrained_output'].cpu()).to(next_actions.device)
+                    next_actions = th.clip(next_actions, -1, 1)
+                    del next_obs['pretrained_output']
+                    next_q_values = th.cat(self.critic_target(next_obs, next_actions), dim=1)
+                else:
+                    next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
                 next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
                 # add entropy term
                 next_q_values = next_q_values - ent_coef * next_log_prob.reshape(-1, 1)
@@ -302,7 +316,15 @@ class SAC(OffPolicyAlgorithm):
 
             # Get current Q-values estimates for each critic network
             # using action from the replay buffer
-            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+            if self.train_with_residual_learning_pretrained_critic:
+                curr_obs = replay_data.observations.copy()
+                replay_data_actions = replay_data.actions + self.policy.scale_action(
+                    curr_obs['pretrained_output'].cpu()).to(replay_data.actions.device)
+                replay_data_actions = th.clip(replay_data_actions, -1, 1)
+                del curr_obs['pretrained_output']
+                current_q_values = self.critic(curr_obs, replay_data_actions)
+            else:
+                current_q_values = self.critic(replay_data.observations, replay_data.actions)
 
             # Compute critic loss
             critic_loss = 0.5 * sum([F.mse_loss(current_q, target_q_values) for current_q in current_q_values])
@@ -316,7 +338,12 @@ class SAC(OffPolicyAlgorithm):
             # Compute actor loss
             # Alternative: actor_loss = th.mean(log_prob - qf1_pi)
             # Mean over all critic networks
-            q_values_pi = th.cat(self.critic(replay_data.observations, actions_pi), dim=1)
+            if self.train_with_residual_learning_pretrained_critic:
+                actions_pi_q_val = th.clip(actions_pi + self.policy.scale_action(
+                    replay_data.observations['pretrained_output'].cpu()).to(actions_pi.device), -1, 1)
+                q_values_pi = th.cat(self.critic(curr_obs, actions_pi_q_val), dim=1)
+            else:
+                q_values_pi = th.cat(self.critic(replay_data.observations, actions_pi), dim=1)
             min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
             actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
             actor_losses.append(actor_loss.item())

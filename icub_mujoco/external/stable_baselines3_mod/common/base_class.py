@@ -582,6 +582,7 @@ class BaseAlgorithm(ABC):
         load_path_or_dict: Union[str, Dict[str, Dict]],
         exact_match: bool = True,
         device: Union[th.device, str] = "auto",
+        custom_params: Optional[List[str]] = None,
     ) -> None:
         """
         Load parameters from a given zip-file or a nested dictionary containing parameters for
@@ -594,6 +595,8 @@ class BaseAlgorithm(ABC):
             module and each of their parameters, otherwise raises an Exception. If set to False, this
             can be used to update only specific parameters.
         :param device: Device on which the code should run.
+        :param custom_params: Set the parameters that must be set from load_path_or_dict. Tested only with critic as
+            value for the resisual learning experiments starting from a pretrained critic instance.
         """
         params = None
         if isinstance(load_path_or_dict, dict):
@@ -606,6 +609,31 @@ class BaseAlgorithm(ABC):
         # We are only interested in former here.
         objects_needing_update = set(self._get_torch_save_params()[0])
         updated_objects = set()
+
+        if custom_params is not None:
+            params_to_keep = {'policy': [], 'general': []}
+            for key, value in params.items():
+                if key == 'policy':
+                    for policy_key, policy_value in params['policy'].items():
+                        for custom_param in custom_params:
+                            if custom_param in policy_key:
+                                params_to_keep['policy'].append(policy_key)
+                else:
+                    for custom_param in custom_params:
+                        if custom_param in key:
+                            params_to_keep['general'].append(key)
+            objects_needing_update_copy = set(objects_needing_update)
+            for param in objects_needing_update_copy:
+                if param == 'policy' and len(params_to_keep['policy']) > 0:
+                    for policy_key in list(params['policy'].keys()):
+                        if policy_key not in params_to_keep['policy']:
+                            del(params['policy'][policy_key])
+                elif param == 'policy' and len(params_to_keep['policy']) == 0:
+                    objects_needing_update.remove('policy')
+                    del(params['policy'])
+                elif param not in params_to_keep['general']:
+                    objects_needing_update.remove(param)
+                    del(params[param])
 
         for name in params:
             attr = None
@@ -634,6 +662,10 @@ class BaseAlgorithm(ABC):
                 # Solution: Just load the state-dict as is, and trust
                 # the user has provided a sensible state dictionary.
                 attr.load_state_dict(params[name])
+            elif name == 'policy' and custom_params is not None:
+                # Depending on the considered custom_params, updating some parameters of the policy may not be required,
+                # therefore strict needs to be False
+                attr.load_state_dict(params[name], strict=False)
             else:
                 # Assume attr is th.nn.Module
                 attr.load_state_dict(params[name], strict=exact_match)

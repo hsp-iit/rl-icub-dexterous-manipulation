@@ -108,7 +108,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         curriculum_learning_components: np.array = np.empty(0),
         learning_from_demonstration: bool = False,
         max_lfd_steps: int = 10000,
-        lfd_keep_only_successful_episodes: bool = False
+        lfd_keep_only_successful_episodes: bool = False,
+        train_with_residual_learning_pretrained_critic: bool = False
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -165,6 +166,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.learning_from_demonstration_num_steps = 0
         self.lfd_keep_only_successful_episodes = lfd_keep_only_successful_episodes and self.learning_from_demonstration
         self.env_steps = 0
+
+        self.train_with_residual_learning_pretrained_critic = train_with_residual_learning_pretrained_critic
 
     def _convert_train_freq(self) -> None:
         """
@@ -233,12 +236,27 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 **self.replay_buffer_kwargs,
             )
 
-        self.policy = self.policy_class(  # pytype:disable=not-instantiable
-            self.observation_space,
-            self.action_space,
-            self.lr_schedule,
-            **self.policy_kwargs,  # pytype:disable=not-instantiable
-        )
+        observation_space_pretrained = None
+        if hasattr(self, 'pretrained_model_observation_space') and self.train_with_residual_learning_pretrained_critic:
+            observation_space_pretrained = self.pretrained_model_observation_space
+
+        # This try-except can be removed once all the policies are in the class in stable_baselines3_mod. Added to
+        # ensure back-compatibility with the old models.
+        try:
+            self.policy = self.policy_class(  # pytype:disable=not-instantiable
+                self.observation_space,
+                self.action_space,
+                self.lr_schedule,
+                observation_space_pretrained,
+                **self.policy_kwargs,  # pytype:disable=not-instantiable
+            )
+        except:
+            self.policy = self.policy_class(  # pytype:disable=not-instantiable
+                self.observation_space,
+                self.action_space,
+                self.lr_schedule,
+                **self.policy_kwargs,  # pytype:disable=not-instantiable
+            )
         self.policy = self.policy.to(self.device)
 
         # Convert train freq parameter to TrainFreq object

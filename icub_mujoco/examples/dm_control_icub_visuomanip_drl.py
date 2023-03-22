@@ -55,6 +55,10 @@ parser.add_argument('--train_with_OERLD',
                          'Reinforcement Learning with Demonstrations". The replay buffer containing the '
                          'demonstrations will be loaded from where specified in the '
                          'load_demonstrations_replay_buffer_path option.')
+parser.add_argument('--train_with_residual_learning_pretrained_critic',
+                    action='store_true',
+                    help='Set options to train SAC with residual learning, setting the initial weights of the critic '
+                         'from the model in --pretrained_model_dir.')
 parser.add_argument('--train_with_behavior_cloning',
                     action='store_true',
                     help='Train a policy with behavior cloning, starting from data in a replay buffer stored in '
@@ -143,6 +147,13 @@ parser.add_argument('--net_arch',
                     nargs='+',
                     default=[64, 64],
                     help='Set the architecture of the MLP network. Default is [64, 64]')
+parser.add_argument('--net_arch_critic',
+                    type=int,
+                    nargs='+',
+                    default=[],
+                    help='Set the architecture of the critic of the MLP network. This is considered only if '
+                         '--train_with_residual_learning_pretrained_critic is True to set the critic as the one of the '
+                         'pretrained model. If not specified, this will be set as specified in --net_arch.')
 parser.add_argument('--train_freq',
                     action='store',
                     type=int,
@@ -158,6 +169,11 @@ parser.add_argument('--total_training_timesteps',
                     type=int,
                     default=10000000,
                     help='Set the number of training episodes for SAC. Default is 10M')
+parser.add_argument('--ent_coef',
+                    action='store',
+                    type=str,
+                    default='auto',
+                    help='Set the entropy coefficient for SAC, e.g. auto_0.01 to set 0.01 as initial value.')
 parser.add_argument('--eval_dir',
                     action='store',
                     type=str,
@@ -638,6 +654,31 @@ elif args.fine_tune_model:
                 eval_env=iCub,
                 eval_log_path=args.eval_dir,
                 reset_num_timesteps=True)
+elif args.train_with_residual_learning_pretrained_critic:
+    net_arch_critic = args.net_arch_critic if len(args.net_arch_critic) > 0 else args.net_arch
+    model = SAC("MultiInputPolicy",
+                iCub,
+                verbose=1,
+                tensorboard_log=args.tensorboard_dir,
+                policy_kwargs=dict(net_arch=dict(qf=net_arch_critic, pi=args.net_arch)),
+                train_freq=args.train_freq,
+                ent_coef=args.ent_coef,
+                learning_starts=args.learning_starts,
+                create_eval_env=True,
+                buffer_size=args.buffer_size,
+                device=args.training_device,
+                curriculum_learning=args.curriculum_learning,
+                curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
+                learning_from_demonstration=args.learning_from_demonstration,
+                max_lfd_steps=args.max_lfd_steps,
+                lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
+                train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic)
+    model.set_parameters(args.pretrained_model_dir + '/best_model.zip', custom_params=['critic'])
+    model.learn(total_timesteps=args.total_training_timesteps,
+                eval_freq=args.eval_freq,
+                eval_env=iCub,
+                eval_log_path=args.eval_dir,
+                reset_num_timesteps=True)
 else:
     if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
@@ -651,6 +692,7 @@ else:
                         tensorboard_log=args.tensorboard_dir,
                         policy_kwargs=dict(net_arch=args.net_arch),
                         train_freq=args.train_freq,
+                        ent_coef=args.ent_coef,
                         learning_starts=args.learning_starts,
                         create_eval_env=True,
                         buffer_size=args.buffer_size,
@@ -667,6 +709,7 @@ else:
                         tensorboard_log=args.tensorboard_dir,
                         policy_kwargs=dict(net_arch=args.net_arch),
                         train_freq=args.train_freq,
+                        ent_coef=args.ent_coef,
                         learning_starts=args.learning_starts,
                         create_eval_env=True,
                         buffer_size=args.buffer_size,
@@ -689,6 +732,7 @@ else:
                         tensorboard_log=args.tensorboard_dir,
                         policy_kwargs=dict(net_arch=args.net_arch),
                         train_freq=args.train_freq,
+                        ent_coef=args.ent_coef,
                         learning_starts=args.learning_starts,
                         create_eval_env=True,
                         buffer_size=args.buffer_size,
