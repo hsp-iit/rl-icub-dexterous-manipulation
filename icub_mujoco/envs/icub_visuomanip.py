@@ -7,6 +7,7 @@ import cv2
 import yaml
 from icub_mujoco.feature_extractors.images_feature_extractor import ImagesFeatureExtractor
 from icub_mujoco.feature_extractors.images_feature_extractor_CLIP import ImagesFeatureExtractorCLIP
+from icub_mujoco.feature_extractors.images_feature_extractor_MAE import ImagesFeatureExtractorMAE
 from icub_mujoco.feature_extractors.images_feature_extractor_moco import ImagesFeatureExtractorMOCO
 from icub_mujoco.feature_extractors.images_depth_feature_extractor_densefusion \
     import ImagesDepthFeatureExtractorDenseFusion
@@ -152,6 +153,8 @@ class ICubEnv(gym.Env):
         if 'features' in icub_observation_space or 'flare' in icub_observation_space:
             if 'CLIP' in self.feature_extractor_model_name:
                 self.feature_extractor = ImagesFeatureExtractorCLIP(model_name=self.feature_extractor_model_name)
+            elif 'MAE' in self.feature_extractor_model_name:
+                self.feature_extractor = ImagesFeatureExtractorMAE(model_name=self.feature_extractor_model_name)
             elif 'moco' in self.feature_extractor_model_name:
                 self.feature_extractor = ImagesFeatureExtractorMOCO(model_name=self.feature_extractor_model_name)
             elif 'densefusion' in self.feature_extractor_model_name:
