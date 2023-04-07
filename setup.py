@@ -12,6 +12,7 @@ setup(
         'torchvision',
         'pyquaternion',
         'clip @ git+https://github.com/openai/CLIP.git',
-        'd3rlpy==1.1.1'
+        'd3rlpy==1.1.1',
+        'mvp @ git+https://github.com/ir413/mvp',
     ]
 )
