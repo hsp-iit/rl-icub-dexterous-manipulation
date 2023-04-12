@@ -2,14 +2,6 @@
 
 **Installation guide**
 
-Install [**MuJoCo**](https://github.com/deepmind/mujoco/):
-
-```
-wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz
-mkdir ~/.mujoco
-tar -xf mujoco210-linux-x86_64.tar.gz -C ~/.mujoco
-```
-
 Install **GLEW**:
 ```
 sudo apt install libglew-dev
