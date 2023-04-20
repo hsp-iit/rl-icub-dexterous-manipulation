@@ -195,8 +195,9 @@ parser.add_argument('--icub_observation_space',
                     help='Set the observation space: joints will use as observation space joints positions, '
                          'camera will use information from the camera specified with the argument obs_camera, '
                          'features the features extracted by the camera specified with the argument obs_camera, '
-                         'flare a combination of the features with information at the previous timesteps,'
-                         'pretrained_output the output of the pre-trained policy stored in pretrained_model_dir'
+                         'flare a combination of the features with information at the previous timesteps, '
+                         'pretrained_output the output of the pre-trained policy stored in pretrained_model_dir, '
+                         'grasp_type an integer value that describes the grasp type based on the initial grasp pose '
                          'and touch the tactile information. If you pass multiple argument, you will use a '
                          'MultiInputPolicy.')
 parser.add_argument('--exclude_vertical_touches',

@@ -733,6 +733,11 @@ class ICubEnv(gym.Env):
                                                                     high=self.action_space.high,
                                                                     shape=self.action_space.shape,
                                                                     dtype=self.action_space.dtype)
+                elif space == 'grasp_type':
+                    obs_space['grasp_type'] = gym.spaces.Box(low=-np.inf,
+                                                             high=np.inf,
+                                                             shape=[1],
+                                                             dtype=np.int8)
             self.observation_space = gym.spaces.Dict(obs_space)
         elif 'camera' in self.icub_observation_space and len(self.icub_observation_space) == 1:
             self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype='uint8')
@@ -956,6 +961,14 @@ class ICubEnv(gym.Env):
                             obs['superquadric_center'] = self.superq_pose['superq_center']
                     else:
                         obs['superquadric_center'] = np.zeros(3, dtype=np.float32)
+                elif space == 'grasp_type':
+                    if hasattr(self, 'superq_pose'):
+                        if self.superq_pose is None:
+                            obs['grasp_type'] = np.zeros(1, dtype=np.int8)
+                        else:
+                            obs['grasp_type'] = [self.superq_pose['grasp_type']]
+                    else:
+                        obs['grasp_type'] = np.zeros(1, dtype=np.int8)
                 elif space == 'object_pose':
                     obs['object_pose'] = self.env.physics.data.qpos[self.joint_ids_objects]
             if 'pretrained_output' in self.icub_observation_space:

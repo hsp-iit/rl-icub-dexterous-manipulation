@@ -49,14 +49,14 @@ class SuperquadricEstimator:
                 if best_grasp_pose_to_ret['position'][2] < best_grasp_position[2]:
                     update_pose = True
             if update_pose:
+                rotation_axis_angle = grasp_res_hand.grasp_poses.front().axisangle[0]
                 # Rototranslation world dh frame
                 rt_dh = np.array([[1, 0, 0, 0],
                                   [0, 1, 0, 0],
                                   [0, 0, 1, 0],
                                   [0, 0, 0, 1]],
                                  dtype=np.float32)
-                rt_dh[:3, :3] = Quaternion(self.axisangle_to_quat(grasp_res_hand.grasp_poses.front().axisangle[0])). \
-                    rotation_matrix
+                rt_dh[:3, :3] = Quaternion(self.axisangle_to_quat(rotation_axis_angle)).rotation_matrix
                 tr = best_grasp_position
                 rt_dh[:3, -1] = tr
                 best_grasp_pose = rt_dh
@@ -75,13 +75,25 @@ class SuperquadricEstimator:
                 distanced_position_10_cm = np.array([best_grasp_pose[0, 3] + mx * 0.1,
                                                      best_grasp_pose[1, 3] + my * 0.1,
                                                      best_grasp_pose[2, 3] + mz * 0.1])
+                # Define grasp type as lateral (0) or top-down (1)
+                x_z_unit_vector_world_coord = np.matmul(rt_dh,
+                                                        np.array([[1, 0, 0, 1/np.sqrt(2)],
+                                                                  [0, 1, 0, 0],
+                                                                  [0, 0, 1, 1/np.sqrt(2)],
+                                                                  [0, 0, 0, 1]],
+                                                                 dtype=np.float32))
+                x_z_unit_vector_world_coord = x_z_unit_vector_world_coord[:3, 3] - tr
+                grasp_type = np.argmax(np.array([np.linalg.norm([x_z_unit_vector_world_coord[0],
+                                                                 x_z_unit_vector_world_coord[1]]),
+                                                 abs(x_z_unit_vector_world_coord[2])]))
                 best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3],
                                                        best_grasp_pose[1, 3],
                                                        best_grasp_pose[2, 3]],
                                           'quaternion': best_grasp_pose_quat.q,
                                           'superq_center': sq_center,
                                           'distanced_grasp_position': distanced_position,
-                                          'distanced_grasp_position_10_cm': distanced_position_10_cm}
+                                          'distanced_grasp_position_10_cm': distanced_position_10_cm,
+                                          'grasp_type': grasp_type}
         return best_grasp_pose_to_ret
 
     @staticmethod

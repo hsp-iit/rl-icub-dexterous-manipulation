@@ -293,13 +293,25 @@ class VGNEstimator:
         distanced_position_10_cm = np.array([best_grasp_pose[0, 3] + mx * 0.1,
                                              best_grasp_pose[1, 3] + my * 0.1,
                                              best_grasp_pose[2, 3] + mz * 0.1])
+        # Define grasp type as lateral (0) or top-down (1)
+        x_z_unit_vector_world_coord = np.matmul(rt_dh,
+                                                np.array([[1, 0, 0, 1/np.sqrt(2)],
+                                                          [0, 1, 0, 0],
+                                                          [0, 0, 1, 1/np.sqrt(2)],
+                                                          [0, 0, 0, 1]],
+                                                         dtype=np.float32))
+        x_z_unit_vector_world_coord = x_z_unit_vector_world_coord[:3, 3] - self.pos_grasp_icub
+        grasp_type = np.argmax(np.array([np.linalg.norm([x_z_unit_vector_world_coord[0],
+                                                         x_z_unit_vector_world_coord[1]]),
+                                         abs(x_z_unit_vector_world_coord[2])]))
         best_grasp_pose_to_ret = {'position': [best_grasp_pose[0, 3],
                                                best_grasp_pose[1, 3],
                                                best_grasp_pose[2, 3]],
                                   'quaternion': best_grasp_pose_quat.q,
                                   'superq_center': sq_center,
                                   'distanced_grasp_position': distanced_position,
-                                  'distanced_grasp_position_10_cm': distanced_position_10_cm}
+                                  'distanced_grasp_position_10_cm': distanced_position_10_cm,
+                                  'grasp_type': grasp_type}
         return best_grasp_pose_to_ret
 
     def compute_angular_error(self, vgn_rot_sol):
