@@ -101,11 +101,15 @@ class ICubEnvRefineGrasp(ICubEnv):
                     if increase_steps:
                         self.lfd_steps += 1
                     action = self.collect_demonstrations()
-                    action_lfd = action
+                    action_lfd = np.array(action)
+                    if 'pretrained_output' in self.prev_obs.keys():
+                        action_lfd -= self.prev_obs['pretrained_output']
+                        action_lfd = np.clip(action_lfd, self.action_space.low, self.action_space.high)
                 else:
                     self.learning_from_demonstration = False
         # Residual learning
-        if 'pretrained_output' in self.prev_obs.keys() and not pre_approach_phase:
+        if 'pretrained_output' in self.prev_obs.keys() \
+                and not pre_approach_phase and not self.learning_from_demonstration:
             action += self.prev_obs['pretrained_output']
         action = np.clip(action, self.action_space.low, self.action_space.high)
         # Set target w.r.t. current position for the controlled joints, while maintaining the initial position
