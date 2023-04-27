@@ -675,11 +675,22 @@ elif args.train_with_residual_learning_pretrained_critic:
                 lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                 train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic)
     model.set_parameters(args.pretrained_model_dir + '/best_model.zip', custom_params=['critic'])
+    if args.load_replay_buffer:
+        model.load_replay_buffer(args.load_replay_buffer_path)
+
+    if args.train_with_two_replay_buffers:
+        model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
+    elif args.train_with_OERLD:
+        model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
+        model.train_with_OERLD = True
     model.learn(total_timesteps=args.total_training_timesteps,
                 eval_freq=args.eval_freq,
                 eval_env=iCub,
                 eval_log_path=args.eval_dir,
                 reset_num_timesteps=True)
+
+    if args.save_replay_buffer:
+        model.save_replay_buffer(args.save_replay_buffer_path)
 else:
     if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
