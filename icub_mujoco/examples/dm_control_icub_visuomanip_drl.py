@@ -154,6 +154,10 @@ parser.add_argument('--net_arch_critic',
                     help='Set the architecture of the critic of the MLP network. This is considered only if '
                          '--train_with_residual_learning_pretrained_critic is True to set the critic as the one of the '
                          'pretrained model. If not specified, this will be set as specified in --net_arch.')
+parser.add_argument('--initialize_actor_mu_weights_to_zero',
+                    action='store_true',
+                    help='Initialize weights and biases of the actor mu to zero. This is considered only if '
+                         '--train_with_residual_learning_pretrained_critic is True.')
 parser.add_argument('--train_freq',
                     action='store',
                     type=int,
@@ -675,6 +679,8 @@ elif args.train_with_residual_learning_pretrained_critic:
                 lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                 train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic)
     model.set_parameters(args.pretrained_model_dir + '/best_model.zip', custom_params=['critic'])
+    if args.initialize_actor_mu_weights_to_zero:
+        model.set_actor_mu_weights_to_zero()
     if args.load_replay_buffer:
         model.load_replay_buffer(args.load_replay_buffer_path)
 

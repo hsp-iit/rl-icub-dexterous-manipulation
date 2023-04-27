@@ -419,3 +419,11 @@ class SAC(OffPolicyAlgorithm):
         else:
             saved_pytorch_variables = ["ent_coef_tensor"]
         return state_dicts, saved_pytorch_variables
+
+    def set_actor_mu_weights_to_zero(self):
+        self.actor.mu.weight.data = th.zeros(self.actor.mu.weight.data.shape,
+                                             requires_grad=True,
+                                             device=self.actor.mu.weight.data.device)
+        self.actor.mu.bias.data = th.zeros(self.actor.mu.bias.data.shape,
+                                           requires_grad=True,
+                                           device=self.actor.mu.bias.data.device)
