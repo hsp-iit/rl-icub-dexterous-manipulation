@@ -166,7 +166,7 @@ parser.add_argument('--train_freq',
 parser.add_argument('--gradient_steps',
                     action='store',
                     type=int,
-                    default=10,
+                    default=1,
                     help='Set the number of gradient steps for SAC. Default is 1.')
 parser.add_argument('--learning_starts',
                     action='store',
