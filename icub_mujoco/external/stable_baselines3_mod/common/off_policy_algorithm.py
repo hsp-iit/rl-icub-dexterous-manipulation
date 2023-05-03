@@ -13,7 +13,7 @@ from icub_mujoco.external.stable_baselines3_mod.common.base_class import BaseAlg
 from stable_baselines3.common.buffers import DictReplayBuffer, ReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise, VectorizedActionNoise
-from stable_baselines3.common.policies import BasePolicy
+from icub_mujoco.external.stable_baselines3_mod.common.policies import BasePolicy
 from stable_baselines3.common.save_util import load_from_pkl, save_to_pkl
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn, Schedule, TrainFreq, TrainFrequencyUnit
 from stable_baselines3.common.utils import safe_mean, should_collect_more_steps
@@ -109,7 +109,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         learning_from_demonstration: bool = False,
         max_lfd_steps: int = 10000,
         lfd_keep_only_successful_episodes: bool = False,
-        train_with_residual_learning_pretrained_critic: bool = False
+        train_with_residual_learning_pretrained_critic: bool = False,
+        train_with_implicit_underparametrization_penalty: bool = False
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -168,6 +169,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.env_steps = 0
 
         self.train_with_residual_learning_pretrained_critic = train_with_residual_learning_pretrained_critic
+        self.train_with_implicit_underparametrization_penalty = train_with_implicit_underparametrization_penalty
 
     def _convert_train_freq(self) -> None:
         """
@@ -243,6 +245,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         # This try-except can be removed once all the policies are in the class in stable_baselines3_mod. Added to
         # ensure back-compatibility with the old models.
         try:
+            if self.train_with_implicit_underparametrization_penalty:
+                self.policy_kwargs['compute_penultimate_layer_features_critic'] = True
             self.policy = self.policy_class(  # pytype:disable=not-instantiable
                 self.observation_space,
                 self.action_space,
@@ -251,6 +255,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 **self.policy_kwargs,  # pytype:disable=not-instantiable
             )
         except:
+            if 'compute_penultimate_layer_features_critic' in self.policy_kwargs:
+                del(self.policy_kwargs['compute_penultimate_layer_features_critic'])
             self.policy = self.policy_class(  # pytype:disable=not-instantiable
                 self.observation_space,
                 self.action_space,

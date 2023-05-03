@@ -6,7 +6,7 @@ import torch as th
 from torch import nn
 
 from stable_baselines3.common.distributions import SquashedDiagGaussianDistribution, StateDependentNoiseDistribution
-from stable_baselines3.common.policies import BasePolicy, ContinuousCritic, register_policy
+from icub_mujoco.external.stable_baselines3_mod.common.policies import BasePolicy, ContinuousCritic, register_policy
 from stable_baselines3.common.preprocessing import get_action_dim
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
@@ -237,6 +237,7 @@ class SACPolicy(BasePolicy):
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
         n_critics: int = 2,
         share_features_extractor: bool = True,
+        compute_penultimate_layer_features_critic: bool = False
     ):
         super(SACPolicy, self).__init__(
             observation_space,
@@ -283,6 +284,7 @@ class SACPolicy(BasePolicy):
                 "n_critics": n_critics,
                 "net_arch": critic_arch,
                 "share_features_extractor": share_features_extractor,
+                "compute_penultimate_layer_features": compute_penultimate_layer_features_critic
             }
         )
         if observation_space_critic is not None:
@@ -512,6 +514,7 @@ class MultiInputPolicy(SACPolicy):
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
         n_critics: int = 2,
         share_features_extractor: bool = True,
+        compute_penultimate_layer_features_critic: bool = False
     ):
         super(MultiInputPolicy, self).__init__(
             observation_space,
@@ -532,6 +535,7 @@ class MultiInputPolicy(SACPolicy):
             optimizer_kwargs,
             n_critics,
             share_features_extractor,
+            compute_penultimate_layer_features_critic,
         )
 
 

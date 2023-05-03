@@ -108,7 +108,8 @@ class SAC(OffPolicyAlgorithm):
         learning_from_demonstration: bool = False,
         max_lfd_steps: int = 10000,
         lfd_keep_only_successful_episodes: bool = False,
-        train_with_residual_learning_pretrained_critic: bool = False
+        train_with_residual_learning_pretrained_critic: bool = False,
+        train_with_implicit_underparametrization_penalty: bool = False
     ):
 
         super(SAC, self).__init__(
@@ -143,7 +144,8 @@ class SAC(OffPolicyAlgorithm):
             learning_from_demonstration=learning_from_demonstration,
             max_lfd_steps=max_lfd_steps,
             lfd_keep_only_successful_episodes=lfd_keep_only_successful_episodes,
-            train_with_residual_learning_pretrained_critic=train_with_residual_learning_pretrained_critic
+            train_with_residual_learning_pretrained_critic=train_with_residual_learning_pretrained_critic,
+            train_with_implicit_underparametrization_penalty=train_with_implicit_underparametrization_penalty
         )
 
         self.target_entropy = target_entropy
@@ -328,6 +330,10 @@ class SAC(OffPolicyAlgorithm):
 
             # Compute critic loss
             critic_loss = 0.5 * sum([F.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            if self.train_with_implicit_underparametrization_penalty:
+                for feat in self.critic.feat_penultimate_layer.values():
+                    singular_values = th.linalg.svdvals(feat)
+                    critic_loss += 0.001 * (singular_values[0]**2 - singular_values[-1]**2)
             critic_losses.append(critic_loss.item())
 
             # Optimize the critic

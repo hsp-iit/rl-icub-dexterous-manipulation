@@ -55,6 +55,10 @@ parser.add_argument('--train_with_OERLD',
                          'Reinforcement Learning with Demonstrations". The replay buffer containing the '
                          'demonstrations will be loaded from where specified in the '
                          'load_demonstrations_replay_buffer_path option.')
+parser.add_argument('--train_with_implicit_underparametrization_penalty',
+                    action='store_true',
+                    help='Set options to train SAC adding to the critic loss the penalty in the paper "Implicit '
+                         'Under-Parameterization Inhibits Data-Efficient Deep Reinforcement Learning".')
 parser.add_argument('--train_with_residual_learning_pretrained_critic',
                     action='store_true',
                     help='Set options to train SAC with residual learning, setting the initial weights of the critic '
@@ -683,7 +687,8 @@ elif args.train_with_residual_learning_pretrained_critic:
                 learning_from_demonstration=args.learning_from_demonstration,
                 max_lfd_steps=args.max_lfd_steps,
                 lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
-                train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic)
+                train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic,
+                train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
     model.set_parameters(args.pretrained_model_dir + '/best_model.zip', custom_params=['critic'])
     if args.initialize_actor_mu_weights_to_zero:
         model.set_actor_mu_weights_to_zero()
@@ -726,7 +731,8 @@ else:
                         curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
-                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
         elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
             model = SAC("CnnPolicy",
                         iCub,
@@ -744,7 +750,8 @@ else:
                         curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
-                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
         elif ('camera' in args.icub_observation_space
               or 'joints' in args.icub_observation_space
               or 'cartesian' in args.icub_observation_space
@@ -768,7 +775,8 @@ else:
                         curriculum_learning_components=iCub.cartesian_actions_curriculum_learning,
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
-                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes)
+                        lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
         else:
             raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
@@ -863,7 +871,8 @@ else:
                                             net_arch=args.net_arch,
                                             # Set lr_schedule to max value to force error if policy.optimizer
                                             # is used by mistake (should use self.optimizer instead).
-                                            lr_schedule=lambda _: torch.finfo(torch.float32).max)
+                                            lr_schedule=lambda _: torch.finfo(torch.float32).max,
+                                            activation_fn=torch.nn.ReLU)
 
         # Initialize the trainer
         bc_trainer = bc.BC(
