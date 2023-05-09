@@ -33,6 +33,10 @@ parser.add_argument('--record_video',
 parser.add_argument('--save_replay_buffer',
                     action='store_true',
                     help='Save the replay buffer.')
+parser.add_argument('--save_demonstrations_replay_buffers_per_object',
+                    action='store_true',
+                    help='Save the replay buffers filled with demonstrations of different objects. This option is '
+                         'currently only supported when the option --train_with_reptile is True.')
 parser.add_argument('--save_replay_buffer_path',
                     type=str,
                     default='replay_buffer',
@@ -63,6 +67,14 @@ parser.add_argument('--train_with_residual_learning_pretrained_critic',
                     action='store_true',
                     help='Set options to train SAC with residual learning, setting the initial weights of the critic '
                          'from the model in --pretrained_model_dir.')
+parser.add_argument('--train_with_reptile',
+                    action='store_true',
+                    help='Train a policy with reptile from the paper "On First-Order Meta-Learning Algorithms".')
+parser.add_argument('--k_reptile',
+                    action='store',
+                    type=int,
+                    default=1000,
+                    help='Set the number of timesteps for each batch in reptile. Default is 1000.')
 parser.add_argument('--train_with_behavior_cloning',
                     action='store_true',
                     help='Train a policy with behavior cloning, starting from data in a replay buffer stored in '
@@ -688,12 +700,18 @@ elif args.train_with_residual_learning_pretrained_critic:
                 max_lfd_steps=args.max_lfd_steps,
                 lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
                 train_with_residual_learning_pretrained_critic=args.train_with_residual_learning_pretrained_critic,
-                train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
+                train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty,
+                train_with_reptile=args.train_with_reptile,
+                k_reptile=args.k_reptile,
+                save_demonstrations_replay_buffers_per_object=args.save_demonstrations_replay_buffers_per_object)
     model.set_parameters(args.pretrained_model_dir + '/best_model.zip', custom_params=['critic'])
     if args.initialize_actor_mu_weights_to_zero:
         model.set_actor_mu_weights_to_zero()
     if args.load_replay_buffer:
-        model.load_replay_buffer(args.load_replay_buffer_path)
+        if args.train_with_reptile:
+            model.load_replay_buffers_list(args.load_replay_buffer_path)
+        else:
+            model.load_replay_buffer(args.load_replay_buffer_path)
 
     if args.train_with_two_replay_buffers:
         model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
@@ -707,7 +725,10 @@ elif args.train_with_residual_learning_pretrained_critic:
                 reset_num_timesteps=True)
 
     if args.save_replay_buffer:
-        model.save_replay_buffer(args.save_replay_buffer_path)
+        if args.save_demonstrations_replay_buffers_per_object and args.train_with_reptile:
+            model.save_replay_buffers_list(args.save_replay_buffer_path)
+        else:
+            model.save_replay_buffer(args.save_replay_buffer_path)
 else:
     if not args.train_with_behavior_cloning and not args.train_with_AWAC:
         if ('joints' in args.icub_observation_space or 'cartesian' in args.icub_observation_space
@@ -732,7 +753,10 @@ else:
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
                         lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
-                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty,
+                        train_with_reptile=args.train_with_reptile,
+                        k_reptile=args.k_reptile,
+                        save_demonstrations_replay_buffers_per_object=args.save_demonstrations_replay_buffers_per_object)
         elif 'camera' in args.icub_observation_space and len(args.icub_observation_space) == 1:
             model = SAC("CnnPolicy",
                         iCub,
@@ -751,7 +775,10 @@ else:
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
                         lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
-                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty,
+                        train_with_reptile=args.train_with_reptile,
+                        k_reptile=args.k_reptile,
+                        save_demonstrations_replay_buffers_per_object=args.save_demonstrations_replay_buffers_per_object)
         elif ('camera' in args.icub_observation_space
               or 'joints' in args.icub_observation_space
               or 'cartesian' in args.icub_observation_space
@@ -776,12 +803,18 @@ else:
                         learning_from_demonstration=args.learning_from_demonstration,
                         max_lfd_steps=args.max_lfd_steps,
                         lfd_keep_only_successful_episodes=args.lfd_keep_only_successful_episodes,
-                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty)
+                        train_with_implicit_underparametrization_penalty=args.train_with_implicit_underparametrization_penalty,
+                        train_with_reptile=args.train_with_reptile,
+                        k_reptile=args.k_reptile,
+                        save_demonstrations_replay_buffers_per_object=args.save_demonstrations_replay_buffers_per_object)
         else:
             raise ValueError('The observation space specified as argument is not valid. Quitting.')
 
         if args.load_replay_buffer:
-            model.load_replay_buffer(args.load_replay_buffer_path)
+            if args.train_with_reptile:
+                model.load_replay_buffers_list(args.load_replay_buffer_path)
+            else:
+                model.load_replay_buffer(args.load_replay_buffer_path)
 
         if args.train_with_two_replay_buffers:
             model.load_demonstrations_replay_buffer(args.load_demonstrations_replay_buffer_path)
@@ -795,7 +828,10 @@ else:
                     eval_log_path=args.eval_dir)
 
         if args.save_replay_buffer:
-            model.save_replay_buffer(args.save_replay_buffer_path)
+            if args.save_demonstrations_replay_buffers_per_object and args.train_with_reptile:
+                model.save_replay_buffers_list(args.save_replay_buffer_path)
+            else:
+                model.save_replay_buffer(args.save_replay_buffer_path)
     elif args.train_with_AWAC:
         # Load replay buffer and convert it to a mdp dataset
         rb = load_from_pkl(args.load_demonstrations_replay_buffer_path)

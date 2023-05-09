@@ -1089,8 +1089,11 @@ class ICubEnv(gym.Env):
                 random_pos[i * 7 + 3:i * 7 + 7] /= np.linalg.norm(random_pos[i * 7 + 3:i * 7 + 7])
             self.init_qpos[self.joint_ids_objects] = random_pos
         if self.random_ycb_video_graspable_object:
-            random_object = self.ycb_video_graspable_objects_list \
-                [np.random.randint(0, len(self.ycb_video_graspable_objects_list))]
+            if hasattr(self, 'reptile_object_id'):
+                random_object = self.ycb_video_graspable_objects_list[self.reptile_object_id]
+            else:
+                random_object = self.ycb_video_graspable_objects_list \
+                                [np.random.randint(0, len(self.ycb_video_graspable_objects_list))]
             self.objects = [random_object['object']]
             self.objects_positions = [np.array(list(random_object['position'].values()))]
             self.objects_quaternions = [np.array(list(random_object['orientation'].values()))]
@@ -1103,8 +1106,11 @@ class ICubEnv(gym.Env):
             self.init_qpos[self.joint_ids_objects[0:3]] = self.objects_positions[0]
             self.init_qpos[self.joint_ids_objects[3:7]] = self.objects_quaternions[0]
         if self.random_mujoco_scanned_object:
-            random_object = self.mujoco_scanned_objects_graspable_list \
-                [np.random.randint(0, len(self.mujoco_scanned_objects_graspable_list))]
+            if hasattr(self, 'reptile_object_id'):
+                random_object = self.mujoco_scanned_objects_graspable_list[self.reptile_object_id]
+            else:
+                random_object = self.mujoco_scanned_objects_graspable_list \
+                                [np.random.randint(0, len(self.mujoco_scanned_objects_graspable_list))]
             self.objects = [random_object['object']]
             self.objects_positions = [np.array(random_object['position'])]
             self.objects_quaternions = [np.array(random_object['orientation'])]

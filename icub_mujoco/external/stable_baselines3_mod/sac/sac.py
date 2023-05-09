@@ -109,7 +109,10 @@ class SAC(OffPolicyAlgorithm):
         max_lfd_steps: int = 10000,
         lfd_keep_only_successful_episodes: bool = False,
         train_with_residual_learning_pretrained_critic: bool = False,
-        train_with_implicit_underparametrization_penalty: bool = False
+        train_with_implicit_underparametrization_penalty: bool = False,
+        train_with_reptile: bool = False,
+        k_reptile: int = 1000,
+        save_demonstrations_replay_buffers_per_object: bool = False
     ):
 
         super(SAC, self).__init__(
@@ -145,7 +148,10 @@ class SAC(OffPolicyAlgorithm):
             max_lfd_steps=max_lfd_steps,
             lfd_keep_only_successful_episodes=lfd_keep_only_successful_episodes,
             train_with_residual_learning_pretrained_critic=train_with_residual_learning_pretrained_critic,
-            train_with_implicit_underparametrization_penalty=train_with_implicit_underparametrization_penalty
+            train_with_implicit_underparametrization_penalty=train_with_implicit_underparametrization_penalty,
+            train_with_reptile=train_with_reptile,
+            k_reptile=k_reptile,
+            save_demonstrations_replay_buffers_per_object=save_demonstrations_replay_buffers_per_object
         )
 
         self.target_entropy = target_entropy

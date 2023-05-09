@@ -22,6 +22,8 @@ from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
 from collections import deque
 
+import os
+
 
 class OffPolicyAlgorithm(BaseAlgorithm):
     """
@@ -110,7 +112,10 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         max_lfd_steps: int = 10000,
         lfd_keep_only_successful_episodes: bool = False,
         train_with_residual_learning_pretrained_critic: bool = False,
-        train_with_implicit_underparametrization_penalty: bool = False
+        train_with_implicit_underparametrization_penalty: bool = False,
+        train_with_reptile: bool = False,
+        k_reptile: int = 1000,
+        save_demonstrations_replay_buffers_per_object: bool = False
     ):
 
         super(OffPolicyAlgorithm, self).__init__(
@@ -150,6 +155,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.actor = None  # type: Optional[th.nn.Module]
         self.replay_buffer = None  # type: Optional[ReplayBuffer]
         self.replay_buffer_demo = None
+        self.replay_buffers_list = []
         # Update policy keyword arguments
         if sde_support:
             self.policy_kwargs["use_sde"] = self.use_sde
@@ -170,6 +176,31 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
         self.train_with_residual_learning_pretrained_critic = train_with_residual_learning_pretrained_critic
         self.train_with_implicit_underparametrization_penalty = train_with_implicit_underparametrization_penalty
+        self.train_with_reptile = train_with_reptile
+        self.num_objects_reptile = -1
+        if hasattr(env, 'random_mujoco_scanned_object') and hasattr(env, 'random_ycb_video_graspable_object') and \
+            hasattr(env, 'mujoco_scanned_objects_graspable_list') and hasattr(env, 'ycb_video_graspable_objects_list'):
+            if env.random_mujoco_scanned_object:
+                self.num_objects_reptile = len(env.mujoco_scanned_objects_graspable_list)
+            elif env.random_ycb_video_graspable_object:
+                self.num_objects_reptile = len(env.ycb_video_graspable_objects_list)
+        self.k_reptile = k_reptile
+        self.current_object_id_reptile = 0
+        self.reptile_steps = 0
+        self.all_replay_buffers_filled_with_demonstrations = False
+        self.save_demonstrations_replay_buffers_per_object = save_demonstrations_replay_buffers_per_object
+        if self.train_with_reptile:
+            self.env.envs[0].env.reptile_object_id = 0
+            if self.learning_from_demonstration:
+                print('k_reptile has been overwritten with', int(self.buffer_size / self.num_objects_reptile),
+                      'since the, option learning_from_demonstration is set to True, and when training with reptile all'
+                      'the replay buffers must be filled. This will be reset the the requested value at the end of the '
+                      'lfd phase.')
+                self.k_reptile = int(self.buffer_size / self.num_objects_reptile)
+                self.original_k_reptile = k_reptile
+                self.learning_from_demonstration_max_steps = np.inf
+                self.env.envs[0].env.learning_from_demonstration_max_steps = np.inf
+
 
     def _convert_train_freq(self) -> None:
         """
@@ -227,16 +258,28 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 **self.replay_buffer_kwargs,
             )
 
-        if self.replay_buffer is None:
-            self.replay_buffer = self.replay_buffer_class(
-                self.buffer_size,
-                self.observation_space,
-                self.action_space,
-                device=self.device,
-                n_envs=self.n_envs,
-                optimize_memory_usage=self.optimize_memory_usage,
-                **self.replay_buffer_kwargs,
-            )
+        if self.train_with_reptile:
+            for _ in range(self.num_objects_reptile):
+                self.replay_buffers_list.append(
+                    self.replay_buffer_class(int(self.buffer_size/self.num_objects_reptile),
+                                             self.observation_space,
+                                             self.action_space,
+                                             device=self.device,
+                                             n_envs=self.n_envs,
+                                             optimize_memory_usage=self.optimize_memory_usage,
+                                             **self.replay_buffer_kwargs))
+            self.replay_buffer = self.replay_buffers_list[0]
+        else:
+            if self.replay_buffer is None:
+                self.replay_buffer = self.replay_buffer_class(
+                    self.buffer_size,
+                    self.observation_space,
+                    self.action_space,
+                    device=self.device,
+                    n_envs=self.n_envs,
+                    optimize_memory_usage=self.optimize_memory_usage,
+                    **self.replay_buffer_kwargs,
+                )
 
         observation_space_pretrained = None
         if hasattr(self, 'pretrained_model_observation_space') and self.train_with_residual_learning_pretrained_critic:
@@ -277,6 +320,18 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         """
         assert self.replay_buffer is not None, "The replay buffer is not defined"
         save_to_pkl(path, self.replay_buffer, self.verbose)
+
+    def save_replay_buffers_list(self, path: Union[str, pathlib.Path, io.BufferedIOBase]) -> None:
+        """
+        Save the replay buffer as a pickle file.
+
+        :param path: Path to the file where the replay buffer should be saved.
+            if path is a str or pathlib.Path, the path is automatically created if necessary.
+        """
+        assert len(self.replay_buffers_list) > 0, "The list of replay buffers is empty"
+        for id_rb, replay_buffer in enumerate(self.replay_buffers_list):
+            assert replay_buffer is not None, "The replay buffer is not defined"
+            save_to_pkl(path+'/'+str(id_rb), replay_buffer, self.verbose)
 
     def load_replay_buffer(
         self,
@@ -335,6 +390,42 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             self.replay_buffer_demo.set_env(self.get_env())
             if truncate_last_traj:
                 self.replay_buffer_demo.truncate_last_trajectory()
+
+    def load_replay_buffers_list(
+        self,
+        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        truncate_last_traj: bool = True,
+    ) -> None:
+        """
+        Load a replay buffer from a pickle file.
+
+        :param path: Path to the pickled replay buffer.
+        :param truncate_last_traj: When using ``HerReplayBuffer`` with online sampling:
+            If set to ``True``, we assume that the last trajectory in the replay buffer was finished
+            (and truncate it).
+            If set to ``False``, we assume that we continue the same trajectory (same episode).
+        """
+        self.replay_buffers_list = []
+
+        for id_rb in range(len(os.listdir(path))):
+            replay_buffer = load_from_pkl(path+'/'+str(id_rb), self.verbose)
+            assert isinstance(replay_buffer, ReplayBuffer), "The replay buffer must inherit from ReplayBuffer class"
+
+            # Backward compatibility with SB3 < 2.1.0 replay buffer
+            # Keep old behavior: do not handle timeout termination separately
+            if not hasattr(replay_buffer, "handle_timeout_termination"):  # pragma: no cover
+                replay_buffer.handle_timeout_termination = False
+                replay_buffer.timeouts = np.zeros_like(replay_buffer.dones)
+
+            if isinstance(replay_buffer, HerReplayBuffer):
+                assert self.env is not None, "You must pass an environment at load time when using `HerReplayBuffer`"
+                replay_buffer.set_env(self.get_env())
+                if truncate_last_traj:
+                    replay_buffer.truncate_last_trajectory()
+
+            self.replay_buffers_list.append(replay_buffer)
+
+        self.replay_buffer = self.replay_buffers_list[0]
 
     def _setup_learn(
         self,
@@ -659,7 +750,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             # Rescale and perform action
             if self.learning_from_demonstration:
-                if self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps:
+                if self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps or \
+                        (self.train_with_reptile and not self.all_replay_buffers_filled_with_demonstrations):
                     new_obs, rewards, dones, infos = env.step(actions)
                     actions = infos[0]['learning from demonstration action']
                     buffer_actions = self.policy.scale_action(actions)
@@ -687,6 +779,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             self.num_timesteps += env.num_envs
             num_collected_steps += 1
+
+            # Keep track of the steps to use the correct replay buffer when training with reptile
+            self.reptile_steps += 1
 
             # Give access to local variables
             callback.update_locals(locals())
@@ -734,6 +829,37 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                     # Log training infos
                     if log_interval is not None and self._episode_num % log_interval == 0:
                         self._dump_logs()
+
+                    # Update reptile parameters
+                    if self.reptile_steps >= self.k_reptile:
+                        print('End of reptile steps for the current object. Moving to the next object/replay buffer.')
+                        self.current_object_id_reptile += 1
+                        self.current_object_id_reptile %= self.num_objects_reptile
+                        self.env.envs[0].env.reptile_object_id = self.current_object_id_reptile
+                        self.replay_buffer = self.replay_buffers_list[self.current_object_id_reptile]
+                        replay_buffer = self.replay_buffer
+                        self.reptile_steps = 0
+                        self.env.envs[0].reset()
+                        if self.learning_from_demonstration:
+                            if self.current_object_id_reptile == 0:
+                                # All replay buffers have been filled
+                                self.all_replay_buffers_filled_with_demonstrations = True
+                                # End lfd phase since all the replay buffers are filled
+                                self.learning_from_demonstration = False
+                                self.env.envs[0].env.learning_from_demonstration = False
+                                # Resets episodes buffers
+                                self.ep_info_buffer = deque(maxlen=100)
+                                self.ep_success_buffer = deque(maxlen=100)
+                                self._episode_num = 0
+                                print('k_reptile has been set to the value set during initialization since the lfd '
+                                      'phase has been completed.')
+                                self.k_reptile = self.original_k_reptile
+                                if self.save_demonstrations_replay_buffers_per_object:
+                                    print('Replay buffers have been filled for all the objects. Stopping data '
+                                          'collection to save the collected demonstrations.')
+                                    continue_training = False
+                                    num_collected_steps = np.inf
+                                    num_collected_episodes = np.inf
 
         callback.on_rollout_end()
 
