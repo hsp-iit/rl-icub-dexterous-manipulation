@@ -16,7 +16,7 @@ from stable_baselines3.common.noise import ActionNoise, VectorizedActionNoise
 from icub_mujoco.external.stable_baselines3_mod.common.policies import BasePolicy
 from stable_baselines3.common.save_util import load_from_pkl, save_to_pkl
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn, Schedule, TrainFreq, TrainFrequencyUnit
-from stable_baselines3.common.utils import safe_mean, should_collect_more_steps
+from stable_baselines3.common.utils import safe_mean, should_collect_more_steps, polyak_update
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
@@ -191,6 +191,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         self.save_demonstrations_replay_buffers_per_object = save_demonstrations_replay_buffers_per_object
         if self.train_with_reptile:
             self.env.envs[0].env.reptile_object_id = 0
+            # eps_reptile will decrease linearly from 1 to 0 during the training
+            self.eps_reptile = 1
             if self.learning_from_demonstration:
                 print('k_reptile has been overwritten with', int(self.buffer_size / self.num_objects_reptile),
                       'since the, option learning_from_demonstration is set to True, and when training with reptile all'
@@ -200,7 +202,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 self.original_k_reptile = k_reptile
                 self.learning_from_demonstration_max_steps = np.inf
                 self.env.envs[0].env.learning_from_demonstration_max_steps = np.inf
-
+        self.actor_old = None
+        self.critic_old = None
+        self.critic_target_old = None
 
     def _convert_train_freq(self) -> None:
         """
@@ -527,9 +531,17 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 gradient_steps = self.gradient_steps if self.gradient_steps >= 0 else rollout.episode_timesteps
                 # Special case when the user passes `gradient_steps=0`
                 if gradient_steps > 0:
-                    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+                    if self.train_with_reptile and self.replay_buffer.pos == 0 and not self.replay_buffer.full:
+                        print('Empty replay buffer. Skipping gradient update.')
+                    else:
+                        self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
 
         callback.on_training_end()
+
+        if self.actor_old is not None or self.critic_old is not None or self.critic_target_old is not None:
+            self.actor = deepcopy(self.actor_old)
+            self.critic = deepcopy(self.critic_old)
+            self.critic_target = deepcopy(self.critic_target_old)
 
         return self
 
@@ -781,7 +793,8 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             num_collected_steps += 1
 
             # Keep track of the steps to use the correct replay buffer when training with reptile
-            self.reptile_steps += 1
+            if self.train_with_reptile:
+                self.reptile_steps += 1
 
             # Give access to local variables
             callback.update_locals(locals())
@@ -831,13 +844,29 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                         self._dump_logs()
 
                     # Update reptile parameters
-                    if self.reptile_steps >= self.k_reptile:
+                    if self.train_with_reptile and self.reptile_steps >= self.k_reptile:
                         print('End of reptile steps for the current object. Moving to the next object/replay buffer.')
                         self.current_object_id_reptile += 1
                         self.current_object_id_reptile %= self.num_objects_reptile
                         self.env.envs[0].env.reptile_object_id = self.current_object_id_reptile
                         self.replay_buffer = self.replay_buffers_list[self.current_object_id_reptile]
                         replay_buffer = self.replay_buffer
+                        self.eps_reptile = 1 - (self.num_timesteps - self.learning_starts) /\
+                                           (self._total_timesteps -self.learning_starts)
+                        # Update weights
+                        polyak_update(self.actor.parameters(),
+                                      self.actor_old.parameters(),
+                                      self.eps_reptile)
+                        polyak_update(self.critic.parameters(),
+                                      self.critic_old.parameters(),
+                                      self.eps_reptile)
+                        polyak_update(self.critic_target.parameters(),
+                                      self.critic_target_old.parameters(),
+                                      self.eps_reptile)
+                        # Set the weights of the old networks to current ones
+                        self.actor = deepcopy(self.actor_old)
+                        self.critic = deepcopy(self.critic_old)
+                        self.critic_target = deepcopy(self.critic_target_old)
                         self.reptile_steps = 0
                         self.env.envs[0].reset()
                         if self.learning_from_demonstration:

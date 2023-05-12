@@ -14,6 +14,8 @@ from icub_mujoco.external.stable_baselines3_mod.sac.policies import SACPolicy
 
 from stable_baselines3.common.type_aliases import DictReplayBufferSamples
 
+from copy import deepcopy
+
 
 class SAC(OffPolicyAlgorithm):
     """
@@ -202,6 +204,11 @@ class SAC(OffPolicyAlgorithm):
             # this will throw an error if a malformed string (different from 'auto')
             # is passed
             self.ent_coef_tensor = th.tensor(float(self.ent_coef)).to(self.device)
+
+        if self.train_with_reptile:
+            self.actor_old = deepcopy(self.actor)
+            self.critic_old = deepcopy(self.critic)
+            self.critic_target_old = deepcopy(self.critic_target)
 
     def _create_aliases(self) -> None:
         self.actor = self.policy.actor
