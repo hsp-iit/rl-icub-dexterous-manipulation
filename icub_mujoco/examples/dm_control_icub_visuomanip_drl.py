@@ -291,6 +291,12 @@ parser.add_argument('--ycb_video_graspable_objects_config_path',
 parser.add_argument('--random_mujoco_scanned_object',
                     action='store_true',
                     help='Use a random object from the mujoco scanned objects dataset.')
+parser.add_argument('--done_moved_object_mso_angle',
+                    action='store',
+                    type=float,
+                    default=90,
+                    help='Set the rotation angle in degrees around the x/y axes to consider an object as moved when '
+                         'using the mujoco scanned objects dataset.')
 parser.add_argument('--mujoco_scanned_objects_config_path',
                     action='store',
                     type=str,
@@ -545,6 +551,7 @@ elif args.task == 'refine_grasp':
                               random_ycb_video_graspable_object=args.random_ycb_video_graspable_object,
                               ycb_video_graspable_objects_config_path=args.ycb_video_graspable_objects_config_path,
                               random_mujoco_scanned_object=args.random_mujoco_scanned_object,
+                              done_moved_object_mso_angle=args.done_moved_object_mso_angle,
                               mujoco_scanned_objects_config_path=args.mujoco_scanned_objects_config_path,
                               objects=args.objects,
                               use_table=args.use_table,

@@ -605,9 +605,9 @@ class ICubEnvRefineGrasp(ICubEnv):
             # Only one object can be used for this task, so there is no need to loop
             current_obj_rotation = Quaternion(self.env.physics.data.qpos[self.joint_ids_objects[3:7]])
             axis_angle_curr_rot = current_obj_rotation.axis * current_obj_rotation.angle
-            # Object is moved if it is rotated of more than 90 degrees around the x or y axes
-            if axis_angle_curr_rot[0] >= np.pi / 2 or axis_angle_curr_rot[0] <= -np.pi / 2 or \
-                axis_angle_curr_rot[1] >= np.pi / 2 or axis_angle_curr_rot[1] <= -np.pi / 2:
+            # Object is moved if it is rotated of more than done_moved_object_mso_angle degrees around the x/y axes
+            if np.sqrt((axis_angle_curr_rot[0])**2 + (axis_angle_curr_rot[1])**2) >= \
+                    self.done_moved_object_mso_angle / 180 * np.pi:
                 return True
         else:
             for list_id, joint_id in enumerate(self.joint_ids_objects):

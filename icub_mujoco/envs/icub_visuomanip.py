@@ -26,6 +26,7 @@ class ICubEnv(gym.Env):
                  mujoco_scanned_objects_config_path='../config/mujoco_scanned_objects_graspable.yaml',
                  random_ycb_video_graspable_object=False,
                  random_mujoco_scanned_object=False,
+                 done_moved_object_mso_angle=90,
                  objects=(),
                  use_table=True,
                  objects_positions=(),
@@ -633,6 +634,7 @@ class ICubEnv(gym.Env):
         self.min_fingers_touching_object = min_fingers_touching_object
         self.scale_pos_lift_reward_wrt_touching_fingers = scale_pos_lift_reward_wrt_touching_fingers
         self.high_negative_reward_approach_failures = high_negative_reward_approach_failures
+        self.done_moved_object_mso_angle = done_moved_object_mso_angle
 
         # Set grasp planner
         self.grasp_planner = grasp_planner
