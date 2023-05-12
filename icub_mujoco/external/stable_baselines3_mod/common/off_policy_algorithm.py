@@ -851,8 +851,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                         self.env.envs[0].env.reptile_object_id = self.current_object_id_reptile
                         self.replay_buffer = self.replay_buffers_list[self.current_object_id_reptile]
                         replay_buffer = self.replay_buffer
-                        self.eps_reptile = 1 - (self.num_timesteps - self.learning_starts) /\
-                                           (self._total_timesteps -self.learning_starts)
+                        if self.num_timesteps > self.learning_starts and self._total_timesteps > self.learning_starts:
+                            self.eps_reptile = 1 - (self.num_timesteps - self.learning_starts) /\
+                                               (self._total_timesteps - self.learning_starts)
                         # Update weights
                         polyak_update(self.actor.parameters(),
                                       self.actor_old.parameters(),
