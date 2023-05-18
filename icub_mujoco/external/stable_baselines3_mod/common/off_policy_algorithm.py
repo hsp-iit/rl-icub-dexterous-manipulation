@@ -351,7 +351,24 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             (and truncate it).
             If set to ``False``, we assume that we continue the same trajectory (same episode).
         """
-        self.replay_buffer = load_from_pkl(path, self.verbose)
+        replay_buffer_loaded = load_from_pkl(path, self.verbose)
+        if replay_buffer_loaded.buffer_size < self.replay_buffer.buffer_size:
+            if replay_buffer_loaded.full:
+                rb_pos = replay_buffer_loaded.buffer_size
+            else:
+                rb_pos = replay_buffer_loaded.pos
+            for i in range(rb_pos):
+                self.replay_buffer.actions[i] = replay_buffer_loaded.actions[i]
+                self.replay_buffer.dones[i] = replay_buffer_loaded.dones[i]
+                self.replay_buffer.rewards[i] = replay_buffer_loaded.rewards[i]
+                self.replay_buffer.timeouts[i] = replay_buffer_loaded.timeouts[i]
+                for key in self.replay_buffer.observations:
+                    self.replay_buffer.observations[key][i] = replay_buffer_loaded.observations[key][i]
+                    self.replay_buffer.next_observations[key][i] = replay_buffer_loaded.next_observations[key][i]
+            self.replay_buffer.pos = rb_pos
+            del replay_buffer_loaded
+        else:
+            self.replay_buffer = replay_buffer_loaded
         assert isinstance(self.replay_buffer, ReplayBuffer), "The replay buffer must inherit from ReplayBuffer class"
 
         # Backward compatibility with SB3 < 2.1.0 replay buffer
