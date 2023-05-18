@@ -18,7 +18,7 @@ class VGNEstimator:
                  distance_from_grasp_pose_distanced_position,
                  iKin_joints_to_control_names,
                  limit_torso_pitch_ikin=False):
-        self.distance_from_grasp_pose_disanced_position = distance_from_grasp_pose_distanced_position
+        self.distance_from_grasp_pose_distanced_position = distance_from_grasp_pose_distanced_position
         self.cam_intrinsic = CameraIntrinsic(640, 480, 617.783447265625, 617.783447265625, 320.0, 240.0)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = get_network('conv').to(self.device)
@@ -285,11 +285,11 @@ class VGNEstimator:
                                                                best_grasp_pose[1, 3],
                                                                best_grasp_pose[2, 3]], )
         distanced_position = np.array([best_grasp_pose[0, 3] +
-                                       mx * self.distance_from_grasp_pose_disanced_position,
+                                       mx * self.distance_from_grasp_pose_distanced_position,
                                        best_grasp_pose[1, 3] +
-                                       my * self.distance_from_grasp_pose_disanced_position,
+                                       my * self.distance_from_grasp_pose_distanced_position,
                                        best_grasp_pose[2, 3] +
-                                       mz * self.distance_from_grasp_pose_disanced_position])
+                                       mz * self.distance_from_grasp_pose_distanced_position])
         distanced_position_10_cm = np.array([best_grasp_pose[0, 3] + mx * 0.1,
                                              best_grasp_pose[1, 3] + my * 0.1,
                                              best_grasp_pose[2, 3] + mz * 0.1])
