@@ -208,6 +208,10 @@ parser.add_argument('--pretrained_model_dir',
                     action='store',
                     type=str,
                     help='Set the directory where the requested pretrained model is saved.')
+parser.add_argument('--pretrained_model_dir_fine_tuning',
+                    action='store',
+                    type=str,
+                    help='Set the directory where the requested pretrained model for fine tuning is saved.')
 parser.add_argument('--eval_freq',
                     action='store',
                     type=int,
@@ -681,7 +685,10 @@ if args.test_model:
             writer.release()
     print("Reward:", episode_reward)
 elif args.fine_tune_model:
-    model = SAC.load(args.pretrained_model_dir + '/best_model.zip', env=iCub)
+    model = SAC.load(args.pretrained_model_dir_fine_tuning + '/best_model.zip',
+                     env=iCub,
+                     gradient_steps=args.gradient_steps,
+                     train_freq=args.train_freq)
     model.learn(total_timesteps=args.total_training_timesteps,
                 eval_freq=args.eval_freq,
                 eval_env=iCub,
