@@ -323,6 +323,7 @@ class BaseAlgorithm(ABC):
             "_episode_storage",
             "_logger",
             "_custom_logger",
+            "replay_buffers_list"
         ]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:

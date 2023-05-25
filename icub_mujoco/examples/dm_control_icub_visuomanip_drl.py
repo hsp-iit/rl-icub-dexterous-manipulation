@@ -689,6 +689,18 @@ elif args.fine_tune_model:
                      env=iCub,
                      gradient_steps=args.gradient_steps,
                      train_freq=args.train_freq)
+    if hasattr(model, 'replay_buffers_list'):
+        del model.replay_buffers_list
+    if model.train_with_reptile:
+        del model.replay_buffer
+        model.replay_buffer = model.replay_buffer_class(args.buffer_size,
+                                                        model.observation_space,
+                                                        model.action_space,
+                                                        device=model.device,
+                                                        n_envs=model.n_envs,
+                                                        optimize_memory_usage=model.optimize_memory_usage,
+                                                        **model.replay_buffer_kwargs)
+    model.train_with_reptile = False
     model.learn(total_timesteps=args.total_training_timesteps,
                 eval_freq=args.eval_freq,
                 eval_env=iCub,
