@@ -7,3 +7,6 @@
 [submodule "icub_mujoco/external/vgn"]
 	path = icub_mujoco/external/vgn
 	url = https://github.com/ethz-asl/vgn.git
+[submodule "icub_mujoco/meshes/mujoco_scanned_objects"]
+	path = icub_mujoco/meshes/mujoco_scanned_objects
+	url = https://github.com/kevinzakka/mujoco_scanned_objects.git
