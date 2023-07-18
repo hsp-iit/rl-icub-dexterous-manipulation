@@ -1,0 +1,23 @@
+<mujoco model="009_gelatin_box">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_009_gelatin_box_00" class="/" file="59e7d128d09e7952ec3231abe2e7f788d260f67d.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_009_gelatin_box_00" class="/" file="59e7d128d09e7952ec3231abe2e7f788d260f67d.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="dd2920ccef9c6f755d8e9c811eaf872082ad9712.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_009_gelatin_box_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_009_gelatin_box_00"/>
+    <geom name="mesh_009_gelatin_box_00_collision" class="collision" type="mesh" mass="0.097" pos="0 0 0" mesh="mesh_collision_009_gelatin_box_00"/>
+  </worldbody>
+</mujoco>

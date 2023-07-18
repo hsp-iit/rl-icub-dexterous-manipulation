@@ -1,0 +1,23 @@
+<mujoco model="036_wood_block">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_036_wood_block_00" class="/" file="d45ba62ff921aff4965aef3fd5b2c96c7a723893.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_036_wood_block_00" class="/" file="d45ba62ff921aff4965aef3fd5b2c96c7a723893.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="90b98291d04a523d64e67afc3c9d907c2e485c2e.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_036_wood_block_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_036_wood_block_00"/>
+    <geom name="mesh_036_wood_block_00_collision" class="collision" type="mesh" mass="0.729" pos="0 0 0" mesh="mesh_collision_036_wood_block_00"/>
+  </worldbody>
+</mujoco>

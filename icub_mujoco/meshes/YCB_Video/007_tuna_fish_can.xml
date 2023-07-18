@@ -1,0 +1,23 @@
+<mujoco model="007_tuna_fish_can">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_007_tuna_fish_can_00" class="/" file="99a269c8e88db7b07d7b7593efaad33a2f4b21e9.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_007_tuna_fish_can_00" class="/" file="99a269c8e88db7b07d7b7593efaad33a2f4b21e9.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="a4787e0e0f73664f5f88ea6aa8a3ece01a7aae08.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_007_tuna_fish_can_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_007_tuna_fish_can_00"/>
+    <geom name="mesh_007_tuna_fish_can_00_collision" class="collision" type="mesh" mass="0.171" pos="0 0 0" mesh="mesh_collision_007_tuna_fish_can_00"/>
+  </worldbody>
+</mujoco>

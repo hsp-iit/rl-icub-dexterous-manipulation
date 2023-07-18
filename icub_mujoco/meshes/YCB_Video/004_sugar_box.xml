@@ -1,0 +1,23 @@
+<mujoco model="004_sugar_box">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_004_sugar_box_00" class="/" file="22b5cdbedcc55b094f0a8f14e29d2caa37527449.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_004_sugar_box_00" class="/" file="22b5cdbedcc55b094f0a8f14e29d2caa37527449.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="2b8da1b665accf38f158ff12c538576bb2cb83a0.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_004_sugar_box_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_004_sugar_box_00"/>
+    <geom name="mesh_004_sugar_box_00_collision" class="collision" type="mesh" mass="0.514" pos="0 0 0" mesh="mesh_collision_004_sugar_box_00"/>
+  </worldbody>
+</mujoco>

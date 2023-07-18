@@ -1,0 +1,23 @@
+<mujoco model="003_cracker_box">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_003_cracker_box_00" class="/" file="55a170c29c29e589d6f9ed746c2cbef808cb0a4d.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_003_cracker_box_00" class="/" file="55a170c29c29e589d6f9ed746c2cbef808cb0a4d.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="9e8ca48a30e03ce6c02071bdd42f6e578538b85a.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_003_cracker_box_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_003_cracker_box_00"/>
+    <geom name="mesh_003_cracker_box_00_collision" class="collision" type="mesh" mass="0.411" pos="0 0 0" mesh="mesh_collision_003_cracker_box_00"/>
+  </worldbody>
+</mujoco>

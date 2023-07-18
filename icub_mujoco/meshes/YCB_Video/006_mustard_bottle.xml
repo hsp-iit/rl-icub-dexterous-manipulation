@@ -1,0 +1,29 @@
+<mujoco model="006_mustard_bottle">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_006_mustard_bottle_00" class="/" file="aeb91d50aa7ead76c93ce751c4a86497ce268cc0.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_006_mustard_bottle_00" class="/" file="3f8c5c6ddaf103233a9b05c131aa2631767833ba.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_006_mustard_bottle_01" class="/" file="a3d8ba0589da6413a414f0d68998a8678df95375.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_006_mustard_bottle_02" class="/" file="41f781f0b2bacef41d5ec36d61a43f73b379546a.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_006_mustard_bottle_03" class="/" file="c0dd798d9339b141eb1ddba6fcb28ed9afee27e8.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="cc7a90a9a6dbb5e8109aeeb5f17a42ce2a178add.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_006_mustard_bottle_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_006_mustard_bottle_00"/>
+    <geom name="mesh_006_mustard_bottle_00_collision" class="collision" type="mesh" mass="0.15075" pos="0 0 0" mesh="mesh_collision_006_mustard_bottle_00"/>
+    <geom name="mesh_006_mustard_bottle_01_collision" class="collision" type="mesh" mass="0.15075" pos="0 0 0" mesh="mesh_collision_006_mustard_bottle_01"/>
+    <geom name="mesh_006_mustard_bottle_02_collision" class="collision" type="mesh" mass="0.15075" pos="0 0 0" mesh="mesh_collision_006_mustard_bottle_02"/>
+    <geom name="mesh_006_mustard_bottle_03_collision" class="collision" type="mesh" mass="0.15075" pos="0 0 0" mesh="mesh_collision_006_mustard_bottle_03"/>
+  </worldbody>
+</mujoco>

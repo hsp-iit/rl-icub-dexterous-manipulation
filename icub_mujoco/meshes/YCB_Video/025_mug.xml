@@ -1,0 +1,23 @@
+<mujoco model="025_mug">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_025_mug_00" class="/" file="f1914ca987ddeb27f010252cf7532cfa6875217d.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_025_mug_00" class="/" file="f1914ca987ddeb27f010252cf7532cfa6875217d.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="178f47daa094a3a494e8b4fd568761e75b05a42e.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_025_mug_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_025_mug_00"/>
+    <geom name="mesh_025_mug_00_collision" class="collision" type="mesh" mass="0.118" pos="0 0 0" mesh="mesh_collision_025_mug_00"/>
+  </worldbody>
+</mujoco>

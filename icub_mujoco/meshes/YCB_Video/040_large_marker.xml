@@ -1,0 +1,23 @@
+<mujoco model="040_large_marker">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_040_large_marker_00" class="/" file="8e464c7aca1a43cf6b9854b4f0229f91c12f1620.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_040_large_marker_00" class="/" file="8e464c7aca1a43cf6b9854b4f0229f91c12f1620.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="6e693fdb3bd465e93f9772ba387852976a38bf57.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_040_large_marker_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_040_large_marker_00"/>
+    <geom name="mesh_040_large_marker_00_collision" class="collision" type="mesh" mass="0.0158" pos="0 0 0" mesh="mesh_collision_040_large_marker_00"/>
+  </worldbody>
+</mujoco>

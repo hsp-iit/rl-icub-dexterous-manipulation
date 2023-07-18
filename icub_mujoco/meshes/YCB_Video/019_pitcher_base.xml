@@ -1,0 +1,23 @@
+<mujoco model="019_pitcher_base">
+  <default>
+    <default class="/">
+      <default class="visual">
+        <geom contype="0" conaffinity="0" group="1" rgba="1 1 1 1"/>
+      </default>
+      <default class="collision">
+        <geom contype="1" conaffinity="1" condim="6" group="4" friction="0.5 0.0050000000000000001 0.0001" solref="0.0040000000000000001 1"/>
+      </default>
+    </default>
+  </default>
+  <asset>
+    <mesh name="mesh_visual_019_pitcher_base_00" class="/" file="11d6ea43f65360a6cdf91598599bfce61b5d0e1e.msh" scale="1 1 1"/>
+    <mesh name="mesh_collision_019_pitcher_base_00" class="/" file="11d6ea43f65360a6cdf91598599bfce61b5d0e1e.msh" scale="1 1 1"/>
+    <texture name="tex_object" type="2d" file="6f560c52cdebaa7ae8ccb1368b27d11562f55ef7.png"/>
+    <material name="mat_texture" class="/" texture="tex_object"/>
+  </asset>
+  <worldbody>
+    <body name="prop_root"/>
+    <geom name="mesh_019_pitcher_base_00_visual" class="visual" type="mesh" material="mat_texture" pos="0 0 0" mesh="mesh_visual_019_pitcher_base_00"/>
+    <geom name="mesh_019_pitcher_base_00_collision" class="collision" type="mesh" mass="0.178" pos="0 0 0" mesh="mesh_collision_019_pitcher_base_00"/>
+  </worldbody>
+</mujoco>
