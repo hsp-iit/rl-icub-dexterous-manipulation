@@ -8,7 +8,6 @@ from dm_control.utils import inverse_kinematics as ik
 import random
 from pyquaternion import Quaternion
 from icub_mujoco.utils.idyntree_ik import IDynTreeIK
-from icub_mujoco.utils.dm_robotics_ik import DMRoboticsIK
 from icub_mujoco.utils.ikin_ik import IKinIK
 
 
@@ -54,9 +53,6 @@ class ICubEnvRefineGrasp(ICubEnv):
                                           joints_icub=self.joint_names_icub,
                                           eef_frame='r_hand_dh_frame',
                                           reduced_model=self.ik_idyntree_reduced_model)
-        elif self.ik_solver == 'dm_robotics':
-            self.ik_dm_robotics = DMRoboticsIK(self.world_entity.mjcf_model,
-                                               joints_to_control=self.joints_to_control_ik_sorted)
         elif self.ik_solver == 'ikin':
             self.ik_ikin = IKinIK(self.joints_to_control_ik,
                                   limit_torso_pitch=self.limit_torso_pitch_ikin)
@@ -138,14 +134,6 @@ class ICubEnvRefineGrasp(ICubEnv):
                         qpos_ik = ik_sol[np.array(self.joints_to_control_ik_ids, dtype=np.int32)]
                     else:
                         qpos_ik = ik_sol
-                else:
-                    done_ik = True
-            elif self.ik_solver == 'dm_robotics':
-                ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.target_ik[:3],
-                                                              eef_quat=target_ik_quaternion,
-                                                              current_qpos=None)
-                if solved:
-                    qpos_ik = ik_sol
                 else:
                     done_ik = True
             elif self.ik_solver == 'ikin':
@@ -408,14 +396,6 @@ class ICubEnvRefineGrasp(ICubEnv):
                                 qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
                                 qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
                             grasp_found = True
-                    elif self.ik_solver == 'dm_robotics':
-                        ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.superq_pose['position'],
-                                                                      eef_quat=self.superq_pose['quaternion'],
-                                                                      current_qpos=None)
-                        if solved:
-                            qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
-                            qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
-                            grasp_found = True
                     elif self.ik_solver == 'ikin':
                         target_ik_pyquaternion = Quaternion(self.superq_pose['quaternion'])
                         target_ik_axis_angle = np.append(target_ik_pyquaternion.axis, target_ik_pyquaternion.angle)
@@ -462,14 +442,6 @@ class ICubEnvRefineGrasp(ICubEnv):
                                     else:
                                         qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
                                         qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
-                                    grasp_found = True
-                            elif self.ik_solver == 'dm_robotics':
-                                ik_sol, solved = self.ik_dm_robotics.solve_ik(eef_pos=self.superq_pose['position'],
-                                                                              eef_quat=self.superq_pose['quaternion'],
-                                                                              current_qpos=None)
-                                if solved:
-                                    qpos_sol_final_qpos = np.zeros(len(self.joint_ids_icub))
-                                    qpos_sol_final_qpos[self.joints_to_control_ik_ids] = ik_sol
                                     grasp_found = True
                             elif self.ik_solver == 'ikin':
                                 target_ik_pyquaternion = Quaternion(self.superq_pose['quaternion'])

@@ -368,7 +368,7 @@ class ICubEnv(gym.Env):
                 self.actuators_to_control_ik.extend([j for j in self.actuator_names])
 
         # Set IK solver
-        if ik_solver in ('idyntree', 'dm_robotics', 'dm_control', 'ikin'):
+        if ik_solver in ('idyntree', 'dm_control', 'ikin'):
             self.ik_solver = ik_solver
         else:
             print('The required IK solver is not avalable. Using idyntree.')

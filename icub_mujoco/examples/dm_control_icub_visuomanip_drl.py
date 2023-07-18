@@ -439,7 +439,7 @@ parser.add_argument('--control_gaze',
 parser.add_argument('--ik_solver',
                     type=str,
                     default='idyntree',
-                    help='Set the IK solver between idyntree, dm_robotics, dm_control and ikin.')
+                    help='Set the IK solver between idyntree, dm_control and ikin.')
 parser.add_argument('--limit_torso_pitch_ikin',
                     action='store_true',
                     help='Set if using a limited range for torso_pitch joint in the iKin IK solver.')
