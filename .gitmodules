@@ -1,3 +1,6 @@
 [submodule "icub_mujoco/external/pvr_habitat"]
 	path = icub_mujoco/external/pvr_habitat
 	url = https://github.com/sparisi/pvr_habitat.git
+[submodule "icub_mujoco/external/DenseFusion"]
+	path = icub_mujoco/external/DenseFusion
+	url = https://github.com/j96w/DenseFusion.git
