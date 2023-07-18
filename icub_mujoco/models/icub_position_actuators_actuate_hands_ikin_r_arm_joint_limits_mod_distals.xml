@@ -507,7 +507,7 @@
                 </body>
             </body>    
         </body>
-        <body name="front_camera" pos="-2 0 1.1" quat="-0.5 -0.5 0.5 0.5">
+        <body name="front_camera" pos="-0.75 0 1.15" quat="-0.5 -0.5 0.5 0.5">
             <camera name="front_cam" fovy="70"/>
         </body>
     </worldbody>
