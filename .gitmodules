@@ -4,3 +4,6 @@
 [submodule "icub_mujoco/external/DenseFusion"]
 	path = icub_mujoco/external/DenseFusion
 	url = https://github.com/j96w/DenseFusion.git
+[submodule "icub_mujoco/external/vgn"]
+	path = icub_mujoco/external/vgn
+	url = https://github.com/ethz-asl/vgn.git
