@@ -1,0 +1,64 @@
+xml_model_path: "../models/icub_position_actuators_actuate_hands_ikin_r_arm_joint_limits.xml"
+print_done_info: True
+icub_observation_space:
+  - "joints"
+  - "touch"
+  - "flare"
+  - "cartesian"
+  - "superquadric_center"
+obs_camera: "head_cam_track_hand"
+objects:
+  - "010_potted_meat_can"
+use_table: True
+task: "refine_grasp"
+training_components:
+  - "r_hand"
+ik_components:
+  - "torso_pitch"
+  - "torso_yaw"
+  - "torso_roll"
+  - "r_arm"
+reward_single_step_multiplier: 0.001
+training_device: "cuda"
+joints_margin: 0.0
+fixed_initial_pos: True
+objects_positions:
+  - -0.3
+  - 0.1
+  - 1.005
+objects_quaternions:
+  - 1.0
+  - 0
+  - 0
+  - 0
+feature_extractor_model_name: "CLIP"
+lift_object_height: 1.105
+track_object: True
+eef_name: "r_hand_dh_frame"
+cartesian_components:
+  - "all_ypr"
+net_arch:
+  - 1024
+  - 1024
+max_delta_qpos: 0.2
+max_delta_cartesian_rot: 0.01
+max_delta_cartesian_pos: 0.002
+reward_dist_superq_center: True
+learning_starts: 1000000
+max_lfd_steps: 1000000
+distanced_superq_grasp_pose: True
+learning_from_demonstration: True
+randomly_rotate_object_z_axis: True
+superquadrics_camera: "head_cam_track_hand"
+lfd_with_approach: True
+goal_reached_only_with_lift_refine_grasp: True
+pregrasp_distance_from_grasp_pose: 0.05
+ik_solver: "ikin"
+do_not_consider_done_z_pos: True
+save_replay_buffer: True
+total_training_timesteps: 1000000
+save_replay_buffer_path: "replay_buffer_meat_superquadrics"
+min_fingers_touching_object: 2
+scale_pos_lift_reward_wrt_touching_fingers: True
+randomly_move_objects: True
+limit_torso_pitch_ikin: True

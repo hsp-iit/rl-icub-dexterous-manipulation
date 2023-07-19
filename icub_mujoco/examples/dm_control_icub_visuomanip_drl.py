@@ -18,9 +18,15 @@ from icub_mujoco.external.d3rlpy_mod.d3rlpy.algos.awac import AWAC
 from d3rlpy.wrappers.sb3 import to_mdp_dataset
 from d3rlpy.models.encoders import VectorEncoderFactory
 from icub_mujoco.external.d3rlpy_mod.d3rlpy.online.buffers import ReplayBuffer
+import yaml
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--cfg',
+                    type=str,
+                    help='Path of the configuration files containing the parameters for the selected experiment. '
+                         'Please note that the parameters in the config file will overwrite the parameters passed '
+                         'through the command line.')
 parser.add_argument('--test_model',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir.')
@@ -452,6 +458,12 @@ parser.add_argument('--grasp_planner',
                     help='Set the grasp planner between superquadrics and vgn.')
 
 args = parser.parse_args()
+
+if args.cfg is not None:
+    with open(args.cfg, 'r') as file:
+        params = yaml.safe_load(file)
+    for param, val in params.items():
+        setattr(args, param, val)
 
 objects_positions = []
 num_pos = 0
