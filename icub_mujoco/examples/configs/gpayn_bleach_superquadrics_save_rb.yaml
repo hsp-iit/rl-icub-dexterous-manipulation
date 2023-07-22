@@ -18,7 +18,6 @@ ik_components:
   - "torso_yaw"
   - "torso_roll"
   - "r_arm"
-reward_single_step_multiplier: 0.001
 training_device: "cuda"
 joints_margin: 0.0
 fixed_initial_pos: True
