@@ -210,7 +210,7 @@
                                     <geom pos="0.131934 0 -0.0353516" type="mesh" rgba="0 0 0 1" mesh="sim_sea_2-5_r_elbow_prt-binary" />
                                     <body name="r_elbow_1" pos="-0.127457 -0.0224999 0.049681">
                                         <inertial pos="-0.00673913 0.0188019 -0.00465769" quat="0.889627 0.287374 0.352074 0.0449803" mass="0.267903" diaginertia="0.0100112 0.0100037 0.00998517" />
-                                        <joint name="r_elbow" pos="0 0 0" axis="0 1 0" range="0.261799 1.85005" damping="27.5" />
+                                        <joint name="r_elbow" pos="0 0 0" axis="0 1 0" range="0.261799 1.85005" damping="5.0" />
                                         <geom pos="0.25939 0.0224999 -0.0850326" type="mesh" rgba="0.9 0.9 0.9 1" mesh="sim_sea_2-5_r_elbow_prosup_prt-binary" />
                                         <body name="r_forearm" pos="-0.0384624 0.0224999 -0.00522317">
                                             <inertial pos="-0.0404391 -0.000328 0.00532733" quat="0.380022 0.595027 0.594184 0.385319" mass="0.6347" diaginertia="0.000672292 0.000601594 0.000322074" />
@@ -218,7 +218,7 @@
                                             <geom pos="0.296887 0 -0.0795506" type="mesh" rgba="0 0 0 1" mesh="sim_sea_2-5_r_forearm_prt-binary" />
                                             <body name="r_wrist_1" pos="-0.103505 7e-06 0.0251977">
                                                 <inertial pos="0.000986102 -0.001176 0.00410133" quat="0.920531 -0.046124 0.381345 0.0712175" mass="0.0362615" diaginertia="0.010001 0.01 0.00999904" />
-                                                <joint name="r_wrist_pitch" pos="0 0 0" axis="0.258819 0 0.965926" range="-1.39626 0.436332" damping="10.0" />
+                                                <joint name="r_wrist_pitch" pos="0 0 0" axis="0.258819 0 0.965926" range="-1.39626 0.436332" damping="1.0" />
                                                 <geom pos="0.400392 -7e-06 -0.104748" type="mesh" rgba="0.9 0.9 0.9 1" mesh="sim_sea_2-5_r_wrist_pitch_prt-binary" />
                                                 <body name="r_hand" pos="0.000634106 -0.0194999 0.00236652">
                                                     <inertial pos="-0.0646682 0.0056002 0.0226813" quat="-0.112385 0.892031 0.231018 0.37186" mass="0.248289" diaginertia="0.0100407 0.010002 0.00995729" />
@@ -350,7 +350,7 @@
                                     <geom pos="-0.131901 0 -0.0353428" type="mesh" rgba="0 0 0 1" mesh="sim_sea_2-5_l_elbow_prt-binary" />
                                     <body name="l_elbow_1" pos="0.127489 -0.0339999 0.0496898">
                                         <inertial pos="0.00673913 0.0303019 -0.00465769" quat="-0.287465 0.889618 -0.0449192 0.35203" mass="0.267903" diaginertia="0.0100112 0.0100037 0.00998517" />
-                                        <joint name="l_elbow" pos="0 0 0" axis="0 -1 0" range="0.261799 1.85005" damping="27.5" />
+                                        <joint name="l_elbow" pos="0 0 0" axis="0 -1 0" range="0.261799 1.85005" damping="5.0" />
                                         <geom pos="-0.25939 0.0339999 -0.0850326" type="mesh" rgba="0.9 0.9 0.9 1" mesh="sim_sea_2-5_l_elbow_prosup_prt-binary" />
                                         <body name="l_forearm" pos="0.0384624 0.0339999 -0.00522317">
                                             <inertial pos="0.0404512 -0.000686 0.00532363" quat="0.589221 0.393032 0.373008 0.599341" mass="0.636185" diaginertia="0.000674371 0.000605037 0.000323383" />
@@ -358,7 +358,7 @@
                                             <geom pos="-0.296887 0 -0.0795506" type="mesh" rgba="0 0 0 1" mesh="sim_sea_2-5_l_forearm_prt-binary" />
                                             <body name="l_wrist_1" pos="0.103428 7e-06 0.0254875">
                                                 <inertial pos="-0.000981314 -0.001178 0.00408346" quat="0.0459991 0.920546 -0.0710737 0.381351" mass="0.0362152" diaginertia="0.010001 0.01 0.00999904" />
-                                                <joint name="l_wrist_pitch" pos="0 0 0" axis="0.258819 0 -0.965926" range="-1.39626 0.436332" damping="10.0" />
+                                                <joint name="l_wrist_pitch" pos="0 0 0" axis="0.258819 0 -0.965926" range="-1.39626 0.436332" damping="1.0" />
                                                 <geom pos="-0.400315 -7e-06 -0.105038" type="mesh" rgba="0.9 0.9 0.9 1" mesh="sim_sea_2-5_l_wrist_pitch_prt-binary" />
                                                 <body name="l_hand" pos="-0.000634106 -0.0194999 0.00236652">
                                                     <inertial pos="0.064768 0.0056304 0.0226602" quat="0.893006 0.114436 0.372673 -0.224856" mass="0.247806" diaginertia="0.0100411 0.0100025 0.00995639" />
@@ -507,7 +507,7 @@
                 </body>
             </body>    
         </body>
-        <body name="front_camera" pos="-2 0 1.1" quat="-0.5 -0.5 0.5 0.5">
+        <body name="front_camera" pos="-0.75 0 1.15" quat="-0.5 -0.5 0.5 0.5">
             <camera name="front_cam" fovy="70"/>
         </body>
     </worldbody>
@@ -609,47 +609,49 @@
         <exclude name="exclude_contact_body_12"       body1="r_hand"          body2="r_forearm"/>
         <exclude name="exclude_contact_body_13"       body1="icub"            body2="torso_1"/>
         <exclude name="exclude_contact_body_14"       body1="icub"            body2="torso_2"/>
+        <exclude name="exclude_contact_body_15"       body1="r_shoulder_3"    body2="chest"/>
+        <exclude name="exclude_contact_body_16"       body1="l_shoulder_3"    body2="chest"/>
     </contact>
     
     <actuator>
         <position name="torso_pitch"            kp="470.0"      joint="torso_pitch"                     ctrlrange="-0.349066 1.22173" />
         <position name="torso_roll"             kp="990.0"      joint="torso_roll"                      ctrlrange="-0.523599 0.523599"/>
         <position name="torso_yaw"              kp="975.0"      joint="torso_yaw"                       ctrlrange="-0.872665 0.872665"/>
-        <position name="l_shoulder_pitch"       kp="100.0"      joint="l_shoulder_pitch"                ctrlrange="-1.66679 0.174533"/>
+        <position name="l_shoulder_pitch"       kp="800.0"      joint="l_shoulder_pitch"                ctrlrange="-1.66679 0.174533"/>
         <position name="l_shoulder_roll"        kp="200.0"      joint="l_shoulder_roll"                 ctrlrange="0 2.80649" />
         <position name="l_shoulder_yaw"         kp="200.0"      joint="l_shoulder_yaw"                  ctrlrange="-0.645772 1.39626"/>
-        <position name="l_elbow"                kp="105.0"      joint="l_elbow"                         ctrlrange="0.261799 1.85005" />
+        <position name="l_elbow"                kp="200.0"      joint="l_elbow"                         ctrlrange="0.261799 1.85005" />
         <position name="l_wrist_prosup"         kp="195.0"      joint="l_wrist_prosup"                  ctrlrange="-1.0472 1.0472" />
-        <position name="l_wrist_pitch"          kp="15.0"       joint="l_wrist_pitch"                   ctrlrange="-1.39626 0.436332" />
+        <position name="l_wrist_pitch"          kp="100.0"      joint="l_wrist_pitch"                   ctrlrange="-1.39626 0.436332" />
         <position name="l_wrist_yaw"            kp="105.0"      joint="l_wrist_yaw"                     ctrlrange="-0.349066 0.436332" />
         <position name="l_hand_finger"          kp="25.0"       tendon="l_hand_finger_tendon"           ctrlrange="0 1.046666667"/>
         <position name="l_thumb_oppose"         kp="25.0"       joint="l_hand_thumb_0_joint"            ctrlrange="0 1.5708"/>
         <position name="l_thumb_proximal"       kp="20.0"       joint="l_hand_thumb_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="l_thumb_distal"         kp="10.0"       tendon="l_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="l_thumb_distal"         kp="20.0"       tendon="l_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="l_index_proximal"       kp="20.0"       joint="l_hand_index_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="l_index_distal"         kp="10.0"       tendon="l_index_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="l_index_distal"         kp="20.0"       tendon="l_index_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="l_middle_proximal"      kp="20.0"       joint="l_hand_middle_1_joint"           ctrlrange="0 1.5708"/>
-        <position name="l_middle_distal"        kp="10.0"       tendon="l_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
+        <position name="l_middle_distal"        kp="25.0"       tendon="l_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
         <position name="l_pinky"                kp="15.0"       tendon="l_pinky_tendon"                 ctrlrange="0 4.36"/>
         <position name="neck_pitch"             kp="195.0"      joint="neck_pitch"                      ctrlrange="-0.698132 0.383972" />
         <position name="neck_roll"              kp="460.0"      joint="neck_roll"                       ctrlrange="-0.349066 0.349066" />
         <position name="neck_yaw"               kp="195.0"      joint="neck_yaw"                        ctrlrange="-0.872665 0.872665" />
-        <position name="r_shoulder_pitch"       kp="100.0"      joint="r_shoulder_pitch"                ctrlrange="-1.66679 0.174533"/>
+        <position name="r_shoulder_pitch"       kp="800.0"      joint="r_shoulder_pitch"                ctrlrange="-1.66679 0.174533"/>
         <position name="r_shoulder_roll"        kp="200.0"      joint="r_shoulder_roll"                 ctrlrange="0 2.80649"/>
         <position name="r_shoulder_yaw"         kp="200.0"      joint="r_shoulder_yaw"                  ctrlrange="-0.645772 1.39626"/>
-        <position name="r_elbow"                kp="105.0"      joint="r_elbow"                         ctrlrange="0.261799 1.85005"/>
+        <position name="r_elbow"                kp="200.0"      joint="r_elbow"                         ctrlrange="0.261799 1.85005"/>
         <position name="r_wrist_prosup"         kp="195.0"      joint="r_wrist_prosup"                  ctrlrange="-1.0472 1.0472" />
-        <position name="r_wrist_pitch"          kp="15.0"       joint="r_wrist_pitch"                   ctrlrange="-1.39626 0.436332" />
+        <position name="r_wrist_pitch"          kp="100.0"      joint="r_wrist_pitch"                   ctrlrange="-1.39626 0.436332" />
         <position name="r_wrist_yaw"            kp="105.0"      joint="r_wrist_yaw"                     ctrlrange="-0.349066 0.436332" />
         <position name="r_hand_finger"          kp="25.0"       tendon="r_hand_finger_tendon"           ctrlrange="0 1.046666667"/>
         <position name="r_thumb_oppose"         kp="25.0"       joint="r_hand_thumb_0_joint"            ctrlrange="0 1.5708"/>
         <position name="r_thumb_proximal"       kp="20.0"       joint="r_hand_thumb_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="r_thumb_distal"         kp="10.0"       tendon="r_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="r_thumb_distal"         kp="20.0"       tendon="r_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="r_index_proximal"       kp="20.0"       joint="r_hand_index_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="r_index_distal"         kp="10.0"       tendon="r_index_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="r_index_distal"         kp="20.0"       tendon="r_index_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="r_middle_proximal"      kp="20.0"       joint="r_hand_middle_1_joint"           ctrlrange="0 1.5708"/>
-        <position name="r_middle_distal"        kp="10.0"       tendon="r_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
-        <position name="r_pinky"                kp="15.0"       tendon="r_pinky_tendon"                 ctrlrange="0 4.36"/>
+        <position name="r_middle_distal"        kp="25.0"       tendon="r_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
+        <position name="r_pinky"                kp="25.0"       tendon="r_pinky_tendon"                 ctrlrange="0 4.36"/>
     </actuator>
     
 </mujoco>

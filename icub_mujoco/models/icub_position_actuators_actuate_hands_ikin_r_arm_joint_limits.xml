@@ -631,7 +631,7 @@
         <position name="l_index_proximal"       kp="20.0"       joint="l_hand_index_1_joint"            ctrlrange="0 1.5708"/>
         <position name="l_index_distal"         kp="20.0"       tendon="l_index_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="l_middle_proximal"      kp="20.0"       joint="l_hand_middle_1_joint"           ctrlrange="0 1.5708"/>
-        <position name="l_middle_distal"        kp="20.0"       tendon="l_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
+        <position name="l_middle_distal"        kp="25.0"       tendon="l_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
         <position name="l_pinky"                kp="15.0"       tendon="l_pinky_tendon"                 ctrlrange="0 4.36"/>
         <position name="neck_pitch"             kp="195.0"      joint="neck_pitch"                      ctrlrange="-0.698132 0.383972" />
         <position name="neck_roll"              kp="460.0"      joint="neck_roll"                       ctrlrange="-0.349066 0.349066" />
