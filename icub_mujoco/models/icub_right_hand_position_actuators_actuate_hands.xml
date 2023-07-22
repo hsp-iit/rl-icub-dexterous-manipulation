@@ -164,7 +164,7 @@
                 </body>
             </body>
         </body>
-        <body name="front_camera" pos="-2 0 1.1" quat="-0.5 -0.5 0.5 0.5">
+        <body name="front_camera" pos="-0.75 0 1.15" quat="-0.5 -0.5 0.5 0.5">
             <camera name="front_cam" fovy="70"/>
         </body>
         <body name="head_camera" pos="-0.22092635 -0.043454 1.37441891" quat="0.6627358084788864 0.19690682587955016 0.22088371902298165 0.6879093926528406">
@@ -237,12 +237,12 @@
         <position name="r_hand_finger"          kp="25.0"       tendon="r_hand_finger_tendon"           ctrlrange="0 1.046666667"/>
         <position name="r_thumb_oppose"         kp="25.0"       joint="r_hand_thumb_0_joint"            ctrlrange="0 1.5708"/>
         <position name="r_thumb_proximal"       kp="20.0"       joint="r_hand_thumb_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="r_thumb_distal"         kp="10.0"       tendon="r_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="r_thumb_distal"         kp="20.0"       tendon="r_thumb_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="r_index_proximal"       kp="20.0"       joint="r_hand_index_1_joint"            ctrlrange="0 1.5708"/>
-        <position name="r_index_distal"         kp="10.0"       tendon="r_index_distal_tendon"          ctrlrange="0 2.965555556"/>
+        <position name="r_index_distal"         kp="20.0"       tendon="r_index_distal_tendon"          ctrlrange="0 2.965555556"/>
         <position name="r_middle_proximal"      kp="20.0"       joint="r_hand_middle_1_joint"           ctrlrange="0 1.5708"/>
-        <position name="r_middle_distal"        kp="10.0"       tendon="r_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
-        <position name="r_pinky"                kp="15.0"       tendon="r_pinky_tendon"                 ctrlrange="0 4.36"/>
+        <position name="r_middle_distal"        kp="25.0"       tendon="r_middle_distal_tendon"         ctrlrange="0 2.965555556"/>
+        <position name="r_pinky"                kp="25.0"       tendon="r_pinky_tendon"                 ctrlrange="0 4.36"/>
     </actuator>
     
 </mujoco>
