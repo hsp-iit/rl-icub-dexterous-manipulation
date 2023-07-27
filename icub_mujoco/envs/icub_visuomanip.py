@@ -43,7 +43,7 @@ class ICubEnv(gym.Env):
                  training_components=('r_arm', 'torso_yaw'),
                  ik_components=(),
                  cartesian_components=('all_ypr',),
-                 initial_qpos_path='../config/initial_qpos_actuated_hand.yaml',
+                 initial_qpos_path='../config/icub_visuomanip_initial_qpos.yaml',
                  print_done_info=False,
                  reward_goal=1.0,
                  reward_out_of_joints=-1.0,

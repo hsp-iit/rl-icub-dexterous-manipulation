@@ -105,7 +105,7 @@ parser.add_argument('--xml_model_path',
 parser.add_argument('--initial_qpos_path',
                     action='store',
                     type=str,
-                    default='../config/initial_qpos_actuated_hand.yaml',
+                    default='../config/icub_visuomanip_initial_qpos.yaml',
                     help='Set the path of the initial actuators values.')
 parser.add_argument('--tensorboard_dir',
                     action='store',
