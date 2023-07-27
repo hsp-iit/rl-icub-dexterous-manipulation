@@ -1,4 +1,4 @@
-xml_model_path: "../models/icub_position_actuators_actuate_hands_ikin_r_arm_joint_limits.xml"
+xml_model_path: "../models/icub_visuomanip_ikin_limits.xml"
 print_done_info: True
 icub_observation_space:
   - "joints"

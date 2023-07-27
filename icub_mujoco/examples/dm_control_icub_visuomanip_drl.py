@@ -100,7 +100,7 @@ parser.add_argument('--load_demonstrations_replay_buffer_path',
 parser.add_argument('--xml_model_path',
                     action='store',
                     type=str,
-                    default='../models/icub_position_actuators_actuate_hands.xml',
+                    default='../models/icub_visuomanip.xml',
                     help='Set the path of the xml model.')
 parser.add_argument('--initial_qpos_path',
                     action='store',
