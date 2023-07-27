@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='icub_mujoco',
+    name='rl_icub_dexterous_manipulation',
     version='0.1.1',
     packages=find_packages(),
     install_requires=[

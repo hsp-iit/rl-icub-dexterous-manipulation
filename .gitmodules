@@ -1,12 +1,12 @@
-[submodule "icub_mujoco/external/pvr_habitat"]
-	path = icub_mujoco/external/pvr_habitat
+[submodule "rl_icub_dexterous_manipulation/external/pvr_habitat"]
+	path = rl_icub_dexterous_manipulation/external/pvr_habitat
 	url = https://github.com/sparisi/pvr_habitat.git
-[submodule "icub_mujoco/external/DenseFusion"]
-	path = icub_mujoco/external/DenseFusion
+[submodule "rl_icub_dexterous_manipulation/external/DenseFusion"]
+	path = rl_icub_dexterous_manipulation/external/DenseFusion
 	url = https://github.com/j96w/DenseFusion.git
-[submodule "icub_mujoco/external/vgn"]
-	path = icub_mujoco/external/vgn
+[submodule "rl_icub_dexterous_manipulation/external/vgn"]
+	path = rl_icub_dexterous_manipulation/external/vgn
 	url = https://github.com/ethz-asl/vgn.git
-[submodule "icub_mujoco/meshes/mujoco_scanned_objects"]
-	path = icub_mujoco/meshes/mujoco_scanned_objects
+[submodule "rl_icub_dexterous_manipulation/meshes/mujoco_scanned_objects"]
+	path = rl_icub_dexterous_manipulation/meshes/mujoco_scanned_objects
 	url = https://github.com/kevinzakka/mujoco_scanned_objects.git
