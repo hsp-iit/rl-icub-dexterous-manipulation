@@ -5,7 +5,7 @@
 </h1>
 
 <p align="center">
- <img src=(https://github.com/hsp-iit/rl-icub-dexterous-manipulation/assets/32268209/031da1ad-ee70-4688-ac7e-8634737ae441)/>
+ <img src="https://github.com/hsp-iit/rl-icub-dexterous-manipulation/assets/32268209/031da1ad-ee70-4688-ac7e-8634737ae441"/>
 </p>
 
 <h4 align="center">
