@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<!-- Based on code from https://github.com/robotology/icub-models.git with CC-BY-SA 4.0 licence -->
+
 <robot name="iCub">
   <link name="world"/>
   <link name="root_link">

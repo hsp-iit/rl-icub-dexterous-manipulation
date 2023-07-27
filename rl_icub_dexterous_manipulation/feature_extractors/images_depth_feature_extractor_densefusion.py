@@ -1,5 +1,7 @@
-# Code adapted from https://github.com/j96w/DenseFusion, mainly from
-# https://github.com/j96w/DenseFusion/blob/master/tools/eval_ycb.py
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/j96w/DenseFusion.git with MIT licence
+
 import sys
 sys.path.insert(0, '../external/DenseFusion')
 import numpy as np

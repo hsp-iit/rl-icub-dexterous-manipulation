@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Left leg
 l_knee: -1.05
 l_ankle_pitch: -0.57

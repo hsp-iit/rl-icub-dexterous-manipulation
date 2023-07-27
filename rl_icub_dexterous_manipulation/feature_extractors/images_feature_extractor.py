@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://pytorch.org/hub/pytorch_vision_alexnet/
+
 import torch
 from torchvision import transforms
 from PIL import Image
@@ -6,7 +10,6 @@ import numpy as np
 
 class ImagesFeatureExtractor:
 
-    # https://pytorch.org/hub/pytorch_vision_alexnet/
     def __init__(self,
                  model_name,
                  device='cuda'):

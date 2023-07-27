@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/ir413/mvp.git
+
 import torch
 import mvp
 import cv2
@@ -5,7 +9,6 @@ import cv2
 
 class ImagesFeatureExtractorMAE:
 
-    # https://github.com/ir413/mvp/blob/master/mvp/backbones/vit.py
     def __init__(self,
                  model_name,
                  device='cuda'):

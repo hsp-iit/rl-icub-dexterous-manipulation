@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/DLR-RM/stable-baselines3.git with MIT licence
+
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import gym

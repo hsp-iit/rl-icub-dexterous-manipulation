@@ -1,4 +1,7 @@
-# Code adapted from https://github.com/ethz-asl/vgn
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/ethz-asl/vgn.git with BSD-3-Clause licence
+
 import numpy as np
 import math
 from pyquaternion import Quaternion

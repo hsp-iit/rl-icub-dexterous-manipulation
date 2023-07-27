@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/takuseno/d3rlpy.git with MIT licence
+
 from typing import Optional, Tuple, Union
 
 import numpy as np

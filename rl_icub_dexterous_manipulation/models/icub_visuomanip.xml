@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+
 <mujoco model="iCub">
     <compiler angle="radian" meshdir="../meshes/iCub/" inertiafromgeom="auto" convexhull="true"/>
     <size njmax="1000" nconmax="10000" />

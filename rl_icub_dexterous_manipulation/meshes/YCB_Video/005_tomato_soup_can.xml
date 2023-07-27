@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+
 <mujoco model="005_tomato_soup_can">
   <default>
     <default class="/">

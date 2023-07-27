@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/sparisi/pvr_habitat.git with CC BY-NC 4.0 licence
+
 import torch
 import numpy as np
 from rl_icub_dexterous_manipulation.external.pvr_habitat.src.vision_models.moco import \
@@ -25,7 +29,6 @@ class ImagesFeatureExtractorMOCO:
         return image_features
 
 
-# Code adapted from https://github.com/sparisi/pvr_habitat/blob/main/src/embeddings.py
 class EmbeddingNet(torch.nn.Module):
     """
     Input shape must be (N, H, W, 3), where N is the number of frames.

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+
 11pro_SL_TRX_FG:
   graspable: True
 2_of_Jenga_Classic_Game:

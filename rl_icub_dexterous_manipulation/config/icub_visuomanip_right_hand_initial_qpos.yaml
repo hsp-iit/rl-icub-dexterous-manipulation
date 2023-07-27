@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Right hand
 r_hand_freejoint: [0.0, 0.0, 1.5, 0.707106781, 0.707106781, 0, 0]
 r_hand_finger: 0.01

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+# Based on code from https://github.com/openai/CLIP.git with MIT licence
+
 import torch
 import clip
 from PIL import Image
@@ -6,7 +10,6 @@ import numpy as np
 
 class ImagesFeatureExtractorCLIP:
 
-    # https://github.com/openai/CLIP
     def __init__(self,
                  model_name,
                  device='cuda'):

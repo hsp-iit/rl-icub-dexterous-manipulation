@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+
 <mujoco model="table">
     <compiler angle="radian" inertiafromgeom="auto" convexhull="true" texturedir="../meshes/table"/>
     <size njmax="1000" nconmax="10000" />

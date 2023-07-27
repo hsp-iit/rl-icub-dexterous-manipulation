@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+
 import math
 from dm_control import composer, mjcf
 import os
