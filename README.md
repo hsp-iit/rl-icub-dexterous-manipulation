@@ -19,7 +19,7 @@
 <div align="center">
   <a href=""><b>Paper</b></a> |
   <a href="https://arxiv.org/abs/2306.03484"><b>arXiv</b></a> |
-  <a href="https://youtu.be/qc6gksKH3Mo"><b>Video</b></a> |
+  <a href="https://youtu.be/qc6gksKH3Mo"><b>Video</b></a>
 </div>
 
 ## Table of Contents
