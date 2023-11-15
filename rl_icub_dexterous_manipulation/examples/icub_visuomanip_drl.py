@@ -399,6 +399,13 @@ parser.add_argument('--lift_object_height',
                          'that this parameter is not considered if the random_ycb_video_graspable_object is passed. '
                          'In that case the lift_object_height is set to 10cm above the initial position of the '
                          'object at hand.')
+parser.add_argument('--moved_object_height',
+                    action='store',
+                    type=float,
+                    default=0.98,
+                    help='Set the height of the object to consider the object as fallen in the grasp refinement task. '
+                         'Default is 0.98. Note that this parameter is not considered if the '
+                         'random_ycb_video_graspable_object is passed.')
 parser.add_argument('--learning_from_demonstration',
                     action='store_true',
                     help='Use demonstrations for replay buffer initialization.')
@@ -588,6 +595,7 @@ elif args.task == 'refine_grasp':
                               done_if_joints_out_of_limits=False,
                               do_not_consider_done_z_pos=args.do_not_consider_done_z_pos,
                               lift_object_height=args.lift_object_height,
+                              moved_object_height=args.moved_object_height,
                               curriculum_learning=args.curriculum_learning,
                               curriculum_learning_approach_object=args.curriculum_learning_approach_object,
                               curriculum_learning_approach_object_start_step=args.curriculum_learning_approach_object_start_step,

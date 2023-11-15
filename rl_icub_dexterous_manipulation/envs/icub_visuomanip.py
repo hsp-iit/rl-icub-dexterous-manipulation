@@ -66,6 +66,7 @@ class ICubEnv(gym.Env):
                  done_if_joints_out_of_limits=True,
                  do_not_consider_done_z_pos=False,
                  lift_object_height=1.02,
+                 moved_object_height=0.98,
                  curriculum_learning=False,
                  curriculum_learning_approach_object=False,
                  curriculum_learning_approach_object_start_step=0,
@@ -141,7 +142,7 @@ class ICubEnv(gym.Env):
         self.objects = objects
         if len(self.objects) == 1:
             self.object_visual_mesh_name = 'model//unnamed_geom_0'
-        self.moved_object_height = 0.98
+        self.moved_object_height = moved_object_height
         self.obj_mjcf = None
         self.add_ycb_video_objects(self.objects, remove_last_object=False)
         self.track_object = track_object
