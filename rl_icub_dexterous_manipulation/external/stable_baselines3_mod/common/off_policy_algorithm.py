@@ -842,6 +842,18 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             for idx, done in enumerate(dones):
                 if done:
+                    # TODO added for training on the robot
+                    if hasattr(self.env.envs[0].env, 'save_current_model'):
+                        if self.env.envs[0].env.save_current_model:
+                            save_model_path = ''
+                            for cb in callback.callbacks:
+                                if hasattr(cb, 'best_model_save_path'):
+                                    save_model_path = cb.best_model_save_path
+                                    break
+                            self.save(os.path.join(save_model_path + "/" + str(self.num_timesteps), "best_model"))
+                            self.save_replay_buffer(os.path.join(save_model_path + "/" + str(self.num_timesteps),
+                                                                 "replay_buffer"))
+                            self.env.envs[0].env.save_current_model = False
                     # Update stats
                     if (self.lfd_keep_only_successful_episodes and infos[0]['is_success'] and
                             self.learning_from_demonstration_num_steps <= self.learning_from_demonstration_max_steps) \

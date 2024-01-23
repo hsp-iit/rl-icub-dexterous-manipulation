@@ -35,7 +35,7 @@ parser.add_argument('--test_model',
                     help='Test the best_model.zip stored in --eval_dir.')
 parser.add_argument('--fine_tune_model',
                     action='store_true',
-                    help='Fine tune the best_model.zip stored in --pretrained_model_dir.')
+                    help='Fine tune the best_model.zip stored in --pretrained_model_dir_fine_tuning.')
 parser.add_argument('--record_video',
                     action='store_true',
                     help='Test the best_model.zip stored in --eval_dir and record.')
@@ -711,7 +711,8 @@ elif args.fine_tune_model:
     model = SAC.load(args.pretrained_model_dir_fine_tuning + '/best_model.zip',
                      env=iCub,
                      gradient_steps=args.gradient_steps,
-                     train_freq=args.train_freq)
+                     train_freq=args.train_freq,
+                     buffer_size=args.buffer_size)
     if hasattr(model, 'replay_buffers_list'):
         del model.replay_buffers_list
     if model.train_with_reptile:
