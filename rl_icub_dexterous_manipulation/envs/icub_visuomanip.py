@@ -646,8 +646,7 @@ class ICubEnv(gym.Env):
         # Upload pre-trained model
         if pretrained_model_dir is not None:
             # If the model is pretrained with an algorithm different from SAC, this part must be extended
-            self.pretrained_model = SAC.load(pretrained_model_dir + '/best_model.zip')
-
+            self.pretrained_model = SAC.load(pretrained_model_dir + '/best_model.zip', buffer_size=1)
         self.prev_obs = None
 
         # Reset environment
