@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia
+# SPDX-License-Identifier: BSD-3-Clause
+
+xml_model_path: "../models/icub_visuomanip_ikin_limits.xml"
+print_done_info: True
+icub_observation_space:
+  - "joints"
+  - "touch"
+  - "flare"
+  - "cartesian"
+  - "superquadric_center"
+obs_camera: "head_cam_track_hand"
+objects:
+  - "005_tomato_soup_can"
+use_table: True
+task: "refine_grasp"
+training_components:
+  - "r_hand"
+ik_components:
+  - "torso_pitch"
+  - "torso_yaw"
+  - "torso_roll"
+  - "r_arm"
+training_device: "cuda"
+joints_margin: 0.0
+fixed_initial_pos: True
+objects_positions:
+  - -0.3
+  - 0.05
+  - 1.009
+objects_quaternions:
+  - 1.0
+  - 0
+  - 0
+  - 0
+feature_extractor_model_name: "MAE"
+lift_object_height: 1.109
+moved_object_height: 0.985
+track_object: True
+eef_name: "r_hand_dh_frame"
+cartesian_components:
+  - "all_ypr"
+net_arch:
+  - 2048
+  - 2048
+max_delta_qpos: 0.2
+max_delta_cartesian_rot: 0.01
+max_delta_cartesian_pos: 0.002
+reward_dist_superq_center: True
+learning_starts: 0
+distanced_superq_grasp_pose: True
+randomly_rotate_object_z_axis: True
+superquadrics_camera: "head_cam_track_hand"
+goal_reached_only_with_lift_refine_grasp: True
+pregrasp_distance_from_grasp_pose: 0.05
+ik_solver: "ikin"
+do_not_consider_done_z_pos: True
+total_training_timesteps: 1000000
+min_fingers_touching_object: 2
+scale_pos_lift_reward_wrt_touching_fingers: True
+randomly_move_objects: True
+limit_torso_pitch_ikin: True
+eval_dir: "eval_dir/tomato/reptile_superquadrics"
+pretrained_model_dir_fine_tuning: "eval_dir/pre_trained_models/reptile_MSO_superquadrics_MAE"
+fine_tune_model: True
+gradient_steps: 10
