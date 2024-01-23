@@ -17,7 +17,7 @@
  IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2023), Detroit, Michigan, USA.</div>
 
 <div align="center">
-  <a href=""><b>Paper</b></a> |
+  <a href="https://ieeexplore.ieee.org/document/10341776"><b>Paper</b></a> |
   <a href="https://arxiv.org/abs/2306.03484"><b>arXiv</b></a> |
   <a href="https://youtu.be/qc6gksKH3Mo"><b>Video</b></a>
 </div>
@@ -134,12 +134,15 @@ The code is released under the *BSD 3-Clause License*. See [LICENCE](https://git
 If you find any part of this code useful, please consider citing the associated publication:
 
 ```bibtex
-@article{ceola2023grasp,
-  title={A Grasp Pose is All You Need: Learning Multi-fingered Grasping with Deep Reinforcement Learning from Vision and Touch},
+@INPROCEEDINGS{ceola2023gpayn,
   author={Ceola, Federico and Maiettini, Elisa and Rosasco, Lorenzo and Natale, Lorenzo},
-  journal={arXiv preprint arXiv:2306.03484},
-  year={2023}
-}
+  booktitle={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+  title={A Grasp Pose is All You Need: Learning Multi-Fingered Grasping with Deep Reinforcement Learning from Vision and Touch}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={2985-2992},
+  doi={10.1109/IROS55552.2023.10341776}}
 ```
 
 ## Maintainer
