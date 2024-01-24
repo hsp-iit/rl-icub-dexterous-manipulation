@@ -10,6 +10,19 @@
 </p>
 
 <h4 align="center">
+  RESPRECT: Speeding-up Multi-fingered Grasping with Residual Reinforcement Learning
+</h4>
+
+<div align="center">
+ IEEE Robotics and Automation Letters, 2024.</div>
+
+<div align="center">
+  <a href=""><b>Paper</b></a> |
+  <a href=""><b>arXiv</b></a> |
+  <a href="https://youtu.be/JRsBLVclhpg"><b>Video</b></a>
+</div>
+
+<h4 align="center">
   A Grasp Pose is All You Need: Learning Multi-fingered Grasping with Deep Reinforcement Learning from Vision and Touch
 </h4>
 
@@ -17,7 +30,7 @@
  IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2023), Detroit, Michigan, USA.</div>
 
 <div align="center">
-  <a href="https://ieeexplore.ieee.org/document/10341776"><b>Paper</b></a> |
+  <a href=""><b>Paper</b></a> |
   <a href="https://arxiv.org/abs/2306.03484"><b>arXiv</b></a> |
   <a href="https://youtu.be/qc6gksKH3Mo"><b>Video</b></a>
 </div>
@@ -26,7 +39,8 @@
 
 - [Update](#updates)
 - [Installation](#installation)
-- [Reproduce the results](#reproduce-the-paper-results)
+- [Reproduce the RESPRECT results](#reproduce-the-resprect-paper-results)
+- [Reproduce the G-PAYN results](#reproduce-the-g-payn-paper-results)
 - [License](#license)
 - [Citing this paper](#citing-this-paper)
 
@@ -96,33 +110,58 @@ wget https://github.com/sparisi/pvr_habitat/releases/download/models/moco_cropon
 wget https://github.com/sparisi/pvr_habitat/releases/download/models/moco_croponly_l4.pth
 wget https://github.com/sparisi/pvr_habitat/releases/download/models/moco_croponly.pth
 ```
+## Reproduce the RESPRECT paper results
 
-## Reproduce the paper results
+To run the experiments in the paper, you can either rely on the provided ***G-PAYN*** and ***REPTILE*** models pre-trained on MSO, or retrain these models as described in the following section. For example, to train ***G-PAYN*** in the *MSO+Superquadrics* experiments, use `configs/exp_resprect/gpayn_MSO_superquadrics_MAE_save_rb.yaml` to save the replay buffer, and `configs/exp_resprect/gpayn_MSO_superquadrics_MAE.yaml` to train the model. Note that if you retrain these models, you have to modify the configuration files mentioned below accordingly.
+
+To train the model with ***RESPRECT***, you have to run the following:
+```console
+python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/resprect_mustard_superquadrics.yaml
+```
+
+To reproduce the ***Residual*** results, you have to run the following:
+```console
+python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/residual_mustard_superquadrics.yaml
+```
+
+To reproduce the ***Fine-Tuning*** results, you have to run the following:
+```console
+python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/fine_tuning_mustard_superquadrics.yaml
+```
+
+To reproduce the ***Reptile*** results, you have to run the following:
+```console
+python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/reptile_mustard_superquadrics.yaml
+```
+
+To reproduce the ***G-PAYN*** results, follow the instructions below, but consider using different configuration files to use MAE as feature extractor. For example, using `configs/exp_resprect/gpayn_mustard_superquadrics_MAE.yaml` instead of `configs/exp_gpayn/gpayn_mustard_superquadrics.yaml`.
+
+## Reproduce the G-PAYN paper results
 
 To run the experiments in the paper, you have to extract the replay buffers, unless you want to run the ***SAC*** experiments. For example, for the *06_mustard_bottle+Superquadrics* experiment, you have to run the following from the `examples` directory:
 
 ```console
-python3 icub_visuomanip_drl.py --cfg configs/gpayn_mustard_superquadrics_save_rb.yaml
+python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/gpayn_mustard_superquadrics_save_rb.yaml
 ```
 
 Then, to train the model with ***G-PAYN***, you have to run the following:
 ```console
-python3 icub_visuomanip_drl.py --cfg configs/gpayn_mustard_superquadrics.yaml
+python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/gpayn_mustard_superquadrics.yaml
 ```
 
 To reproduce the ***OERLD*** results, you have to run the following:
 ```console
-python3 icub_visuomanip_drl.py --cfg configs/oerld_mustard_superquadrics.yaml
+python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/oerld_mustard_superquadrics.yaml
 ```
 
 To reproduce the ***AWAC*** results, you have to run the following:
 ```console
-python3 icub_visuomanip_drl.py --cfg configs/awac_mustard_superquadrics.yaml
+python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/awac_mustard_superquadrics.yaml
 ```
 
 To reproduce the ***SAC*** results, you have to run the following:
 ```console
-python3 icub_visuomanip_drl.py --cfg configs/sac_mustard_superquadrics.yaml
+python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/sac_mustard_superquadrics.yaml
 ```
 
 ## License
