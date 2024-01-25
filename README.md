@@ -114,7 +114,7 @@ wget https://github.com/sparisi/pvr_habitat/releases/download/models/moco_cropon
 
 To run the experiments in the paper, you can either rely on the provided ***G-PAYN*** and ***REPTILE*** models pre-trained on MSO, or retrain these models as described in the following section. For example, to train ***G-PAYN*** in the *MSO+Superquadrics* experiments, use `configs/exp_resprect/gpayn_MSO_superquadrics_MAE_save_rb.yaml` to save the replay buffer, and `configs/exp_resprect/gpayn_MSO_superquadrics_MAE.yaml` to train the model. Note that if you retrain these models, you have to modify the configuration files mentioned below accordingly.
 
-To train the model with ***RESPRECT***, you have to run the following:
+To train the model with ***RESPRECT***, for example in the *06_mustard_bottle+Superquadrics* experiment, you have to run the following from the `examples` directory:
 ```console
 python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/resprect_mustard_superquadrics.yaml
 ```
@@ -135,6 +135,23 @@ python3 icub_visuomanip_drl.py --cfg configs/exp_resprect/reptile_mustard_superq
 ```
 
 To reproduce the ***G-PAYN*** results, follow the instructions below, but consider using different configuration files to use MAE as feature extractor. For example, using `configs/exp_resprect/gpayn_mustard_superquadrics_MAE.yaml` instead of `configs/exp_gpayn/gpayn_mustard_superquadrics.yaml`.
+
+To replicate the experiments on the real iCub humanoid, you need to run the following modules before running the provided script to train a ***RESPRECT*** policy:
+- [`yarprobotinterface`](https://github.com/robotology/yarp) to run the robot.
+- [`iKinCartesianSolver`](https://github.com/robotology/icub-main/tree/master) for the right arm of the robot, using the parameter`--part right_arm`.
+- [`iKinGazeCtrl`](https://github.com/robotology/icub-main/tree/master), with the the parameter `--from config_no_imu_no_tilt.ini`.
+- [`yarprobotinterface`](https://github.com/robotology/yarp) with the parameter `--config realsense_d405.xml`.
+- [`realsense-holder-publisher`](https://github.com/robotology/realsense-holder-calibration) with the parameter `--from config_half_tilted_v27_d405.ini`.
+- [`skinManager`](https://github.com/robotology/icub-main/tree/master) with the parameters `--from skinManAll.ini --context skinGui`.
+
+Then, from the machine where you are running the experiment, you need to run `yarprun --server /laptop` and `yarpmanager`. From a separate terminal you can communicate with the robot via RPC with the command `yarp rpc --client /cmd`, for example to terminate an unsuccessful episode with the command `done_moved`. Then, in the `yarpmanager`, you need to load the application `rl_icub_dexterous_manipulation/yarp_modules/applications/app_resprect_icub.xml`, run all the modules and make all the connections.
+
+Finally, to train the ***RESPRECT*** model for example with the *06_mustard_bottle*, you have to run the following:
+```console
+python3 icub_visuomanip_drl_real.py --cfg configs/exp_resprect/resprect_real_mustard.yaml
+```
+
+Note that, to reproduce the experiments on a different setting from the one shown in the paper, you may need to set the parameters for point cloud filtering differently from the ones in the provided configuration files.
 
 ## Reproduce the G-PAYN paper results
 
