@@ -1,0 +1,79 @@
+<!-- SPDX-FileCopyrightText: 2023 Humanoid Sensing and Perception, Istituto Italiano di Tecnologia -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+
+
+<application>
+<name>resprect_icub</name>
+
+    <!--MODULES -->
+    <!-- Yarpview for visualization -->
+
+    <module>
+        <name>yarpview</name>
+        <node>laptop</node>
+        <parameters>--name /view_image --x 0 --y 0 --w 640 --h 480 --RefreshTime 33</parameters>
+    </module>
+    
+    <module>
+        <name>yarpview</name>
+        <node>laptop</node>
+        <parameters>--name /view_depth --x 0 --y 0 --w 640 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <!--CONNECTIONS -->
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/view_image</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/superq/image:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/view_depth</to>
+        <protocol>fast_tcp+recv.portmonitor+type.dll+file.depthimage_to_rgb</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/superq/depth:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/realsense-holder-publisher/pose:o</from>
+        <to>/superq/realsense_pose</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/icub/right_arm/state:o</from>
+        <to>/superq/r_arm_qpos</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/icub/cartesianController/right_arm/state:o</from>
+        <to>/superq/r_arm_xpos</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/icub/skin/right_hand_comp</from>
+        <to>/superq/r_hand_touch</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/cmd</from>
+        <to>/superq/command:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+</application>

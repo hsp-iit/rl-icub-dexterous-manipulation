@@ -842,7 +842,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
             for idx, done in enumerate(dones):
                 if done:
-                    # TODO added for training on the robot
+                    # Used for saving models when training on the real robot
                     if hasattr(self.env.envs[0].env, 'save_current_model'):
                         if self.env.envs[0].env.save_current_model:
                             save_model_path = ''
