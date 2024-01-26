@@ -42,9 +42,11 @@
 - [Reproduce the RESPRECT results](#reproduce-the-resprect-paper-results)
 - [Reproduce the G-PAYN results](#reproduce-the-g-payn-paper-results)
 - [License](#license)
-- [Citing this paper](#citing-this-paper)
+- [Citing the papers](#citing-the-papers)
 
 ## Updates
+
+2023-01-26 - Code release to replicate the results presented in the paper  **RESPRECT: Speeding-up Multi-fingered Grasping with ResidualReinforcement Learning**.
 
 2023-07-27 - Code release to replicate the results presented in the paper  **A Grasp Pose is All You Need: Learning Multi-fingered Grasping with Deep Reinforcement Learning from Vision and Touch**.
 
@@ -185,11 +187,22 @@ python3 icub_visuomanip_drl.py --cfg configs/exp_gpayn/sac_mustard_superquadrics
 
 The code is released under the *BSD 3-Clause License*. See [LICENCE](https://github.com/hsp-iit/rl-icub-dexterous-manipulation/blob/main/LICENSE) for further details.
 
-## Citing this paper
+## Citing the papers
 
-If you find any part of this code useful, please consider citing the associated publication:
+If you find any part of this code useful, please consider citing the associated publications:
 
 ```bibtex
+@ARTICLE{ceola2024resprect,
+  author={Ceola, Federico and Rosasco, Lorenzo and Natale, Lorenzo},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={RESPRECT: Speeding-up Multi-fingered Grasping with Residual Reinforcement Learning}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={},
+  keywords={Dexterous Manipulation; Multifingered Hands; Reinforcement Learning.},
+  doi={}}
+
 @INPROCEEDINGS{ceola2023gpayn,
   author={Ceola, Federico and Maiettini, Elisa and Rosasco, Lorenzo and Natale, Lorenzo},
   booktitle={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
