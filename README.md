@@ -17,8 +17,8 @@
  IEEE Robotics and Automation Letters, 2024.</div>
 
 <div align="center">
-  <a href=""><b>Paper</b></a> |
-  <a href=""><b>arXiv</b></a> |
+  <a href="https://ieeexplore.ieee.org/document/10423830"><b>Paper</b></a> |
+  <a href="http://arxiv.org/abs/2401.14858"><b>arXiv</b></a> |
   <a href="https://youtu.be/JRsBLVclhpg"><b>Video</b></a>
 </div>
 
@@ -30,7 +30,7 @@
  IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2023), Detroit, Michigan, USA.</div>
 
 <div align="center">
-  <a href=""><b>Paper</b></a> |
+  <a href="https://ieeexplore.ieee.org/document/10341776"><b>Paper</b></a> |
   <a href="https://arxiv.org/abs/2306.03484"><b>arXiv</b></a> |
   <a href="https://youtu.be/qc6gksKH3Mo"><b>Video</b></a>
 </div>
@@ -46,7 +46,7 @@
 
 ## Updates
 
-2023-01-26 - Code release to replicate the results presented in the paper  **RESPRECT: Speeding-up Multi-fingered Grasping with ResidualReinforcement Learning**.
+2024-01-26 - Code release to replicate the results presented in the paper  **RESPRECT: Speeding-up Multi-fingered Grasping with ResidualReinforcement Learning**.
 
 2023-07-27 - Code release to replicate the results presented in the paper  **A Grasp Pose is All You Need: Learning Multi-fingered Grasping with Deep Reinforcement Learning from Vision and Touch**.
 
@@ -115,6 +115,14 @@ wget https://github.com/sparisi/pvr_habitat/releases/download/models/moco_cropon
 ## Reproduce the RESPRECT paper results
 
 To run the experiments in the paper, you can either rely on the provided ***G-PAYN*** and ***REPTILE*** models pre-trained on MSO, or retrain these models as described in the following section. For example, to train ***G-PAYN*** in the *MSO+Superquadrics* experiments, use `configs/exp_resprect/gpayn_MSO_superquadrics_MAE_save_rb.yaml` to save the replay buffer, and `configs/exp_resprect/gpayn_MSO_superquadrics_MAE.yaml` to train the model. Note that if you retrain these models, you have to modify the configuration files mentioned below accordingly.
+
+To download the models pre-trained on *MSO*, you have to run the following:
+```console
+cd ../../examples/eval_dir
+curl -L https://dataverse.iit.it/api/access/dataset/:persistentId/?persistentId=doi:10.48557/IBDJYT -o models.zip
+unzip models.zip
+rm models.zip MANIFEST.TXT
+```
 
 To train the model with ***RESPRECT***, for example in the *06_mustard_bottle+Superquadrics* experiment, you have to run the following from the `examples` directory:
 ```console
@@ -199,9 +207,9 @@ If you find any part of this code useful, please consider citing the associated 
   year={2024},
   volume={},
   number={},
-  pages={},
+  pages={1-8},
   keywords={Dexterous Manipulation; Multifingered Hands; Reinforcement Learning.},
-  doi={}}
+  doi={10.1109/LRA.2024.3363532}}
 
 @INPROCEEDINGS{ceola2023gpayn,
   author={Ceola, Federico and Maiettini, Elisa and Rosasco, Lorenzo and Natale, Lorenzo},
