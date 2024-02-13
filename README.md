@@ -46,7 +46,7 @@
 
 ## Updates
 
-2024-01-26 - Code release to replicate the results presented in the paper  **RESPRECT: Speeding-up Multi-fingered Grasping with ResidualReinforcement Learning**.
+2024-01-26 - Code release to replicate the results presented in the paper  **RESPRECT: Speeding-up Multi-fingered Grasping with Residual Reinforcement Learning**.
 
 2023-07-27 - Code release to replicate the results presented in the paper  **A Grasp Pose is All You Need: Learning Multi-fingered Grasping with Deep Reinforcement Learning from Vision and Touch**.
 
